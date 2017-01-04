@@ -5,8 +5,10 @@ import assets
 import ui
 import utilities
 import ships
+import display
 import navigate
-
+import nom
+import os
 
 pygame.init()
 pygame.display.set_mode([0, 0])
@@ -33,8 +35,7 @@ class GameState(object):
         self.port_layer = None
         self.node_layer = None
         self.nav_edge_layer = None
-        self.nav_nodes = {}
-        self.nav_edges = {}
+        self.nav_mesh = None
 
     def get_date_string(self):
         date_string = "{0} {1} {2}".format(self.current_month,
@@ -65,49 +66,6 @@ def day_loop():
     pass
 
 
-def update_port_layer(port_layer, list_of_ports):
-    port_layer.fill(assets.key_color)
-    for each in list_of_ports:
-        port_layer.blit(assets.port_marker, [list_of_ports[each].x, list_of_ports[each].y])
-    port_layer.set_colorkey(assets.key_color)
-    port_layer = port_layer.convert_alpha()
-    print("Updated port layer")
-
-
-def update_node_layer(node_layer, list_of_nodes):
-    node_layer.fill(assets.key_color)
-    for each in list_of_nodes:
-        node_layer.blit(assets.node_marker, [list_of_nodes[each].x - 3, list_of_nodes[each].y - 3])
-    node_layer.set_colorkey(assets.key_color)
-    node_layer = node_layer.convert_alpha()
-    print("Updated node layer")
-
-
-def update_nav_edge_layer(nav_edge_layer, list_of_edges):
-    nav_edge_layer.fill(assets.key_color)
-    small_font = pygame.font.SysFont("Calibri", 10, True, False)
-    for each_id, each_edge in list_of_edges.items():
-        pygame.draw.line(nav_edge_layer,
-                         (255, 40, 40),
-                         (each_edge.points[0].x, each_edge.points[0].y),
-                         (each_edge.points[1].x, each_edge.points[1].y))
-    nav_edge_layer.set_colorkey(assets.key_color)
-    # nav_edge_layer = nav_edge_layer.convert_alpha()
-
-    for each_id, each_edge in list_of_edges.items():
-        cost_stamp = small_font.render(str(each_edge.cost), True, (255, 255, 255))
-        backing = pygame.Surface([cost_stamp.get_width(), cost_stamp.get_height()])
-        backing.fill((36, 92, 104))
-        x_dist = each_edge.x - each_edge.a
-        y_dist = each_edge.y - each_edge.b
-        cost_x = each_edge.x - (x_dist / 2)
-        cost_y = each_edge.y - (y_dist / 2)
-        backing.blit(cost_stamp, [0, 0])
-        backing.set_colorkey((36, 92, 104))
-        nav_edge_layer.blit(backing, [cost_x, cost_y])
-    # nav_edge_layer = nav_edge_layer.convert_alpha()
-
-
 def assign_spaces(new_ports, screen, scroll_x, scroll_y, game_state):
     for each in new_ports:
         not_placed = True
@@ -123,7 +81,7 @@ def assign_spaces(new_ports, screen, scroll_x, scroll_y, game_state):
                         x = mouse_pos[0] - scroll_x - 5
                         y = mouse_pos[1] - scroll_y - 5
                         game_state.ports[each] = (x, y)
-                        update_port_layer(game_state.port_layer, game_state.ports)
+                        game_state.update_port_layer(game_state.port_layer, game_state.ports)
                         print("placed")
                         not_placed = False
                 elif event.type == pygame.KEYDOWN:
@@ -144,8 +102,8 @@ def draw_to_screen(screen, scroll_x, scroll_y, game_state, placing_nodes=False, 
 
     screen.fill((0, 0, 255))
     screen.blit(assets.map_image, [scroll_x, scroll_y])
-    screen.blit(game_state.port_layer, [scroll_x, scroll_y])
-    screen.blit(game_state.node_layer, [scroll_x, scroll_y])
+    screen.blit(game_state.display.port_layer, [scroll_x, scroll_y])
+    screen.blit(game_state.display.node_layer, [scroll_x, scroll_y])
     screen.blit(assets.date_bar, [0, 0])
     date_stamp = font.render(game_state.get_date_string(), True, (0, 0, 0))
     screen.blit(date_stamp, [7, 7])
@@ -157,7 +115,7 @@ def draw_to_screen(screen, scroll_x, scroll_y, game_state, placing_nodes=False, 
         screen.blit(node_placement_stamp, [300, 10])
     if adding_neighbors:
         screen.blit(add_neighbors_stamp, [300, 10])
-        screen.blit(game_state.nav_edge_layer, [scroll_x, scroll_y])
+        screen.blit(game_state.display.edge_layer, [scroll_x, scroll_y])
         if selected_node:
             screen.blit(assets.selected_node_icon, [selected_node.x - 3 + scroll_x, selected_node.y - 3 + scroll_y])
     pygame.display.flip()
@@ -176,7 +134,8 @@ def scroll_handler(event, scroll_x, scroll_y):
 
 
 def add_neighbors(screen, scroll_x, scroll_y, game_state, selected_node):
-    print("adding neighbors to {0}".format(id(selected_node)))
+    print("adding neighbors to {0}".format(selected_node.id_tag))
+    print("Coordinates are: {0}  {1}".format(selected_node.x, selected_node.y))
     adding_neighbors = True
     while adding_neighbors:
         for event in pygame.event.get():
@@ -189,7 +148,7 @@ def add_neighbors(screen, scroll_x, scroll_y, game_state, selected_node):
                 mouse_y = mouse_xy[1] - scroll_y
                 if event.button == 3:
                     new_neighbor_id = None
-                    for each_id, each_node in game_state.nav_nodes.items():
+                    for each_id, each_node in game_state.nav_mesh.nodes.items():
                         if utilities.check_if_inside(each_node.x - 6,
                                                      each_node.x + 6,
                                                      each_node.y - 6,
@@ -201,35 +160,27 @@ def add_neighbors(screen, scroll_x, scroll_y, game_state, selected_node):
                         print("adding neighbor {0}".format(new_neighbor_id))
                         if new_neighbor_id not in selected_node.neighbors:
                             selected_node.neighbors.append(new_neighbor_id)
-                            neighbor_x, neighbor_y = game_state.nav_nodes[new_neighbor_id].x, game_state.nav_nodes[new_neighbor_id].y
-                            new_edge = navigate.MapEdge(selected_node.x,
-                                                        selected_node.y,
-                                                        neighbor_x,
-                                                        neighbor_y)
-                            new_edge.points.append(selected_node)
-                            new_edge.points.append(game_state.nav_nodes[new_neighbor_id])
-                            raw_cost = utilities.distance(new_edge.x, new_edge.y, new_edge.a, new_edge.b)
-                            raw_cost = round(raw_cost / 10) + 1
-                            new_edge.cost = raw_cost
+                            new_neighbor_node = game_state.nav_mesh.nodes[new_neighbor_id]
+                            new_neighbor_node.neighbors.append(selected_node.id_tag)
+                            neighbor_x, neighbor_y = new_neighbor_node.x, new_neighbor_node.y
                             duplicate_edge = False
-                            for each_id, each_edge in game_state.nav_edges.items():
+                            for each_id, each_edge in game_state.nav_mesh.edges.items():
                                 point_a = each_edge.points[0]
                                 point_b = each_edge.points[1]
-                                if point_a == selected_node and point_b == game_state.nav_nodes[new_neighbor_id]:
-                                    print("this connection already exists!")
-                                    duplicate_edge = True
-                                    break
-                                elif point_a == game_state.nav_nodes[new_neighbor_id] and point_b == selected_node:
-                                    print("this connection already exists!")
-                                    duplicate_edge = True
-                                    break
+                                duplicate_edge = game_state.nav_mesh.edge_match_check(each_edge,
+                                                                                      point_a,
+                                                                                      point_b,
+                                                                                      selected_node.id_tag,
+                                                                                      new_neighbor_id)
                             if not duplicate_edge:
                                 print("added an edge!")
-                                game_state.nav_edges[id(new_edge)] = new_edge
-                                update_node_layer(game_state.node_layer, game_state.nav_nodes)
-                                update_nav_edge_layer(game_state.nav_edge_layer, game_state.nav_edges)
-                        else:
-                            print("this connection already exists!")
+                                game_state.nav_mesh.add_edge(selected_node.x,
+                                                             selected_node.y,
+                                                             neighbor_x,
+                                                             neighbor_y,
+                                                             selected_node,
+                                                             new_neighbor_node)
+                                game_state.display.update(game_state.ports, game_state.nav_mesh.nodes, game_state.nav_mesh.edges)
 
                 elif event.button == 1:
                     selected_node = None
@@ -238,9 +189,9 @@ def add_neighbors(screen, scroll_x, scroll_y, game_state, selected_node):
             elif event.type == pygame.KEYDOWN:
                 scroll_x, scroll_y = scroll_handler(event, scroll_x, scroll_y)
                 if event.key == pygame.K_d:
-                    node_to_delete = id(selected_node)
+                    node_to_delete_id = selected_node.id_tag
                     adding_neighbors = False
-                    return node_to_delete
+                    return node_to_delete_id
         draw_to_screen(screen, scroll_x, scroll_y, game_state, False, True, selected_node)
         pygame.display.flip()
     return None
@@ -261,14 +212,12 @@ def place_nodes(screen, scroll_x, scroll_y, game_state):
                 mouse_y = mouse_xy[1] - scroll_y
                 if event.button == 3:
                     selected_node = None
-                    new_node = navigate.MapNode(mouse_x, mouse_y, True)
-                    new_node_id = id(new_node)
-                    game_state.nav_nodes[new_node_id] = new_node
-                    update_node_layer(game_state.node_layer, game_state.nav_nodes)
+                    game_state.nav_mesh.add_node(mouse_x, mouse_y, True)
+                    game_state.display.update(game_state.ports, game_state.nav_mesh.nodes, game_state.nav_mesh.edges)
 
                 elif event.button == 1:
                     selected_node = None
-                    for each_id, each_node in game_state.nav_nodes.items():
+                    for each_id, each_node in game_state.nav_mesh.nodes.items():
                         if utilities.check_if_inside(each_node.x - 3,
                                                      each_node.x + 3,
                                                      each_node.y - 3,
@@ -277,20 +226,19 @@ def place_nodes(screen, scroll_x, scroll_y, game_state):
                             selected_node = each_node
                             break
                     if selected_node:
-                        node_to_delete = add_neighbors(screen, scroll_x, scroll_y, game_state, selected_node)
-                        selected_node = None
-                        if node_to_delete:
-                            del game_state.nav_nodes[node_to_delete]
+                        node_to_delete_id = add_neighbors(screen, scroll_x, scroll_y, game_state, selected_node)
+                        if node_to_delete_id:
+                            print("deleting a Node")
+                            del game_state.nav_mesh.nodes[node_to_delete_id]
                             bad_edges = []
-                            for each_id, each_edge in game_state.nav_edges.items():
+                            for each_id, each_edge in game_state.nav_mesh.edges.items():
                                 point_a, point_b = each_edge.points
-
-                                if id(point_a) == node_to_delete or id(point_b) == node_to_delete:
+                                if point_a.id_tag == node_to_delete_id or point_b.id_tag == node_to_delete_id:
                                     bad_edges.append(each_id)
                             for each in bad_edges:
-                                del game_state.nav_edges[each]
-                            update_node_layer(game_state.node_layer, game_state.nav_nodes)
-                            update_nav_edge_layer(game_state.nav_edge_layer, game_state.nav_edges)
+                                del game_state.nav_mesh.edges[each]
+                            game_state.display.update(game_state.ports, game_state.nav_mesh.nodes, game_state.nav_mesh.edges)
+                        selected_node = None
             elif event.type == pygame.KEYDOWN:
                 scroll_x, scroll_y = scroll_handler(event, scroll_x, scroll_y)
                 if event.key == pygame.K_d:
@@ -303,13 +251,16 @@ def place_nodes(screen, scroll_x, scroll_y, game_state):
 def new_game():
     new_game = GameState()
     new_game.player = Player()
-    port_layer_width = assets.map_image.get_width()
-    port_layer_height = assets.map_image.get_height()
-    node_layer_width = assets.map_image.get_width()
-    node_layer_height = assets.map_image.get_height()
-    new_game.port_layer = pygame.Surface([port_layer_width, port_layer_height])
-    new_game.node_layer = pygame.Surface([node_layer_width, node_layer_height])
-    new_game.nav_edge_layer = pygame.Surface([node_layer_width, node_layer_height])
+    map_pixel_width = assets.map_image.get_width()
+    map_pixel_height = assets.map_image.get_height()
+    new_game.display = display.MapDisplayLayer(map_pixel_width, map_pixel_height)
+    new_game.nav_mesh = navigate.MapMesh(map_pixel_width, map_pixel_height)
+
+    if os.path.exists("maps/MAP_001.txt"):
+        map_node_file = open("maps/MAP_001.txt", 'r+')
+        nodes = nom.read_saved_nodes(map_node_file)
+        new_game.nav_mesh.rebuild_nav_mesh(nodes)
+
     new_game.current_year = 1600
     new_game.current_month = "January"
     new_game.current_day = 1
@@ -325,9 +276,7 @@ def new_game():
                                               new_port_y)
     new_game.randomize_port_commodities()
     new_game.randomize_port_demand()
-    update_port_layer(new_game.port_layer, new_game.ports)
-    update_node_layer(new_game.node_layer, new_game.nav_nodes)
-    update_nav_edge_layer(new_game.nav_edge_layer, new_game.nav_edges)
+    new_game.display.update(new_game.ports, new_game.nav_mesh.nodes, new_game.nav_mesh.edges)
     return new_game
 
 
@@ -354,6 +303,8 @@ def main():
                     assign_spaces(screen, scroll_x, scroll_y, date, game_state.player)
                 elif event.key == pygame.K_c:
                     print_list_of_ports(game_state.ports)
+                elif event.key == pygame.K_s:
+                    nom.save_nav_mesh(game_state.nav_mesh.nodes)
                 elif event.key == pygame.K_n:
                     place_nodes(screen, scroll_x, scroll_y, game_state)
                 scroll_x, scroll_y = scroll_handler(event, scroll_x, scroll_y)
