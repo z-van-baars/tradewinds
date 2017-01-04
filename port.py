@@ -48,7 +48,7 @@ port_coordinates = {"London": (1305, 245),
 
 def get_demand():
     demand = utilities.roll_dice(3, 40)
-    if random.randint(100) < 5:
+    if random.randint(1, 100) < 5:
         demand += utilities.roll_dice(3, 40)
     demand *= 0.1
     return demand
@@ -61,6 +61,8 @@ class Port(object):
         self.name = name
         self.demand = {}
         self.supply = {}
+        self.sell_price = {}
+        self.purchase_price = {}
         self.distance_to = {}
 
     def set_supply(self):
@@ -73,6 +75,8 @@ class Port(object):
     def set_demand_for_spices(self):
         for each in spice.spices:
             self.demand[each] = get_demand()
+            self.sell_price[each] = round(self.demand[each] * spice.base_cost[each] * 0.8)
+            self.purchase_price[each] = round(self.demand[each] * spice.base_cost[each] * 1.1)
 
     def calculate_distances(self, ports):
         for each in ports:

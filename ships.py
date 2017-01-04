@@ -4,6 +4,7 @@ class Ship(object):
     def __init__(self, speed, cargo_cap, crew_cap, defense, attack, wounds, cost):
         self.x = 0
         self.y = 0
+        self.node = None
         self.speed = speed
         self.cargo_cap = cargo_cap
         self.crew_cap = crew_cap
