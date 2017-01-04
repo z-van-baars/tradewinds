@@ -71,6 +71,13 @@ class MapNode(object):
         self.passable = passable
         self.cost = 1
 
+    def remove_neighbor_id(self, old_id):
+        remaining_neighbors = []
+        for each_id in self.neighbors:
+            if each_id != old_id:
+                remaining_neighbors.append(each_id)
+        self.neighbors = remaining_neighbors
+
 
 class MapEdge(object):
     def __init__(self, x, y, a, b):

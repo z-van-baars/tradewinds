@@ -133,6 +133,51 @@ def scroll_handler(event, scroll_x, scroll_y):
     return scroll_x, scroll_y
 
 
+def add_neighbors_right_click(selected_node, mouse_x, mouse_y, nav_mesh, nodes, edges):
+    hitbox_tolerance = 6
+    """Pixel tolerance on screen to accomodate for fat fingering.  Smaller is more precise but harder
+    to hit, wider is easier to hit but less accurate."""
+
+    new_neighbor_id = None
+    for each_id, each_node in nodes.items():
+        if utilities.check_if_inside(each_node.x - hitbox_tolerance,
+                                     each_node.x + hitbox_tolerance,
+                                     each_node.y - hitbox_tolerance,
+                                     each_node.y + hitbox_tolerance,
+                                     (mouse_x, mouse_y)):
+            new_neighbor_id = each_id
+            break
+    if new_neighbor_id:
+        print("Trying to add neighbor {0}...".format(new_neighbor_id))
+        if new_neighbor_id not in selected_node.neighbors:
+            selected_node.neighbors.append(new_neighbor_id)
+
+            duplicate_edge = False
+            for each_id, each_edge in edges.items():
+                point_a = each_edge.points[0]
+                point_b = each_edge.points[1]
+                duplicate_edge = nav_mesh.edge_match_check(each_edge,
+                                                           point_a,
+                                                           point_b,
+                                                           selected_node.id_tag,
+                                                           new_neighbor_id)
+            if not duplicate_edge:
+                print("Added a new Edge!")
+                new_neighbor_node = nodes[new_neighbor_id]
+                new_neighbor_node.neighbors.append(selected_node.id_tag)
+                neighbor_x, neighbor_y = new_neighbor_node.x, new_neighbor_node.y
+                nav_mesh.add_edge(selected_node.x,
+                                  selected_node.y,
+                                  neighbor_x,
+                                  neighbor_y,
+                                  selected_node,
+                                  new_neighbor_node)
+            else:
+                print("This edge already exists!")
+    else:
+        print("Try clicking on a node next time.")
+
+
 def add_neighbors(screen, scroll_x, scroll_y, game_state, selected_node):
     print("adding neighbors to {0}".format(selected_node.id_tag))
     print("Coordinates are: {0}  {1}".format(selected_node.x, selected_node.y))
@@ -147,40 +192,13 @@ def add_neighbors(screen, scroll_x, scroll_y, game_state, selected_node):
                 mouse_x = mouse_xy[0] - scroll_x
                 mouse_y = mouse_xy[1] - scroll_y
                 if event.button == 3:
-                    new_neighbor_id = None
-                    for each_id, each_node in game_state.nav_mesh.nodes.items():
-                        if utilities.check_if_inside(each_node.x - 6,
-                                                     each_node.x + 6,
-                                                     each_node.y - 6,
-                                                     each_node.y + 6,
-                                                     (mouse_x, mouse_y)):
-                            new_neighbor_id = each_id
-                            break
-                    if new_neighbor_id:
-                        print("adding neighbor {0}".format(new_neighbor_id))
-                        if new_neighbor_id not in selected_node.neighbors:
-                            selected_node.neighbors.append(new_neighbor_id)
-                            new_neighbor_node = game_state.nav_mesh.nodes[new_neighbor_id]
-                            new_neighbor_node.neighbors.append(selected_node.id_tag)
-                            neighbor_x, neighbor_y = new_neighbor_node.x, new_neighbor_node.y
-                            duplicate_edge = False
-                            for each_id, each_edge in game_state.nav_mesh.edges.items():
-                                point_a = each_edge.points[0]
-                                point_b = each_edge.points[1]
-                                duplicate_edge = game_state.nav_mesh.edge_match_check(each_edge,
-                                                                                      point_a,
-                                                                                      point_b,
-                                                                                      selected_node.id_tag,
-                                                                                      new_neighbor_id)
-                            if not duplicate_edge:
-                                print("added an edge!")
-                                game_state.nav_mesh.add_edge(selected_node.x,
-                                                             selected_node.y,
-                                                             neighbor_x,
-                                                             neighbor_y,
-                                                             selected_node,
-                                                             new_neighbor_node)
-                                game_state.display.update(game_state.ports, game_state.nav_mesh.nodes, game_state.nav_mesh.edges)
+                    add_neighbors_right_click(selected_node,
+                                              mouse_x,
+                                              mouse_y,
+                                              game_state.nav_mesh,
+                                              game_state.nav_mesh.nodes,
+                                              game_state.nav_mesh.edges)
+                    game_state.display.update(game_state.ports, game_state.nav_mesh.nodes, game_state.nav_mesh.edges)
 
                 elif event.button == 1:
                     selected_node = None
@@ -229,6 +247,8 @@ def place_nodes(screen, scroll_x, scroll_y, game_state):
                         node_to_delete_id = add_neighbors(screen, scroll_x, scroll_y, game_state, selected_node)
                         if node_to_delete_id:
                             print("deleting a Node")
+                            for each_neighbor_id in selected_node.neighbors:
+                                game_state.nav_mesh.nodes[each_neighbor_id].remove_neighbor_id(node_to_delete_id)
                             del game_state.nav_mesh.nodes[node_to_delete_id]
                             bad_edges = []
                             for each_id, each_edge in game_state.nav_mesh.edges.items():
