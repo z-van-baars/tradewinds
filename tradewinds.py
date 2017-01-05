@@ -37,6 +37,12 @@ class GameState(object):
         self.nav_edge_layer = None
         self.nav_mesh = None
 
+    def add_new_port(self, port_id, x, y, parent_node_id=None):
+        new_port = port.Port(port_id, x, y)
+        new_port.parent_node = parent_node_id
+        new_port.name = port_id
+        self.ports[port_id] = new_port
+
     def get_date_string(self):
         date_string = "{0} {1} {2}".format(self.current_month,
                                            self.current_day,
@@ -62,8 +68,8 @@ class GameState(object):
             each_port.set_demand_for_spices()
 
 
-def day_loop():
-    pass
+def day_loop(game_state):
+    game_state.player.ship.move(game_state.nav_mesh)
 
 
 def assign_spaces(new_ports, screen, scroll_x, scroll_y, game_state):
@@ -89,6 +95,41 @@ def assign_spaces(new_ports, screen, scroll_x, scroll_y, game_state):
         draw_to_screen(screen, scroll_x, scroll_y, game_state)
 
 
+def assign_port_nodes(ports, screen, scroll_x, scroll_y, game_state):
+    hitbox_tolerance = 6
+    """Pixel tolerance on screen to accomodate for fat fingering.  Smaller is more precise but harder
+    to hit, wider is easier to hit but less accurate."""
+
+    print("Assigning port parent nodes")
+
+    for each_id, each_port in ports.items():
+        assigned = False
+        print("Port Name: {0}".format(each_id))
+        while not assigned:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.display.quit()
+                    pygame.quit()
+                elif event.type == pygame.MOUSEBUTTONDOWN:
+                    mouse_pos = pygame.mouse.get_pos()
+                    if event.button == 1:
+                        x = mouse_pos[0] - scroll_x
+                        y = mouse_pos[1] - scroll_y
+                        for each_node_id, each_node in game_state.nav_mesh.nodes.items():
+                            clicked_a_node = utilities.check_if_inside(each_node.x - hitbox_tolerance,
+                                                                       each_node.x + hitbox_tolerance,
+                                                                       each_node.y - hitbox_tolerance,
+                                                                       each_node.y + hitbox_tolerance,
+                                                                       (x, y))
+                            if clicked_a_node:
+                                each_port.parent_node = each_node_id
+                                assigned = True
+                elif event.type == pygame.KEYDOWN:
+                    scroll_x, scroll_y = scroll_handler(event, scroll_x, scroll_y)
+            draw_to_screen(screen, scroll_x, scroll_y, game_state)
+        print("port {0} assigned to node {1}".format(each_id, each_port.parent_node))
+
+
 def print_list_of_ports(list_of_ports):
     for each_port in list_of_ports:
         print(each_port, list_of_ports[each_port])
@@ -109,13 +150,14 @@ def draw_to_screen(screen, scroll_x, scroll_y, game_state, placing_nodes=False, 
     screen.blit(date_stamp, [7, 7])
     silver_stamp = font.render("$ {0}".format(str(game_state.player.silver)), True, (0, 0, 0))
     screen.blit(silver_stamp, [130, 7])
-    screen.blit(assets.ship_icon, [game_state.player.ship.x + scroll_x,
-                                   game_state.player.ship.y + scroll_y])
+    screen.blit(assets.ship_icon, [game_state.player.ship.x + scroll_x - 15,
+                                   game_state.player.ship.y + scroll_y - 25])
+    screen.blit(game_state.display.edge_layer, [scroll_x, scroll_y])
+
     if placing_nodes:
         screen.blit(node_placement_stamp, [300, 10])
     if adding_neighbors:
         screen.blit(add_neighbors_stamp, [300, 10])
-        screen.blit(game_state.display.edge_layer, [scroll_x, scroll_y])
         if selected_node:
             screen.blit(assets.selected_node_icon, [selected_node.x - 3 + scroll_x, selected_node.y - 3 + scroll_y])
     pygame.display.flip()
@@ -268,6 +310,24 @@ def place_nodes(screen, scroll_x, scroll_y, game_state):
         pygame.display.flip()
 
 
+def ship_right_click(screen, scroll_x, scroll_y, game_state, mouse_pos):
+    for port_id, port_object in game_state.ports.items():
+        if utilities.check_if_inside(port_object.x + scroll_x,
+                                     port_object.x + scroll_x + 10,
+                                     port_object.y + scroll_y,
+                                     port_object.y + scroll_y + 10,
+                                     mouse_pos):
+            port_popup = ui.PortPopup(screen,
+                                      game_state.player,
+                                      port_object)
+            goto = port_popup.menu_onscreen()
+            if goto:
+                game_state.player.ship.clear_target()
+                game_state.player.ship.target_node = port_object.parent_node
+                game_state.player.ship.target_port = port_id
+            break
+
+
 def new_game():
     new_game = GameState()
     new_game.player = Player()
@@ -277,23 +337,21 @@ def new_game():
     new_game.nav_mesh = navigate.MapMesh(map_pixel_width, map_pixel_height)
 
     if os.path.exists("maps/MAP_001.txt"):
-        map_node_file = open("maps/MAP_001.txt", 'r+')
-        nodes = nom.read_saved_nodes(map_node_file)
+        map_file = open("maps/MAP_001.txt", 'r')
+        text_lines = map_file.readlines()
+        nodes = nom.read_saved_nodes(text_lines)
         new_game.nav_mesh.rebuild_nav_mesh(nodes)
+        restored_ports = nom.read_saved_ports(text_lines)
+        for each_port_id, port_data in restored_ports.items():
+            new_game.add_new_port(each_port_id, port_data[0], port_data[1], port_data[2])
 
     new_game.current_year = 1600
     new_game.current_month = "January"
     new_game.current_day = 1
     new_game.player.silver = 100
     new_game.player.ship = ships.Cog()
+    new_game.player.ship.node = new_game.ports['London'].parent_node
     new_game.player.ship.cargo["Pepper"] = 10
-
-    for port_name in port.port_coordinates:
-        new_port_x = port.port_coordinates[port_name][0]
-        new_port_y = port.port_coordinates[port_name][1]
-        new_game.ports[port_name] = port.Port(port_name,
-                                              new_port_x,
-                                              new_port_y)
     new_game.randomize_port_commodities()
     new_game.randomize_port_demand()
     new_game.display.update(new_game.ports, new_game.nav_mesh.nodes, new_game.nav_mesh.edges)
@@ -317,6 +375,13 @@ def main():
                 pygame.display.quit()
                 pygame.quit()
             elif event.type == pygame.KEYDOWN:
+                """KEYBOARD COMMANDS:
+                   [Q] = Quit
+                   [P] = assign port x/y display coordinates one by one for all ports
+                   [C] = print a list of all assigned ports and their coordinates [REDUNDANT COMMAND SINCE PORTS CAN NOW BE SAVED TO TXT]
+                   [S] = save nav mesh data (nodes only) to txt along with ports and their parent nodes
+                   [N] = Create new nodes or assign neighbor nodes
+                   [A] = Assign parent nodes to ports one by one"""
                 if event.key == pygame.K_q:
                     playing = False
                 elif event.key == pygame.K_p:
@@ -324,37 +389,31 @@ def main():
                 elif event.key == pygame.K_c:
                     print_list_of_ports(game_state.ports)
                 elif event.key == pygame.K_s:
-                    nom.save_nav_mesh(game_state.nav_mesh.nodes)
+                    nom.save_data(game_state.nav_mesh.nodes, game_state.ports)
                 elif event.key == pygame.K_n:
                     place_nodes(screen, scroll_x, scroll_y, game_state)
+                elif event.key == pygame.K_a:
+                    assign_port_nodes(game_state.ports, screen, scroll_x, scroll_y, game_state)
                 scroll_x, scroll_y = scroll_handler(event, scroll_x, scroll_y)
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 pos = pygame.mouse.get_pos()
-                for key, value in game_state.ports.items():
-                    if utilities.check_if_inside(value.x + scroll_x,
-                                                 value.x + scroll_x + 10,
-                                                 value.y + scroll_y,
-                                                 value.y + scroll_y + 10,
-                                                 pos):
-                        port_popup = ui.PortPopup(screen,
-                                                  game_state.player,
-                                                  value)
-                        goto = port_popup.menu_onscreen()
-                        if goto:
-                            game_state.player.ship.x = value.x
-                            game_state.player.ship.y = value.y
-                            draw_to_screen(screen, scroll_x, scroll_y, game_state)
-                        if game_state.player.ship.x == value.x and game_state.player.ship.y == value.y:
-                            port_menu = ui.PortMenu(screen,
-                                                    game_state.player,
-                                                    value)
-                            port_menu.menu_onscreen()
-        draw_to_screen(screen, scroll_x, scroll_y, game_state)
+                if event.button == 3:
+                    ship_right_click(screen, scroll_x, scroll_y, game_state, pos)
+        if game_state.player.ship.target_node == game_state.player.ship.node:
+            target_port_id = game_state.player.ship.target_port
+            port_menu = ui.PortMenu(screen,
+                                    game_state.player,
+                                    game_state.ports[target_port_id])
+            port_menu.menu_onscreen()
+            game_state.player.ship.clear_target()
         day_timer += 1
         if day_timer >= game_speed:
             day_timer = 0
-            day_loop()
+            day_loop(game_state)
             game_state.advance_date()
+        game_state.player.ship.set_display_coordinates(game_state.nav_mesh.nodes[game_state.player.ship.node].x,
+                                                       game_state.nav_mesh.nodes[game_state.player.ship.node].y)
+        draw_to_screen(screen, scroll_x, scroll_y, game_state)
         clock.tick(fps_cap)
 
 main()

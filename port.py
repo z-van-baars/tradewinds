@@ -59,6 +59,7 @@ class Port(object):
         self.x = x
         self.y = y
         self.name = name
+        self.parent_node = None
         self.demand = {}
         self.supply = {}
         self.sell_price = {}

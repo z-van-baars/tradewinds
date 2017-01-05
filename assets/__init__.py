@@ -19,7 +19,7 @@ node_marker = node_marker.convert_alpha()
 selected_node_icon = pygame.image.load("assets/art/selected_node_icon.png").convert_alpha()
 selected_node_icon.set_colorkey(key_color)
 selected_node_icon = selected_node_icon.convert_alpha()
-ship_icon = pygame.image.load("assets/art/ship_icon.png").convert_alpha()
+ship_icon = pygame.image.load("assets/art/galleon_icon.png").convert_alpha()
 ship_icon.set_colorkey(key_color)
 ship_icon = ship_icon.convert_alpha()
 

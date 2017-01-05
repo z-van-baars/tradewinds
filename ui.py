@@ -501,9 +501,16 @@ class QuantityMenu(Menu):
         self.update_display_cache()
 
         def quantity_up_click():
+            cargo_margin = 0
+            cargo_margin += self.player.ship.cargo_cap
+            loaded_cargo = 0
+            for commodity_name, commodity_quantity in self.player.ship.cargo.items():
+                loaded_cargo += commodity_quantity
+            cargo_margin -= loaded_cargo
             if self.commodity_quantity < commodity_max:
                 self.commodity_quantity = min(self.commodity_quantity + self.step,
-                                              commodity_max)
+                                              commodity_max,
+                                              cargo_margin)
             self.update_display_cache()
 
         def quantity_down_click():

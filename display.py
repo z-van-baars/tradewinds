@@ -17,7 +17,6 @@ class MapDisplayLayer(object):
 
     def update_edge_layer(self, list_of_edges):
         edge_layer = self.edge_layer
-        print(len(list_of_edges))
         edge_layer.fill(assets.key_color)
         small_font = pygame.font.SysFont("Calibri", 10, True, False)
         for each_id, each_edge in list_of_edges.items():
