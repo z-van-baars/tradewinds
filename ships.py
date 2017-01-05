@@ -1,23 +1,52 @@
 import navigate
+import assets
 
 
 class Ship(object):
-    def __init__(self, speed, cargo_cap, crew_cap, defense, attack, wounds, cost):
+    def __init__(self, speed, cargo_cap, crew_cap, defense, attack, wounds, purchase_cost):
+        """
+        CARGO CAP
+        Max Loaded Cargo in Tons.  Less loaded cargo increases speed, but this has
+        not been implemented.
+        CREW CAP
+        Maximum number of crew the ship can support.  Ships have a minimum needed, but
+        additional crew can be taken on to increase speed, attack/defense power, etc.
+        For now this does nothing, and crew is always at cap maximum.
+        SPEED
+        Gotta go fast.  For now this does nothing.
+        DEFENSE
+        Defensive power of the ship.  Ability to resist cannon shots and repel boarders during
+        attacks.  Negates incoming attack power
+        ATTACK
+        Attack Power (cannons, small arms, etc).  Think Warhammer.
+        PURCHASE COST
+        Self Explanatory.
+        WOUNDS
+        for combat purposes.  Multiple wounds means you can fail more than one defense roll during
+        combat before losing the ship.  Again, think Warhammer.
+        """
         self.cargo_cap = cargo_cap
         self.crew_cap = crew_cap
+        self.speed = speed
         self.defense = defense
         self.attack = attack
-        self.cost = cost
+        self.purchase_cost = purchase_cost
         self.wounds = wounds
 
+        """x y pair for screen rendering"""
         self.x = 0
         self.y = 0
+        """node ID of current node"""
         self.node = None
+        """path object.  Should be None if there is no target"""
         self.path = None
+        """Target Node ID (for now this will always be chained to the target port / port ID)"""
         self.target_node = None
         self.target_port = None
-        self.speed = speed
         self.move_timer = 0
+        """
+        CARGO Dictionary
+        Keys are plaintext names of commodities or spices, e.g. 'Nutmeg' and the value is a quantity in Int form"""
         self.cargo = {}
 
     def clear_target(self):
@@ -51,7 +80,6 @@ class Ship(object):
             else:
                 self.move_timer -= 1
 
-
     def get_path(self):
         navigate.get_path()
 
@@ -59,33 +87,47 @@ class Ship(object):
 class Cog(Ship):
     def __init__(self):
         super().__init__(10, 50, 10, 10, 10, 1, 1000)
+        self.icon = assets.cog_icon
+        self.hull_class = "Cog"
 
 
 class Carrack(Ship):
     def __init__(self):
         super().__init__(12, 150, 20, 11, 15, 2, 2000)
+        self.icon = assets.carrack_icon
+        self.hull_class = "Carrack"
 
 
 class Argosy(Ship):
     def __init__(self):
         super().__init__(12, 200, 25, 11, 12, 2, 2500)
+        self.icon = assets.argosy_icon
+        self.hull_class = "Argosy"
 
 
 class Caravel(Ship):
     def __init__(self):
         super().__init__(15, 300, 30, 15, 15, 2, 5000)
+        self.icon = assets.argosy_icon
+        self.hull_class = "Caravel"
 
 
 class Galleon(Ship):
     def __init__(self):
         super().__init__(12, 500, 50, 25, 25, 3, 10000)
+        self.icon = assets.galleon_icon
+        self.hull_class = "Galleon"
 
 
 class Fluyt(Ship):
     def __init__(self):
         super().__init__(15, 750, 25, 12, 10, 2, 10000)
+        self.icon = assets.galleon_icon
+        self.hull_class = "Fluyt"
 
 
 class Corvette(Ship):
     def __init__(self):
         super().__init__(15, 250, 50, 25, 40, 3, 12000)
+        self.icon = assets.galleon_icon
+        self.hull_class = "Corvette"

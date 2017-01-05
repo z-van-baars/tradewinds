@@ -2,6 +2,7 @@ import pygame
 import utilities
 import assets
 import spice
+import copy
 
 
 class Button(object):
@@ -82,6 +83,79 @@ class Menu(object):
             self.render_decals(self.screen)
 
             pygame.display.flip()
+
+
+class ShipStatusMenu(Menu):
+    def __init__(self, screen, player):
+        super().__init__(screen, player)
+        self.background_pane = pygame.sprite.Sprite()
+        self.background_pane.image = assets.ship_status_screen
+        self.background_pane.rect = self.background_pane.image.get_rect()
+        self.background_pane.rect.x = screen.get_width() / 2 - (self.background_pane.image.get_width() / 2)
+        self.background_pane.rect.y = (screen.get_height() / 2) - (self.background_pane.image.get_height() / 2)
+
+        def x_click():
+            self.open = False
+
+        def cargo_up_click():
+            pass
+
+        def cargo_down_click():
+            pass
+
+        x_button = Button(assets.x_regular,
+                          assets.x_hover,
+                          x_click,
+                          self.background_pane.rect.right - 23,
+                          self.background_pane.rect.top + 3)
+        cargo_up_arrow = Button(assets.arrow_up_regular,
+                                assets.arrow_up_hover,
+                                cargo_up_click,
+                                self.background_pane.rect.right - 31,
+                                self.background_pane.rect.top + 207)
+        cargo_down_arrow = Button(assets.arrow_down_regular,
+                                  assets.arrow_down_hover,
+                                  cargo_down_click,
+                                  self.background_pane.rect.right - 31,
+                                  self.background_pane.rect.bottom - 34)
+
+        self.buttons = [x_button, cargo_up_arrow, cargo_down_arrow]
+
+    def keydown_handler(self, key):
+        if key == pygame.K_z:
+            self.open = False
+
+    def render_decals(self, screen):
+        x = self.background_pane.rect.x
+        y = self.background_pane.rect.y
+        ship = self.player.ship
+        font = pygame.font.SysFont("Calibri", 14, True, False)
+        hull_stamp = font.render(ship.hull_class, True, (255, 255, 255))
+        current_cargo = 0
+        for commodity_name, commodity_quantity in ship.cargo.items():
+            current_cargo += commodity_quantity
+        cargo_stamp = font.render("{0}t / {1}t".format(str(current_cargo),
+                                                       str(ship.cargo_cap)),
+                                  True,
+                                  (255, 255, 255))
+        speed_stamp = font.render(str(ship.speed), True, (255, 255, 255))
+        defense_stamp = font.render(str(ship.defense), True, (255, 255, 255))
+        attack_stamp = font.render(str(ship.attack), True, (255, 255, 255))
+        wound_stamp = font.render(str(ship.wounds), True, (255, 255, 255))
+        crew_stamp = font.render("{0} / {1}".format(str(ship.crew_cap), str(ship.crew_cap)), True, (255, 255, 255))
+        upkeep_stamp = font.render("${0}".format(str(ship.crew_cap)), True, (255, 255, 255))
+        screen.blit(hull_stamp, [x + 130, y + 55])
+        screen.blit(cargo_stamp, [x + 130, y + 72])
+        screen.blit(speed_stamp, [x + 130, y + 89])
+        screen.blit(defense_stamp, [x + 130, y + 106])
+        screen.blit(attack_stamp, [x + 130, y + 123])
+        screen.blit(wound_stamp, [x + 130, y + 140])
+        screen.blit(crew_stamp, [x + 130, y + 157])
+        screen.blit(upkeep_stamp, [x + 130, y + 174])
+        large_icon = copy.copy(self.player.ship.icon)
+        large_icon = pygame.transform.scale(large_icon, (60, 60))
+
+        screen.blit(large_icon, [x + 215 + 50, y + 30 + 50])
 
 
 class PortPopup(Menu):

@@ -68,8 +68,12 @@ class GameState(object):
             each_port.set_demand_for_spices()
 
 
-def day_loop(game_state):
+def end_of_day(game_state):
     game_state.player.ship.move(game_state.nav_mesh)
+
+
+def end_of_month(game_state):
+    pass
 
 
 def assign_spaces(new_ports, screen, scroll_x, scroll_y, game_state):
@@ -150,8 +154,8 @@ def draw_to_screen(screen, scroll_x, scroll_y, game_state, placing_nodes=False, 
     screen.blit(date_stamp, [7, 7])
     silver_stamp = font.render("$ {0}".format(str(game_state.player.silver)), True, (0, 0, 0))
     screen.blit(silver_stamp, [130, 7])
-    screen.blit(assets.ship_icon, [game_state.player.ship.x + scroll_x - 15,
-                                   game_state.player.ship.y + scroll_y - 25])
+    screen.blit(game_state.player.ship.icon, [game_state.player.ship.x + scroll_x - 15,
+                                              game_state.player.ship.y + scroll_y - 25])
     screen.blit(game_state.display.edge_layer, [scroll_x, scroll_y])
 
     if placing_nodes:
@@ -381,7 +385,8 @@ def main():
                    [C] = print a list of all assigned ports and their coordinates [REDUNDANT COMMAND SINCE PORTS CAN NOW BE SAVED TO TXT]
                    [S] = save nav mesh data (nodes only) to txt along with ports and their parent nodes
                    [N] = Create new nodes or assign neighbor nodes
-                   [A] = Assign parent nodes to ports one by one"""
+                   [A] = Assign parent nodes to ports one by one
+                   [Z] = Open Ship Status Screen"""
                 if event.key == pygame.K_q:
                     playing = False
                 elif event.key == pygame.K_p:
@@ -394,6 +399,9 @@ def main():
                     place_nodes(screen, scroll_x, scroll_y, game_state)
                 elif event.key == pygame.K_a:
                     assign_port_nodes(game_state.ports, screen, scroll_x, scroll_y, game_state)
+                elif event.key == pygame.K_z:
+                    ship_status_menu = ui.ShipStatusMenu(screen, game_state.player)
+                    ship_status_menu.menu_onscreen()
                 scroll_x, scroll_y = scroll_handler(event, scroll_x, scroll_y)
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 pos = pygame.mouse.get_pos()
@@ -409,7 +417,7 @@ def main():
         day_timer += 1
         if day_timer >= game_speed:
             day_timer = 0
-            day_loop(game_state)
+            end_of_day(game_state)
             game_state.advance_date()
         game_state.player.ship.set_display_coordinates(game_state.nav_mesh.nodes[game_state.player.ship.node].x,
                                                        game_state.nav_mesh.nodes[game_state.player.ship.node].y)
