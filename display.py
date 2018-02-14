@@ -1,57 +1,30 @@
 import pygame
-import assets
+import math
+import utilities
+import state
 
 
-class MapDisplayLayer(object):
-    def __init__(self, width, height):
-        self.width = width
-        self.height = height
-        self.node_layer = pygame.Surface([width, height])
-        self.edge_layer = pygame.Surface([width, height])
-        self.port_layer = pygame.Surface([width, height])
+tiny_font = pygame.font.SysFont('Calibri', 11, True, False)
+small_font = pygame.font.SysFont('Calibri', 14, True, False)
 
-    def update(self, ports, nodes, edges):
-        self.update_node_layer(nodes)
-        self.update_port_layer(ports)
-        self.update_edge_layer(edges)
 
-    def update_edge_layer(self, list_of_edges):
-        edge_layer = self.edge_layer
-        edge_layer.fill(assets.key_color)
-        small_font = pygame.font.SysFont("Calibri", 10, True, False)
-        for each_id, each_edge in list_of_edges.items():
-            pygame.draw.line(edge_layer,
-                             (255, 40, 40),
-                             (each_edge.points[0].x, each_edge.points[0].y),
-                             (each_edge.points[1].x, each_edge.points[1].y))
-        edge_layer.set_colorkey(assets.key_color)
+def print_stats(game_state, selected_construct):
+    pass
 
-        for each_id, each_edge in list_of_edges.items():
-            cost_stamp = small_font.render(str(each_edge.cost), True, (255, 255, 255))
-            backing = pygame.Surface([cost_stamp.get_width(), cost_stamp.get_height()])
-            backing.fill((36, 92, 104))
-            x_dist = each_edge.x - each_edge.a
-            y_dist = each_edge.y - each_edge.b
-            cost_x = each_edge.x - (x_dist / 2)
-            cost_y = each_edge.y - (y_dist / 2)
-            backing.blit(cost_stamp, [0, 0])
-            backing.set_colorkey((36, 92, 104))
-            edge_layer.blit(backing, [cost_x, cost_y])
 
-    def update_port_layer(self, list_of_ports):
-        port_layer = self.port_layer
-        port_layer.fill(assets.key_color)
-        for each in list_of_ports:
-            port_layer.blit(assets.port_marker, [list_of_ports[each].x, list_of_ports[each].y])
-        port_layer.set_colorkey(assets.key_color)
-        port_layer = port_layer.convert_alpha()
-        print("Updated port layer")
+def update_display(game_state, selected_tile, background_left, background_top, background_right, background_bottom, background_x_middle, mouse_pos):
+    active_map = game_state.active_map
+    game_state.screen.fill(utilities.colors.background_blue)
+    game_state.screen.blit(active_map.tile_display_layer.image, [background_left,
+                                                                 background_top])
 
-    def update_node_layer(self, list_of_nodes):
-        node_layer = self.node_layer
-        node_layer.fill(assets.key_color)
-        for each in list_of_nodes:
-            node_layer.blit(assets.node_marker, [list_of_nodes[each].x - 3, list_of_nodes[each].y - 3])
-        node_layer.set_colorkey(assets.key_color)
-        node_layer = node_layer.convert_alpha()
-    print("Updated node layer")
+    if selected_tile:
+        selected_coords = utilities.get_screen_coords(selected_tile.column,
+                                                      selected_tile.row)
+
+    game_state.screen.blit(active_map.terrain_display_layer.image, [background_left,
+                                                                    background_top])
+    # game_state.screen.blit(active_map.building_display_layer.image, [background_left,
+                                                                     # background_top])
+
+    pygame.display.flip()
