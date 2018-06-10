@@ -106,6 +106,6 @@ screen_height = 1000
 game_state = state.GameState(screen_width, screen_height)
 
 
-game_state.active_map = game_map.Map((300, 300), (screen_width, screen_height))
+game_state.active_map = game_map.Map((200, 200), (screen_width, screen_height))
 mapgen.map_generation(game_state.active_map)
 main(game_state)

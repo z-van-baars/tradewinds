@@ -2,11 +2,12 @@ import pygame
 import math
 import random
 import pickle
+import numpy as np
 
 
 pygame.mixer.pre_init(44100, -16, 1, 512)
 pygame.init()
-pygame.display.set_caption("Minos v 0.1")
+pygame.display.set_caption("Tradewinds v 0.1")
 
 
 months = ["January",
@@ -21,7 +22,6 @@ months = ["January",
           "October",
           "November",
           "December"]
-
 
 
 class Calendar(object):
@@ -60,11 +60,20 @@ class Colors(object):
         self.brown = (112, 87, 46)
         self.biome_colors = {"ocean": (0, 0, 255),
                              "ice": (255, 255, 255),
+                             "snowpack": (255, 255, 255),
                              "tundra": (8, 248, 252),
+                             "snowy tundra": (8, 248, 252),
                              "taiga": (88, 224, 119),
                              "grassland": (0, 210, 0),
+                             "jungle": (77, 142, 61),
+                             "forest": (29, 71, 19),
+                             "shrubland": (90, 70, 46),
+                             "snowpack": (225, 225, 255),
                              "plains": (112, 87, 46),
-                             "desert": (244, 240, 70)}
+                             "wet plains": (112, 87, 46),
+                             "desert": (244, 240, 70),
+                             "savannah": (244, 167, 66),
+                             "river": (255, 255, 255)}
 
 
 colors = Colors()
@@ -146,6 +155,7 @@ def within_map(x, y, current_map):
 
 
 def get_adjacent_tiles(tile, current_map):
+    # excludes center tile
     initial_x = tile.column - 1
     initial_y = tile.row - 1
     adjacent_tiles = []
@@ -158,6 +168,7 @@ def get_adjacent_tiles(tile, current_map):
 
 
 def get_adjacent_movement_tiles(tile, current_map):
+    # includes center tile
     initial_x = tile.column - 1
     initial_y = tile.row - 1
     adjacent_tiles = []

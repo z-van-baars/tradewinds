@@ -7,6 +7,7 @@ import math
 import random
 import construct
 import art
+import numpy as np
 
 tile_width = 40
 tile_height = 15
@@ -26,6 +27,7 @@ class Map(object):
     def __init__(self, map_dimensions, screen_dimensions):
         self.tile_display_layer = None
         self.terrain_display_layer = None
+        self.resource_display_layer = None
         self.building_display_layer = None
         self.screen_dimensions = screen_dimensions
         self.width = map_dimensions[0]
@@ -33,6 +35,7 @@ class Map(object):
         self.number_of_columns = map_dimensions[0]
         self.number_of_rows = map_dimensions[1]
         self.game_tile_rows = []
+        self.cities = []
         self.displayshift_x = 0
         self.displayshift_y = 0
 
@@ -42,7 +45,7 @@ class Map(object):
         background_x_middle = (self.tile_display_layer.image.get_width() / 2)
         for y_row in game_tile_rows:
             for tile in y_row:
-                new_tile_image = art.biome_images[tile.biome]
+                new_tile_image = random.choice(art.biome_images[tile.biome])
                 x, y = utilities.get_screen_coords(tile.column, tile.row)
                 self.tile_display_layer.image.blit(new_tile_image, [x + background_x_middle + (tile_width / 2), y])
         self.tile_display_layer.image.set_colorkey(colors.key)
@@ -54,12 +57,36 @@ class Map(object):
         background_x_middle = (self.tile_display_layer.image.get_width() / 2)
         for y_row in game_tile_rows:
             for tile in y_row:
-                if tile.terrain:
-                    new_terrain_image = art.terrain_images[tile.terrain]
+                if tile.terrain and art.terrain_images[tile.terrain][tile.biome]:
+                    new_terrain_image = random.choice(art.terrain_images[tile.terrain][tile.biome])
                     x, y = utilities.get_screen_coords(tile.column, tile.row)
                     self.tile_display_layer.image.blit(new_terrain_image, [x + background_x_middle + (tile_width / 2), y - 25])
         self.terrain_display_layer.image.set_colorkey(colors.key)
         self.terrain_display_layer.image = self.tile_display_layer.image.convert_alpha()
+
+    def paint_resource_layer(self, game_tile_rows):
+        tile_width = 40
+        self.resource_display_layer = DisplayLayer(self.width, self.height)
+        background_x_middle = (self.resource_display_layer.image.get_width() / 2)
+        for y_row in game_tile_rows:
+            for tile in y_row:
+                if tile.resource:
+                    new_resource_image = random.choice(art.resource_images[tile.resource])
+                    x, y = utilities.get_screen_coords(tile.column, tile.row)
+                    self.resource_display_layer.image.blit(new_resource_image, [x + background_x_middle + (tile_width / 2), y - 25])
+        self.resource_display_layer.image.set_colorkey(colors.key)
+        self.resource_display_layer.image = self.resource_display_layer.image.convert_alpha()
+
+    def paint_building_layer(self, game_tile_rows):
+        tile_width = 40
+        self.building_display_layer = DisplayLayer(self.width, self.height)
+        background_x_middle = (self.building_display_layer.image.get_width() / 2)
+        for city in self.cities:
+            new_city_image = art.city_1
+            x, y = utilities.get_screen_coords(city.column, city.row)
+            self.building_display_layer.image.blit(new_city_image, [x + background_x_middle + (tile_width / 2), y])
+        self.building_display_layer.image.set_colorkey(colors.key)
+        self.building_display_layer.image = self.building_display_layer.image.convert_alpha()
 
     def world_scroll(self, shift_x, shift_y, screen_width, screen_height):
         background_width = self.tile_display_layer.image.get_width()
