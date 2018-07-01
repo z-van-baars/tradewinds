@@ -15,6 +15,7 @@ pygame.display.set_mode([0, 0])
 
 
 def generate_heightmap(active_map):
+    print("generating heightmap...")
     gen = OpenSimplex(random.randrange(100000))
 
     def noise(nx, ny):
@@ -52,6 +53,7 @@ def generate_heightmap(active_map):
 
 
 def generate_tempmap(width, height):
+    print("generating tempmap...")
     gen = OpenSimplex(random.randrange(100000))
 
     def noise(nx, ny):
@@ -114,6 +116,7 @@ def generate_tempmap(width, height):
 
 
 def generate_moisture_map(width, height, elevation, water_cutoff):
+    print("generating moisture map...")
     gen = OpenSimplex(random.randrange(100000))
 
     def noise(nx, ny):
@@ -137,6 +140,7 @@ def generate_moisture_map(width, height, elevation, water_cutoff):
 
 
 def generate_rivers(active_map, water_cutoff):
+    print("running rivers...")
     river_cutoff = 1000
     moisture_layers = queue.PriorityQueue()
     for y_row in active_map.game_tile_rows:
@@ -258,6 +262,7 @@ def generate_land(active_map, water_cutoff):
 
 
 def generate_terrain(active_map):
+    print("generating terrain...")
     low_hill_cutoff = 0.7
     hill_cutoff = 0.725
     low_mountain_cutoff = 0.75
@@ -302,8 +307,8 @@ def pick_from_available_resources(active_map, tile):
 def place_resources(active_map, max_cluster_size):
     max_retries = 5
     number_of_clusters = math.floor(math.sqrt(active_map.width * active_map.height) / 4)
-    print("number of clusters")
-    print(number_of_clusters)
+    print("placing resources...")
+    print("number of clusters: {0}".format(number_of_clusters))
     for ii in range(number_of_clusters):
         cluster_size = random.randint(1, max_cluster_size)
         tile_chosen = False
@@ -381,6 +386,7 @@ def render_raw_maps(active_map, width, height, raw_maps, exclusive=None):
                 biome = active_map.game_tile_rows[y][x].biome
                 tile_marker.fill(utilities.colors.biome_colors[biome])
                 raw_maps[3].blit(tile_marker, [x, y])
+
         tile_marker.fill(utilities.colors.purple)
         for each in active_map.cities:
             # zoc_tiles = utilities.get_nearby_tiles(active_map, [each.column, each.row], 8)
@@ -440,7 +446,7 @@ def render_raw_maps(active_map, width, height, raw_maps, exclusive=None):
                     largest = score
                 tile_marker.fill(score_gradient[value])
                 raw_maps[5].blit(tile_marker, [x, y])
-        print("largest score recorder: {0}".format(largest))
+        # print("largest score recorder: {0}".format(largest))
 
 
 def map_generation(active_map):
@@ -513,27 +519,18 @@ def map_generation(active_map):
                 pygame.quit()
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_RETURN:
-                    print("generating heightmap...")
                     raw_maps = reset_previews(width, height)
                     scaled_maps = reset_resized(display_scale, width, height)
                     generate_heightmap(active_map)
-                    print("generating tempmap...")
                     active_map.temperature = generate_tempmap(width, height)
-                    print("generating moisture map...")
                     active_map.moisture = generate_moisture_map(width, height, active_map.elevation, water_cutoff)
-                    print("generating terrain...")
                     generate_land(active_map, water_cutoff)
                     generate_terrain(active_map)
-                    print("running rivers...")
                     generate_rivers(active_map, water_cutoff)
-                    print("placing resources...")
                     place_resources(active_map, max_resource_cluster_size)
                     print("map complete")
-                    render_raw_maps(active_map, width, height, raw_maps, "height")
-                    render_raw_maps(active_map, width, height, raw_maps, "temp")
-                    render_raw_maps(active_map, width, height, raw_maps, "moisture")
-                    render_raw_maps(active_map, width, height, raw_maps, "water flux")
-                    render_raw_maps(active_map, width, height, raw_maps, "biome")
+                    for map_type in ('height', 'temp', 'moisture', 'water flux', 'biome'):
+                        render_raw_maps(active_map, width, height, raw_maps, map_type)
                     display_width = width
                     display_height = height
                     if display_scale:
@@ -561,7 +558,6 @@ def map_generation(active_map):
                     print("surveying city candidates...")
                     zone_of_control, food_score, temperature_score, resource_score, city_score, city_candidates = city.survey_city_sites(active_map)
                     number_of_cities = math.floor(math.sqrt(active_map.width * active_map.height) / 5)
-                    active_map.cities = []
                     active_map.city_score = city_score
                     cities = []
 
@@ -600,6 +596,7 @@ def map_generation(active_map):
                         pygame.display.flip()
                         clock.tick(60)
                         time.sleep(0.5)
+                    active_map.cities = cities
                     print("cities placed!")
                 elif event.key == pygame.K_SPACE:
                     accepted = True

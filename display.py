@@ -49,6 +49,9 @@ def update_display(game_state, selected_tile, background_left, background_top, b
                                                           background_top])
     screen.blit(active_map.building_display_layer.image, [background_left,
                                                           background_top])
+    player_coordinates = utilities.get_screen_coords(game_state.player.column, game_state.player.row)
+    screen.blit(game_state.player.image, [player_coordinates[0] + background_left, player_coordinates[1] + background_top])
+    print(player_coordinates[0] + background_left, player_coordinates[1] + background_top)
     screen.blit(art.mini_map_preview, [screen.get_width() - 200, 0])
     screen.blit(pygame.transform.rotate(map_image, -45), [screen.get_width() - 198, 2])
     pygame.draw.rect(screen, utilities.colors.red, visible_tile_square, 1)

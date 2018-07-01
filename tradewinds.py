@@ -4,6 +4,8 @@ import game_map
 import state
 import display
 import mapgen
+import random
+import player
 
 pygame.init()
 pygame.display.set_mode([0, 0])
@@ -108,4 +110,8 @@ game_state = state.GameState(screen_width, screen_height)
 
 game_state.active_map = game_map.Map((200, 200), (screen_width, screen_height))
 mapgen.map_generation(game_state.active_map)
+start_location = random.choice(game_state.active_map.cities)
+# game_state.player = player.Player(start_location.column, start_location.row)
+game_state.player = player.Player(100, 100)
+print(start_location.column, start_location.row)
 main(game_state)

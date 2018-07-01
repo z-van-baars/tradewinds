@@ -1,7 +1,12 @@
-import utilities
+import utilities as util
 import queue
 import time
 import math
+import random
+import numpy as np
+import pygame
+from scipy.ndimage import label, generate_binary_structure
+
 
 food_value = {"taiga": 2,
               "tundra": 1,
@@ -52,6 +57,12 @@ terrain_movement_cost = {"mountain": 5.0,
                          "vegetation": 1}
 
 
+class City(object):
+    def __init__(self, x, y):
+        self.column = x
+        self.row = y
+
+
 def evaluate_local_food(active_map, zone_of_control):
     # local_tiles = utilities.get_nearby_tiles(active_map, (tile.column, tile.row), 3)
     total_local_food = 0
@@ -74,26 +85,49 @@ def get_movement_cost(active_map, tile):
     return cost
 
 
+def cull_interior_watermasses(active_map):
+    water_array = np.ones((active_map.width, active_map.height))
+    for row in active_map.game_tile_rows:
+        for tile in row:
+            if not tile.biome == "ocean":
+                water_array[tile.column, tile.row] = 0
+    s = generate_binary_structure(2, 2)
+    labeled_array, num_features = label(water_array, structure=s)
+    print("water bodies: {0}".format(num_features))
+
+    # filter the labeled array into layers. `==` does the filtering
+    layers = [(labeled_array == i) for i in range(1, num_features + 1)]
+
+    for subarray in layers:
+        print(np.sum(subarray))
+
+    sorted_water_bodies = sorted(((np.sum(subarray), subarray) for subarray in layers), key=lambda x: x[0], reverse=True)
+    for size, water_body in sorted_water_bodies:
+        print(size)
+    largest_water_body = sorted_water_bodies[0][1]
+    return largest_water_body
+
+
 def evaluate_connectivity(active_map, evaluated_coast_tiles, tile):
     print("evaluating...")
 
     def evaluate_frontier_tile(frontier_tile, edge_tiles):
-        neighbors = utilities.get_adjacent_tiles(frontier_tile, active_map)
+        neighbors = util.get_adjacent_tiles(frontier_tile, active_map)
         for each in neighbors:
             if each.biome == "ocean" and each not in connected_ocean_tiles:
                 connected_ocean_tiles.append(each)
-                frontier.put(each)
+                frontier.pop(0)
             elif each.biome != "ocean" and each not in edge_tiles:
                 edge_tiles.append(each)
 
     ocean_size_threshold = (active_map.width * active_map.height) * 0.10
 
-    frontier = queue.PriorityQueue()
-    frontier.put(tile)
+    frontier = []
+    frontier.append(tile)
     edge_tiles = []
     connected_ocean_tiles = []
     while not frontier.empty():
-        frontier_tile = frontier.get()
+        frontier_tile = frontier.pop(0)
         evaluate_frontier_tile(frontier_tile, edge_tiles)
         print(len(connected_ocean_tiles))
 
@@ -116,7 +150,7 @@ def get_zone_of_control_old(active_map, tile):
         cost_so_far, new_tile = frontier.get()
         if new_tile not in zone_of_control:
             zone_of_control.append(new_tile)
-            neighbors = utilities.get_adjacent_tiles(new_tile, active_map)
+            neighbors = util.get_adjacent_tiles(new_tile, active_map)
             for each in neighbors:
                 if get_movement_cost(active_map, each) + cost_so_far < max_move_cost and each not in zone_of_control:
                     frontier.put((cost_so_far + get_movement_cost(active_map, each), each))
@@ -124,14 +158,14 @@ def get_zone_of_control_old(active_map, tile):
 
 
 def get_zone_of_control(active_map, tile):
-    zone_of_control = utilities.get_nearby_tiles(active_map, (tile.column, tile.row), 4)
+    zone_of_control = util.get_nearby_tiles(active_map, (tile.column, tile.row), 4)
     return zone_of_control
 
 
 def evaluate_distance_to_cities(cities, tile):
     total_distance_score = 0
     for each in cities:
-        distance = utilities.distance(tile.column, tile.row, each.column, each.row)
+        distance = util.distance(tile.column, tile.row, each.column, each.row)
         distance = max(0, 6 - distance)
         total_distance_score += distance * 20
     return math.floor(total_distance_score)
@@ -163,9 +197,9 @@ def add_new_city(active_map, city_candidates, zone_of_control, food_score, tempe
         else:
             active_map.city_score[each.row][each.column] = 0
 
-    print("debug C")
     score, candidate = city_sites.get()
-    cities.append(candidate)
+    new_city = City(candidate.column, candidate.row)
+    cities.append(new_city)
     active_map.city_score[candidate.row][candidate.column] = 0
     city_candidates.remove(candidate)
     return cities
@@ -173,23 +207,23 @@ def add_new_city(active_map, city_candidates, zone_of_control, food_score, tempe
 
 def cull_non_coastal_tiles(city_candidates, active_map):
     print("culling non coastal tiles...")
+
     coastal_tiles = []
     for each_tile in city_candidates:
-        neighbor_tiles = utilities.get_adjacent_tiles(each_tile, active_map)
+        neighbor_tiles = util.get_adjacent_tiles(each_tile, active_map)
         if any(neighbor.biome == "ocean" for neighbor in neighbor_tiles):
             coastal_tiles.append(each_tile)
+
     connected_coastal_tiles = []
-    evaluated_coastal_tiles = {}
+    largest_water_body = cull_interior_watermasses(active_map)
+    print(largest_water_body)
     for each in coastal_tiles:
-        print("{0} of {1}...".format(coastal_tiles.index(each) + 1, len(coastal_tiles)))
-        if each not in evaluated_coastal_tiles:
-            evaluated_coastal_tiles[each], evaluated_coastal_tiles = evaluate_connectivity(active_map,
-                                                                                           evaluated_coastal_tiles,
-                                                                                           each)
-    for each in coastal_tiles:
-        if evaluated_coastal_tiles[each]:
+        neighbor_tiles = util.get_adjacent_tiles(each, active_map)
+        if any(largest_water_body[neighbor.column, neighbor.row] == 1 for neighbor in neighbor_tiles):
             connected_coastal_tiles.append(each)
-    print("non coastal tiles culled!")
+        else:
+            print("dropped an interior coastline tile")
+
     return connected_coastal_tiles
 
 
@@ -200,12 +234,14 @@ def survey_city_sites(active_map):
             if x.biome != "ocean" and x.biome != "ice":
                 if x.terrain != "mountain" and x.terrain != "low_mountain" and x.terrain != "hill":
                     city_candidates.append(x)
+
     city_candidates = cull_non_coastal_tiles(city_candidates, active_map)
     food_score = []
     temperature_score = []
     zone_of_control = []
     city_score = []
     resource_score = []
+
     for y in range(active_map.height):
         row = []
         row2 = []
@@ -224,6 +260,7 @@ def survey_city_sites(active_map):
         resource_score.append(row3)
         city_score.append(row4)
         active_map.city_score = city_score
+
     for each in city_candidates:
         zone_of_control[each.row][each.column] = get_zone_of_control(active_map, each)
         food_score[each.row][each.column] = evaluate_local_food(active_map, zone_of_control[each.row][each.column])

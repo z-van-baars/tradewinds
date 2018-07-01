@@ -7,7 +7,6 @@ import math
 import random
 import construct
 import art
-import numpy as np
 
 tile_width = 40
 tile_height = 15
@@ -115,7 +114,7 @@ class Map(object):
             objects_to_draw.put((screen_coordinates[1], screen_coordinates[0], each))
 
         while not objects_to_draw.empty():
-            y, x, construct = objects_to_draw.get()
-            screen.blit(construct.sprite.image, [(x + self.x_shift),
-                                                 (y + self.y_shift)])
+            y, x, graphic = objects_to_draw.get()
+            screen.blit(graphic.sprite.image, [(x + self.x_shift),
+                                               (y + self.y_shift)])
 
