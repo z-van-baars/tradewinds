@@ -1,11 +1,13 @@
-import utilities
+import utilities as util
 import pygame
 import art
+import ships
 
 
 class Player(object):
     def __init__(self, x, y):
         self.column = x
         self.row = y
-        self.image = pygame.Surface([30, 30])
-        self.image.blit(art.cog_icon, [0, 0])
+        starter_cog = ships.Cog()
+        self.ship = starter_cog
+        self.silver = 0

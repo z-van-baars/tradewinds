@@ -59,6 +59,8 @@ class Colors(object):
         self.key = (255, 0, 128)
         self.brown = (112, 87, 46)
         self.biome_colors = {"ocean": (0, 0, 255),
+                             "sea": (25, 25, 255),
+                             "shallows": (50, 50, 255),
                              "ice": (255, 255, 255),
                              "snowpack": (255, 255, 255),
                              "tundra": (8, 248, 252),

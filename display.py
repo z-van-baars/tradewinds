@@ -25,23 +25,26 @@ def print_stats(game_state, selected_construct):
     pass
 
 
-def update_display(game_state, selected_tile, background_left, background_top, background_right, background_bottom, background_x_middle, mouse_pos):
+def update_display(game_state, selected_tile, display_parameters, mouse_pos, map_xy):
+    background_left, background_top, background_right, background_bottom, background_x_middle = display_parameters
     active_map = game_state.active_map
     screen = game_state.screen
     game_state.screen.fill(utilities.colors.background_blue)
     map_image = active_map.biome_map_preview
+    tile_width = 40
 
     visible_tile_square, x, y = get_visible_tile_square(background_left,
                                                         background_top,
                                                         background_x_middle,
                                                         screen.get_width(),
                                                         screen.get_height())
-    # game_state.screen.blit(active_map.tile_display_layer.image, [background_left,
-                                                                 # background_top])
+    game_state.screen.blit(active_map.tile_display_layer.image, [background_left,
+                                                                 background_top])
 
     if selected_tile:
-        selected_coords = utilities.get_screen_coords(selected_tile.column,
-                                                      selected_tile.row)
+        st_pixel_coordinates = utilities.get_screen_coords(map_xy[0], map_xy[1])
+        st_screen_coordinates = st_pixel_coordinates[0] + background_x_middle + (tile_width / 2) - 20, st_pixel_coordinates[1] + background_top
+        screen.blit(art.selected_tile_image, [st_screen_coordinates[0], st_screen_coordinates[1]])
 
     screen.blit(active_map.terrain_display_layer.image, [background_left,
                                                          background_top])
@@ -49,9 +52,12 @@ def update_display(game_state, selected_tile, background_left, background_top, b
                                                           background_top])
     screen.blit(active_map.building_display_layer.image, [background_left,
                                                           background_top])
-    player_coordinates = utilities.get_screen_coords(game_state.player.column, game_state.player.row)
-    screen.blit(game_state.player.image, [player_coordinates[0] + background_left, player_coordinates[1] + background_top])
-    print(player_coordinates[0] + background_left, player_coordinates[1] + background_top)
+    # converts the player's x, y tile to pixel coordinates
+    player_pixel_coordinates = utilities.get_screen_coords(game_state.player.column, game_state.player.row)
+    # offsets the true pixel coordinates by the current display shift
+    player_screen_coordinates = player_pixel_coordinates[0] + background_x_middle + (tile_width / 2), player_pixel_coordinates[1] + background_top
+    # 20 and 25 are graphical offsets - x and y - so that the player's ship image is centered on the tile
+    screen.blit(game_state.player.ship.image, [player_screen_coordinates[0] - 20, player_screen_coordinates[1] - 25])
     screen.blit(art.mini_map_preview, [screen.get_width() - 200, 0])
     screen.blit(pygame.transform.rotate(map_image, -45), [screen.get_width() - 198, 2])
     pygame.draw.rect(screen, utilities.colors.red, visible_tile_square, 1)

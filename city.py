@@ -3,10 +3,19 @@ import queue
 import time
 import math
 import random
+import artikel
 import numpy as np
 import pygame
 from scipy.ndimage import label, generate_binary_structure
 
+
+city_names = []
+
+cn = open('city_names.txt', 'r')
+lines = cn.readlines()
+for line in lines:
+    city_names.append(line[:-1])
+cn.close()
 
 food_value = {"taiga": 2,
               "tundra": 1,
@@ -22,6 +31,8 @@ food_value = {"taiga": 2,
               "ice": 0,
               "shrubland": 1,
               "ocean": 1,
+              "sea": 1,
+              "shallows": 1,
               "lake": 1,
               "river": 1}
 
@@ -46,6 +57,8 @@ movement_cost = {"taiga": 1,
                  "ice": 3,
                  "shrubland": 2,
                  "ocean": 1,
+                 "sea": 1,
+                 "shallows": 1,
                  "lake": 1,
                  "river": 1}
 
@@ -57,10 +70,39 @@ terrain_movement_cost = {"mountain": 5.0,
                          "vegetation": 1}
 
 
+def get_demand():
+    demand = util.roll_dice(3, 40)
+    if random.randint(1, 100) < 5:
+        demand += util.roll_dice(3, 40)
+    demand *= 0.1
+    return demand
+
+
 class City(object):
-    def __init__(self, x, y):
+    def __init__(self, x, y, name):
         self.column = x
         self.row = y
+        self.name = name
+        self.demand = {}
+        self.supply = {}
+        self.produces = {}
+        self.industries = []
+        self.sell_price = {}
+        self.purchase_price = {}
+
+        self.set_random_supply()
+        self.set_demand_for_artikels()
+
+    def set_random_supply(self):
+        for resource in artikel.all_resources:
+            self.supply[resource] = random.randint(0, 100)
+
+    def set_demand_for_artikels(self):
+        for artikel_id in artikel.all_resources:
+            base_price = 100
+            self.demand[artikel_id] = get_demand()
+            self.sell_price[artikel_id] = round(self.demand[artikel_id] * base_price * 0.8)
+            self.purchase_price[artikel_id] = round(self.demand[artikel_id] * base_price * 1.1)
 
 
 def evaluate_local_food(active_map, zone_of_control):
@@ -89,7 +131,7 @@ def cull_interior_watermasses(active_map):
     water_array = np.ones((active_map.width, active_map.height))
     for row in active_map.game_tile_rows:
         for tile in row:
-            if not tile.biome == "ocean":
+            if tile.biome not in ["ocean", "sea", "shallows"]:
                 water_array[tile.column, tile.row] = 0
     s = generate_binary_structure(2, 2)
     labeled_array, num_features = label(water_array, structure=s)
@@ -108,60 +150,6 @@ def cull_interior_watermasses(active_map):
     return largest_water_body
 
 
-def evaluate_connectivity(active_map, evaluated_coast_tiles, tile):
-    print("evaluating...")
-
-    def evaluate_frontier_tile(frontier_tile, edge_tiles):
-        neighbors = util.get_adjacent_tiles(frontier_tile, active_map)
-        for each in neighbors:
-            if each.biome == "ocean" and each not in connected_ocean_tiles:
-                connected_ocean_tiles.append(each)
-                frontier.pop(0)
-            elif each.biome != "ocean" and each not in edge_tiles:
-                edge_tiles.append(each)
-
-    ocean_size_threshold = (active_map.width * active_map.height) * 0.10
-
-    frontier = []
-    frontier.append(tile)
-    edge_tiles = []
-    connected_ocean_tiles = []
-    while not frontier.empty():
-        frontier_tile = frontier.pop(0)
-        evaluate_frontier_tile(frontier_tile, edge_tiles)
-        print(len(connected_ocean_tiles))
-
-    if len(connected_ocean_tiles) > ocean_size_threshold:
-        for each in edge_tiles:
-            evaluated_coast_tiles[each] = True
-        return True, evaluated_coast_tiles
-    for each in edge_tiles:
-        evaluated_coast_tiles[each] = False
-    return False, evaluated_coast_tiles
-
-
-def get_zone_of_control_old(active_map, tile):
-    frontier = queue.PriorityQueue()
-    frontier.put((get_movement_cost(active_map, tile), tile))
-    max_move_cost = 5
-    zone_of_control = []
-    while not frontier.empty():
-
-        cost_so_far, new_tile = frontier.get()
-        if new_tile not in zone_of_control:
-            zone_of_control.append(new_tile)
-            neighbors = util.get_adjacent_tiles(new_tile, active_map)
-            for each in neighbors:
-                if get_movement_cost(active_map, each) + cost_so_far < max_move_cost and each not in zone_of_control:
-                    frontier.put((cost_so_far + get_movement_cost(active_map, each), each))
-    return zone_of_control
-
-
-def get_zone_of_control(active_map, tile):
-    zone_of_control = util.get_nearby_tiles(active_map, (tile.column, tile.row), 4)
-    return zone_of_control
-
-
 def evaluate_distance_to_cities(cities, tile):
     total_distance_score = 0
     for each in cities:
@@ -174,16 +162,17 @@ def evaluate_distance_to_cities(cities, tile):
 def evaluate_total_score(zone_of_control, food_score, temperature_score, resource_score, tile, existing_cities):
     distance_score = evaluate_distance_to_cities(existing_cities, tile)
     city_score = len(zone_of_control) + food_score + temperature_score + resource_score * 15 - distance_score
-    # print("City Score: {0} / Zone of Control {1} / Food Score {2} / Resource Score {3} / Distance Score {4}".format(city_score, len(zone_of_control), food_score, resource_score, distance_score))
-    # print(len(zone_of_control), local_food, city_score)
-    # print("city_scored...")
     time.sleep(0)
     return city_score
 
 
+def get_zone_of_control(active_map, tile):
+    zone_of_control = util.get_nearby_tiles(active_map, (tile.column, tile.row), 4)
+    return zone_of_control
+
+
 def add_new_city(active_map, city_candidates, zone_of_control, food_score, temperature_score, resource_score, cities):
     city_sites = queue.PriorityQueue()
-    print(len(city_candidates))
     for each in city_candidates:
         city_score = evaluate_total_score(zone_of_control[each.row][each.column],
                                           food_score[each.row][each.column],
@@ -198,8 +187,15 @@ def add_new_city(active_map, city_candidates, zone_of_control, food_score, tempe
             active_map.city_score[each.row][each.column] = 0
 
     score, candidate = city_sites.get()
-    new_city = City(candidate.column, candidate.row)
+    name_chosen = False
+    while not name_chosen:
+        new_name = random.choice(city_names)
+        if not any((city.name == new_name) for city in active_map.cities):
+            name_chosen = True
+    print(new_name)
+    new_city = City(candidate.column, candidate.row, new_name)
     cities.append(new_city)
+    candidate.city = new_city
     active_map.city_score[candidate.row][candidate.column] = 0
     city_candidates.remove(candidate)
     return cities
@@ -211,7 +207,7 @@ def cull_non_coastal_tiles(city_candidates, active_map):
     coastal_tiles = []
     for each_tile in city_candidates:
         neighbor_tiles = util.get_adjacent_tiles(each_tile, active_map)
-        if any(neighbor.biome == "ocean" for neighbor in neighbor_tiles):
+        if any(neighbor.biome in ['ocean', 'sea', 'shallows'] for neighbor in neighbor_tiles):
             coastal_tiles.append(each_tile)
 
     connected_coastal_tiles = []
@@ -231,7 +227,7 @@ def survey_city_sites(active_map):
     city_candidates = []
     for y in active_map.game_tile_rows:
         for x in y:
-            if x.biome != "ocean" and x.biome != "ice":
+            if x.biome != "ocean" and x.biome != "ice" and x.biome != "sea" and x.biome != "shallows":
                 if x.terrain != "mountain" and x.terrain != "low_mountain" and x.terrain != "hill":
                     city_candidates.append(x)
 

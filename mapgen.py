@@ -247,18 +247,27 @@ def pick_biome(temperature, moisture):
     return(biomes[temperature][moisture])
 
 
-def generate_land(active_map, water_cutoff):
+def generate_biomes(active_map, water_cutoff):
+    shallows_cutoff = 0.5
+    sea_cutoff = 0.45
+    ocean_cutoff = 0.4
     biome_temps, biome_moisture = get_biome_parameters()
     for y_row in active_map.game_tile_rows:
         for tile in y_row:
-            if active_map.elevation[tile.row][tile.column] >= water_cutoff:
+            biome = "ocean"
+            if active_map.elevation[tile.row][tile.column] >= shallows_cutoff:
                 temperature = active_map.temperature[tile.row][tile.column]
                 moisture = active_map.moisture[tile.row][tile.column]
                 biome = pick_biome(biome_temps[temperature], biome_moisture[moisture])
                 if biome == "plains":
                     if active_map.moisture[tile.row][tile.column] >= 55:
                         biome = "wet plains"
-                tile.biome = biome
+            elif shallows_cutoff > active_map.elevation[tile.row][tile.column] >= sea_cutoff:
+                biome = "shallows"
+            elif sea_cutoff > active_map.elevation[tile.row][tile.column] >= ocean_cutoff:
+                biome = "sea"
+
+            tile.biome = biome
 
 
 def generate_terrain(active_map):
@@ -398,6 +407,30 @@ def render_raw_maps(active_map, width, height, raw_maps, exclusive=None):
             for tile in row:
                 if tile.resource:
                     raw_maps[3].blit(tile_marker, [tile.column, tile.row])
+    if not exclusive or exclusive == "city score":
+        print("rendering city score map")
+        max_score = 160
+        score_gradient = {0: (3, 0, 87),
+                          10: (59, 211, 13),
+                          9: (78, 91, 13),
+                          8: (97, 171, 13),
+                          7: (116, 151, 13),
+                          6: (135, 132, 13),
+                          5: (154, 112, 13),
+                          4: (173, 92, 13),
+                          3: (192, 72, 13),
+                          2: (211, 52, 13),
+                          1: (231, 33, 13)}
+        largest = 0
+        for y in range(height):
+            for x in range(width):
+                score = active_map.city_score[y][x]
+                value = min(10, round((score / max_score) * 10))
+                if score > largest:
+                    largest = score
+                tile_marker.fill(score_gradient[value])
+                raw_maps[5].blit(tile_marker, [x, y])
+        # print("largest score recorder: {0}".format(largest))
     if not exclusive or exclusive == "water flux":
         print("rendering water flux")
         max_flux = 0
@@ -423,30 +456,58 @@ def render_raw_maps(active_map, width, height, raw_maps, exclusive=None):
                 tile_marker.fill(flux_gradient[value])
                 raw_maps[6].blit(tile_marker, [x, y])
         print("Max Water Flux: {0}".format(max_flux))
-    if not exclusive or exclusive == "city score":
-        print("rendering city score map")
-        max_score = 160
-        score_gradient = {0: (3, 0, 87),
-                          10: (59, 211, 13),
-                          9: (78, 91, 13),
-                          8: (97, 171, 13),
-                          7: (116, 151, 13),
-                          6: (135, 132, 13),
-                          5: (154, 112, 13),
-                          4: (173, 92, 13),
-                          3: (192, 72, 13),
-                          2: (211, 52, 13),
-                          1: (231, 33, 13)}
-        largest = 0
-        for y in range(height):
-            for x in range(width):
-                score = active_map.city_score[y][x]
-                value = min(10, round((score / max_score) * 10))
-                if score > largest:
-                    largest = score
-                tile_marker.fill(score_gradient[value])
-                raw_maps[5].blit(tile_marker, [x, y])
-        # print("largest score recorder: {0}".format(largest))
+
+
+def prepare_map_surfaces(display_data):
+    # prepares blank, properly sized, destination map surfaces
+    display_width, display_height, display_scale = (display_data[0],
+                                                    display_data[1],
+                                                    display_data[2])
+    if display_scale:
+        display_width = 264
+        display_height = 264
+
+    map_surfaces = [pygame.Surface([display_width, display_height])
+                    for i in range(7)]
+    blank_maps = []
+    for each in map_surfaces:
+        each.fill((110, 110, 110))
+        each.set_colorkey(utilities.colors.key)
+        each = each.convert_alpha()
+        blank_maps.append(each)
+    return blank_maps
+
+
+def scale_maps(raw_maps, display_data):
+    # resizes raw maps and returns a list of resized surfaces
+    display_width, display_height, display_scale = (display_data[0],
+                                                    display_data[1],
+                                                    display_data[2])
+    if display_scale:
+        display_width = 264
+        display_height = 264
+    scaled_maps = prepare_map_surfaces(display_data)  # generate blank destination surfaces that are properly sized
+
+    for i, raw_map in enumerate(raw_maps):
+        pygame.transform.smoothscale(raw_map, (display_width, display_height), scaled_maps[i])
+    return scaled_maps
+
+
+def render_rotated_maps(screen, scaled_maps, display_scale):
+    # prints rendered and prepped map surfaces to the screen after rotating
+    rotation = -45  # rotation for map previews in degrees
+    if display_scale:
+        c = math.sqrt(264 ** 2 + 264 ** 2)
+    else:
+        c = pygame.transform.rotate(scaled_maps[0], -45).get_width()  # offset for left edge of map displays
+    display_offset = 5
+    screen.blit(pygame.transform.rotate(scaled_maps[0], rotation), [0, 0])  # heightmap
+    screen.blit(pygame.transform.rotate(scaled_maps[1], rotation), [c + display_offset, 0])  # tempmap
+    screen.blit(pygame.transform.rotate(scaled_maps[2], rotation), [0, c + display_offset])  # moisture map
+    screen.blit(pygame.transform.rotate(scaled_maps[3], rotation), [c + display_offset, c + 5])  # biome map with cities marked
+    screen.blit(pygame.transform.rotate(scaled_maps[4], rotation), [c * 2 + display_offset * 2, 0])  # trade connectivity map
+    screen.blit(pygame.transform.rotate(scaled_maps[5], rotation), [c * 2 + display_offset * 2, c + display_offset])  # city score map
+    screen.blit(pygame.transform.rotate(scaled_maps[6], rotation), [c * 3 + display_offset * 3, 0])  # water flux map
 
 
 def map_generation(active_map):
@@ -459,16 +520,12 @@ def map_generation(active_map):
     max_resource_cluster_size = 5
 
     display_scale = False
+    display_data = (width, height, display_scale)
 
     def reset_previews(width, height):
         generate_blank_ocean_tiles(active_map)
-        map_previews = [pygame.Surface([width, height]),
-                        pygame.Surface([width, height]),
-                        pygame.Surface([width, height]),
-                        pygame.Surface([width, height]),
-                        pygame.Surface([width, height]),
-                        pygame.Surface([width, height]),
-                        pygame.Surface([width, height])]
+        map_previews = [pygame.Surface([width, height])
+                        for i in range(7)]
         clean_map_previews = []
         for each in map_previews:
             each.fill((110, 110, 110))
@@ -477,80 +534,31 @@ def map_generation(active_map):
             clean_map_previews.append(each)
         return clean_map_previews
 
-    def reset_resized(display_scale, width, height):
-        width = width
-        height = height
-        if display_scale:
-            width = 264
-            height = 264
-        map_previews = [pygame.Surface([width, height]),
-                        pygame.Surface([width, height]),
-                        pygame.Surface([width, height]),
-                        pygame.Surface([width, height]),
-                        pygame.Surface([width, height]),
-                        pygame.Surface([width, height]),
-                        pygame.Surface([width, height])]
-        clean_map_previews_scaled = []
-        for each in map_previews:
-            each.fill((110, 110, 110))
-            each.set_colorkey(utilities.colors.key)
-            each = each.convert_alpha()
-            clean_map_previews_scaled.append(each)
-        return clean_map_previews_scaled
     raw_maps = reset_previews(width, height)
-    scaled_maps = reset_resized(display_scale, width, height)
+    scaled_maps = scale_maps(raw_maps, display_data)
 
-    rotation = (-45)
-    if display_scale:
-        c = math.sqrt(264 ** 2 + 264 ** 2)
-    else:
-        c = pygame.transform.rotate(raw_maps[0], rotation).get_width()
     while not accepted:
-        screen.blit(pygame.transform.rotate(scaled_maps[0], rotation), [0, 0])  # heightmap
-        screen.blit(pygame.transform.rotate(scaled_maps[1], rotation), [c + 5, 0])  # tempmap
-        screen.blit(pygame.transform.rotate(scaled_maps[2], rotation), [0, c + 5])  # moisture map
-        screen.blit(pygame.transform.rotate(scaled_maps[3], rotation), [c + 5, c + 5])  # biome map with cities marked
-        screen.blit(pygame.transform.rotate(scaled_maps[4], rotation), [c * 2 + 10, 0])  # trade connectivity map
-        screen.blit(pygame.transform.rotate(scaled_maps[5], rotation), [c * 2 + 10, c + 5])  # city score map
-        screen.blit(pygame.transform.rotate(scaled_maps[6], rotation), [c * 3 + 15, 0])  # water flux map
+        render_rotated_maps(screen, scaled_maps, display_scale)
+
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.display.quit()
                 pygame.quit()
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_RETURN:
-                    raw_maps = reset_previews(width, height)
-                    scaled_maps = reset_resized(display_scale, width, height)
                     generate_heightmap(active_map)
                     active_map.temperature = generate_tempmap(width, height)
                     active_map.moisture = generate_moisture_map(width, height, active_map.elevation, water_cutoff)
-                    generate_land(active_map, water_cutoff)
+                    generate_biomes(active_map, water_cutoff)
                     generate_terrain(active_map)
                     generate_rivers(active_map, water_cutoff)
                     place_resources(active_map, max_resource_cluster_size)
                     print("map complete")
                     for map_type in ('height', 'temp', 'moisture', 'water flux', 'biome'):
                         render_raw_maps(active_map, width, height, raw_maps, map_type)
-                    display_width = width
-                    display_height = height
-                    if display_scale:
-                        display_width = 264
-                        display_height = 264
-                    pygame.transform.smoothscale(raw_maps[0], (display_width, display_height), scaled_maps[0])
-                    pygame.transform.smoothscale(raw_maps[1], (display_width, display_height), scaled_maps[1])
-                    pygame.transform.smoothscale(raw_maps[2], (display_width, display_height), scaled_maps[2])
-                    pygame.transform.smoothscale(raw_maps[3], (display_width, display_height), scaled_maps[3])
-                    pygame.transform.smoothscale(raw_maps[4], (display_width, display_height), scaled_maps[4])
-                    pygame.transform.smoothscale(raw_maps[5], (display_width, display_height), scaled_maps[5])
-                    pygame.transform.smoothscale(raw_maps[6], (display_width, display_height), scaled_maps[6])
 
-                    screen.blit(pygame.transform.rotate(scaled_maps[0], rotation), [0, 0])  # heightmap
-                    screen.blit(pygame.transform.rotate(scaled_maps[1], rotation), [c + 5, 0])  # tempmap
-                    screen.blit(pygame.transform.rotate(scaled_maps[2], rotation), [0, c + 5])  # moisture map
-                    screen.blit(pygame.transform.rotate(scaled_maps[3], rotation), [c + 5, c + 5])  # biome map with cities marked
-                    screen.blit(pygame.transform.rotate(scaled_maps[4], rotation), [c * 2 + 10, 0])  # trade connectivity map
-                    screen.blit(pygame.transform.rotate(scaled_maps[5], rotation), [c * 2 + 10, c + 5])  # city score map
-                    screen.blit(pygame.transform.rotate(scaled_maps[6], rotation), [c * 3 + 15, 0])  # water flux map
+                    scaled_maps = scale_maps(raw_maps, display_data)
+                    render_rotated_maps(screen, scaled_maps, display_scale)
                     pygame.display.flip()
                     clock.tick(60)
                     time.sleep(0.5)
@@ -573,29 +581,13 @@ def map_generation(active_map):
                                                               cities)
                         print("city placed: {0} / {1}".format(len(cities), number_of_cities))
                         render_raw_maps(active_map, width, height, raw_maps, "city score")
-                        display_width = width
-                        display_height = height
-                        if display_scale:
-                            display_width = 264
-                            display_height = 264
-                        pygame.transform.smoothscale(raw_maps[0], (display_width, display_height), scaled_maps[0])
-                        pygame.transform.smoothscale(raw_maps[1], (display_width, display_height), scaled_maps[1])
-                        pygame.transform.smoothscale(raw_maps[2], (display_width, display_height), scaled_maps[2])
-                        pygame.transform.smoothscale(raw_maps[3], (display_width, display_height), scaled_maps[3])
-                        pygame.transform.smoothscale(raw_maps[4], (display_width, display_height), scaled_maps[4])
-                        pygame.transform.smoothscale(raw_maps[5], (display_width, display_height), scaled_maps[5])
-                        pygame.transform.smoothscale(raw_maps[6], (display_width, display_height), scaled_maps[6])
 
-                        screen.blit(pygame.transform.rotate(scaled_maps[0], rotation), [0, 0])  # heightmap
-                        screen.blit(pygame.transform.rotate(scaled_maps[1], rotation), [c + 5, 0])  # tempmap
-                        screen.blit(pygame.transform.rotate(scaled_maps[2], rotation), [0, c + 5])  # moisture map
-                        screen.blit(pygame.transform.rotate(scaled_maps[3], rotation), [c + 5, c + 5])  # biome map with cities marked
-                        screen.blit(pygame.transform.rotate(scaled_maps[4], rotation), [c * 2 + 10, 0])  # trade connectivity map
-                        screen.blit(pygame.transform.rotate(scaled_maps[5], rotation), [c * 2 + 10, c + 5])  # city score map
-                        screen.blit(pygame.transform.rotate(scaled_maps[6], rotation), [c * 3 + 15, 0])  # water flux map
+                        scaled_maps = scale_maps(raw_maps, display_data)
+
+                        render_rotated_maps(screen, scaled_maps, display_scale)
                         pygame.display.flip()
                         clock.tick(60)
-                        time.sleep(0.5)
+                        time.sleep(0.01)
                     active_map.cities = cities
                     print("cities placed!")
                 elif event.key == pygame.K_SPACE:

@@ -29,6 +29,22 @@ Gold = ["plains", "shrubland", "savannah", "low hills", "hills", "low mountains"
 Silver = ["grassland", "taiga", "low hills", "hills", "low mountains", "mountains"]
 
 
+all_resources = ["saffron",
+                 "cinnamon",
+                 "vanilla",
+                 "clove",
+                 "ivory",
+                 "timber",
+                 "wool",
+                 "pelts",
+                 "cattle",
+                 "rice",
+                 "wheat",
+                 "iron",
+                 "gold",
+                 "silver"]
+
+
 mountain = {"taiga": ["iron", "silver", "gold"],
             "tundra": ["iron", "silver"],
             "snowy tundra": ["iron", "silver"],
@@ -43,6 +59,8 @@ mountain = {"taiga": ["iron", "silver", "gold"],
             "ice": [None],
             "shrubland": ["iron", "silver", "gold"],
             "ocean": [None],
+            "sea": [None],
+            "shallows": [None],
             "river": [None]}
 
 low_mountain = {"taiga": ["iron", "silver", "gold"],
@@ -59,6 +77,8 @@ low_mountain = {"taiga": ["iron", "silver", "gold"],
                 "ice": [None],
                 "shrubland": ["iron", "silver", "gold"],
                 "ocean": [None],
+                "sea": [None],
+                "shallows": [None],
                 "river": [None]}
 
 hill = {"taiga": ["iron", "silver"],
@@ -75,6 +95,8 @@ hill = {"taiga": ["iron", "silver"],
         "ice": [None],
         "shrubland": ["iron", "silver", "gold"],
         "ocean": [None],
+        "sea": [None],
+        "shallows": [None],
         "river": [None]}
 
 low_hill = {"taiga": ["iron", "silver"],
@@ -91,6 +113,8 @@ low_hill = {"taiga": ["iron", "silver"],
             "ice": [None],
             "shrubland": ["iron", "silver", "gold"],
             "ocean": [None],
+            "sea": [None],
+            "shallows": [None],
             "river": [None]}
 
 
@@ -108,6 +132,8 @@ vegetation = {"taiga": ["pelts", "iron", "silver"],
               "ice": [None],
               "shrubland": ["wool", "silver", "iron"],
               "ocean": [None],
+              "sea": [None],
+              "shallows": [None],
               "river": [None]}
 
 

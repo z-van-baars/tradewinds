@@ -22,50 +22,12 @@ argosy_icon = argosy_icon.convert_alpha()
 caravel_icon = pygame.image.load("art/icons/caravel_icon.png").convert_alpha()
 caravel_icon.set_colorkey(key_color)
 caravel_icon = caravel_icon.convert_alpha()
+fluyt_icon = pygame.image.load('art/icons/galleon_icon.png').convert_alpha()
+fluyt_icon.set_colorkey(key_color)
+fluyt_icon = fluyt_icon.convert_alpha()
 galleon_icon = pygame.image.load("art/icons/galleon_icon.png").convert_alpha()
 galleon_icon.set_colorkey(key_color)
 galleon_icon = galleon_icon.convert_alpha()
-
-
-# BUTTONS
-x_regular = pygame.image.load("art/buttons/x_regular.png").convert_alpha()
-x_hover = pygame.image.load("art/buttons/x_hover.png").convert_alpha()
-
-market_regular = pygame.image.load("art/buttons/market_regular.png").convert_alpha()
-market_hover = pygame.image.load("art/buttons/market_hover.png").convert_alpha()
-
-arrow_down_regular = pygame.image.load("art/buttons/arrow_down_regular.png").convert_alpha()
-arrow_down_hover = pygame.image.load("art/buttons/arrow_down_hover.png").convert_alpha()
-
-arrow_up_regular = pygame.image.load("art/buttons/arrow_up_regular.png").convert_alpha()
-arrow_up_hover = pygame.image.load("art/buttons/arrow_up_hover.png").convert_alpha()
-
-arrow_left_regular = pygame.image.load("art/buttons/arrow_left_regular.png").convert_alpha()
-arrow_left_hover = pygame.image.load("art/buttons/arrow_left_hover.png").convert_alpha()
-
-arrow_right_regular = pygame.image.load("art/buttons/arrow_right_regular.png").convert_alpha()
-arrow_right_hover = pygame.image.load("art/buttons/arrow_right_hover.png").convert_alpha()
-
-buy_regular = pygame.image.load("art/buttons/buy_regular.png").convert_alpha()
-buy_hover = pygame.image.load("art/buttons/buy_hover.png").convert_alpha()
-
-sell_regular = pygame.image.load("art/buttons/sell_regular.png").convert_alpha()
-sell_hover = pygame.image.load("art/buttons/sell_hover.png").convert_alpha()
-
-done_regular = pygame.image.load("art/buttons/done_regular.png").convert_alpha()
-done_hover = pygame.image.load("art/buttons/done_hover.png").convert_alpha()
-
-cancel_regular = pygame.image.load("art/buttons/cancel_regular.png").convert_alpha()
-cancel_hover = pygame.image.load("art/buttons/cancel_hover.png").convert_alpha()
-
-view_port_regular = pygame.image.load("art/buttons/view_port_regular.png").convert_alpha()
-view_port_hover = pygame.image.load("art/buttons/view_port_hover.png").convert_alpha()
-
-goto_regular = pygame.image.load("art/buttons/goto_regular.png").convert_alpha()
-goto_hover = pygame.image.load("art/buttons/goto_hover.png").convert_alpha()
-
-repair_regular = pygame.image.load("art/buttons/repair_regular.png").convert_alpha()
-repair_hover = pygame.image.load("art/buttons/repair_hover.png").convert_alpha()
 
 
 # MENUS
@@ -150,6 +112,9 @@ city_3 = city_3.convert_alpha()
 
 
 # TILES
+selected_tile_image = pygame.image.load("art/tiles/selected_tile.png").convert_alpha()
+selected_tile_image.set_colorkey(utilities.colors.key)
+selected_tile_image = selected_tile_image.convert_alpha()
 grass_tile = pygame.image.load("art/tiles/grassland_1.png").convert_alpha()
 grass_tile.set_colorkey(utilities.colors.key)
 grass_tile = grass_tile.convert_alpha()
@@ -162,7 +127,15 @@ ocean_tile = pygame.image.load("art/tiles/ocean_1.png").convert_alpha()
 ocean_tile.set_colorkey(utilities.colors.key)
 ocean_tile = ocean_tile.convert_alpha()
 
-river_tile = pygame.image.load("art/tiles/ocean_1.png").convert_alpha()
+sea_tile = pygame.image.load("art/tiles/sea_1.png").convert_alpha()
+sea_tile.set_colorkey(utilities.colors.key)
+sea_tile = sea_tile.convert_alpha()
+
+shallows_tile = pygame.image.load("art/tiles/shallows_1.png").convert_alpha()
+shallows_tile.set_colorkey(utilities.colors.key)
+shallows_tile = shallows_tile.convert_alpha()
+
+river_tile = pygame.image.load("art/tiles/river.png").convert_alpha()
 river_tile.set_colorkey(utilities.colors.key)
 river_tile = river_tile.convert_alpha()
 
@@ -408,6 +381,8 @@ biome_images = {"grass": [grass_tile],
                 "savannah": savannah_images,
                 "shrubland": [shrubland_tile],
                 "ocean": [ocean_tile],
+                "sea": [sea_tile],
+                "shallows": [shallows_tile],
                 "lake": [lake_tile],
                 "river": [river_tile]}
 
@@ -425,6 +400,8 @@ mountains = {"taiga": snow_mountains,
              "ice": snow_mountains,
              "shrubland": grassland_mountains,
              "ocean": grassland_mountains,
+             "sea": grassland_mountains,
+             "shallows": grassland_mountains,
              "lake": grassland_mountains,
              "river": grassland_mountains}
 
@@ -442,6 +419,8 @@ low_mountains = {"taiga": snow_low_mountains,
                  "ice": snow_low_mountains,
                  "shrubland": grassland_low_mountains,
                  "ocean": grassland_low_mountains,
+                 "sea": grassland_low_mountains,
+                 "shallows": grassland_low_mountains,
                  "lake": grassland_low_mountains,
                  "river": grassland_low_mountains}
 
@@ -459,6 +438,8 @@ hills = {"taiga": grassland_hills,
          "ice": snow_hills,
          "shrubland": grassland_hills,
          "ocean": grassland_hills,
+         "sea": grassland_hills,
+         "shallows": grassland_hills,
          "lake": grassland_hills,
          "river": grassland_hills}
 
@@ -476,6 +457,8 @@ low_hills = {"taiga": grassland_low_hills,
              "ice": snow_low_hills,
              "shrubland": grassland_low_hills,
              "ocean": grassland_low_hills,
+             "sea": grassland_low_hills,
+             "shallows": grassland_low_hills,
              "lake": grassland_low_hills,
              "river": grassland_low_hills}
 
@@ -494,6 +477,8 @@ vegetation = {"taiga": taiga_trees,
               "ice": None,
               "shrubland": None,
               "ocean": None,
+              "sea": None,
+              "shallows": None,
               "lake": None,
               "river": None}
 

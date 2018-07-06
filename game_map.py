@@ -59,9 +59,9 @@ class Map(object):
                 if tile.terrain and art.terrain_images[tile.terrain][tile.biome]:
                     new_terrain_image = random.choice(art.terrain_images[tile.terrain][tile.biome])
                     x, y = utilities.get_screen_coords(tile.column, tile.row)
-                    self.tile_display_layer.image.blit(new_terrain_image, [x + background_x_middle + (tile_width / 2), y - 25])
+                    self.terrain_display_layer.image.blit(new_terrain_image, [x + background_x_middle + (tile_width / 2), y - 25])
         self.terrain_display_layer.image.set_colorkey(colors.key)
-        self.terrain_display_layer.image = self.tile_display_layer.image.convert_alpha()
+        self.terrain_display_layer.image = self.terrain_display_layer.image.convert_alpha()
 
     def paint_resource_layer(self, game_tile_rows):
         tile_width = 40
