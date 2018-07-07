@@ -58,6 +58,7 @@ class Colors(object):
         self.purple = (255, 0, 255)
         self.key = (255, 0, 128)
         self.brown = (112, 87, 46)
+        self.dragbar = (36, 92, 104)
         self.biome_colors = {"ocean": (0, 0, 255),
                              "sea": (25, 25, 255),
                              "shallows": (50, 50, 255),

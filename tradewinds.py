@@ -45,10 +45,18 @@ def right_key(game_state):
 
 
 def left_click(game_state, mouse_pos, map_xy, button_states, event):
+    if len(game_state.active_menus) == 0:
+        return
+    if event.type == pygame.MOUSEBUTTONUP:
+        for menu in game_state.active_menus:
+            menu.event_handler(event, mouse_pos)
+            return
     for menu in game_state.active_menus:
         interacted = menu.get_interaction(event, mouse_pos)
         if interacted:
             break
+    if not interacted:
+        return
     top_menu = menu
     game_state.active_menus.remove(menu)
     game_state.active_menus = [top_menu] + game_state.active_menus
@@ -86,6 +94,10 @@ def input_processing(game_state, selected_tile, display_parameters, mouse_pos, m
             button_1, button_2, button_3 = pygame.mouse.get_pressed()
             button_states = (button_1, button_2, button_3)
             mouseclick_functions.get(button_states, do_nothing)(game_state, mouse_pos, map_xy, button_states, event)
+        elif event.type == pygame.MOUSEBUTTONUP:
+            button_1, button_2, button_3 = pygame.mouse.get_pressed()
+            button_states = (button_1, button_2, button_3)
+            left_click(game_state, mouse_pos, map_xy, button_states, event)
         elif event.type == pygame.KEYDOWN:
             key_functions.get(event.key, do_nothing)(game_state)
         elif event.type == pygame.KEYUP:
@@ -128,6 +140,7 @@ def main(game_state):
         menu_cache = []
         for menu in game_state.active_menus:
             menu_cache.append(menu)
+            menu.drag(mouse_pos)
             menu.render_onscreen_cache(mouse_pos)
         game_state.active_menus = []
         for menu in menu_cache:
