@@ -15,7 +15,16 @@ class GameState(object):
 
         self.active_map = None
         self.player = None
+        self.active_menus = []
         self.reset_surfaces()
 
     def reset_surfaces(self):
         self.screen = pygame.display.set_mode([self.screen_width, self.screen_height])
+
+    def clear_menutype(self, typematch):
+        offending_menus = []
+        for menu in self.active_menus:
+            if any((type(menu) == subtype) for subtype in typematch):
+                offending_menus.append(menu)
+        for each_offender in offending_menus:
+            self.active_menus.remove(each_offender)

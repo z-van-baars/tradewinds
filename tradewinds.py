@@ -44,18 +44,26 @@ def right_key(game_state):
                                        game_state.screen_height)
 
 
-def left_click(game_state, mouse_pos, map_xy, button_states):
+def left_click(game_state, mouse_pos, map_xy, button_states, event):
+    for menu in game_state.active_menus:
+        interacted = menu.get_interaction(event, mouse_pos)
+        if interacted:
+            break
+    top_menu = menu
+    game_state.active_menus.remove(menu)
+    game_state.active_menus = [top_menu] + game_state.active_menus
+    game_state.active_menus[0].event_handler(event, mouse_pos)
+
+
+def scrollwheel_click(game_state, mouse_pos, map_xy, button_states, event):
     pass
 
 
-def scrollwheel_click(game_state, mouse_pos, map_xy, button_states):
-    pass
-
-
-def right_click(game_state, mouse_pos, map_xy, button_states):
+def right_click(game_state, mouse_pos, map_xy, button_states, event):
     tile = game_state.active_map.game_tile_rows[map_xy[1]][map_xy[0]]
+    game_state.clear_menutype([ui.ContextMenu, ui.CityMenu, ui.MarketMenu])
     new_context_menu = ui.ContextMenu(game_state, mouse_pos, tile)
-    new_context_menu.menu_onscreen()
+    game_state.active_menus = [new_context_menu] + game_state.active_menus
 
 
 key_functions = {pygame.K_UP: up_key,
@@ -77,7 +85,7 @@ def input_processing(game_state, selected_tile, display_parameters, mouse_pos, m
         elif event.type == pygame.MOUSEBUTTONDOWN:
             button_1, button_2, button_3 = pygame.mouse.get_pressed()
             button_states = (button_1, button_2, button_3)
-            mouseclick_functions.get(button_states, do_nothing)(game_state, mouse_pos, map_xy, button_states)
+            mouseclick_functions.get(button_states, do_nothing)(game_state, mouse_pos, map_xy, button_states, event)
         elif event.type == pygame.KEYDOWN:
             key_functions.get(event.key, do_nothing)(game_state)
         elif event.type == pygame.KEYUP:
@@ -117,8 +125,16 @@ def main(game_state):
         game_state.calendar.increment_date(game_state.game_speed)
 
         display.update_display(game_state, selected_tile, display_parameters, mouse_pos, map_xy)
+        menu_cache = []
+        for menu in game_state.active_menus:
+            menu_cache.append(menu)
+            menu.render_onscreen_cache(mouse_pos)
+        game_state.active_menus = []
+        for menu in menu_cache:
+            if menu.open:
+                game_state.active_menus.append(menu)
 
-        game_state.clock.tick(60)
+        # game_state.clock.tick(60)
         game_state.time += 1
 
 

@@ -61,6 +61,8 @@ def update_display(game_state, selected_tile, display_parameters, mouse_pos, map
     screen.blit(art.mini_map_preview, [screen.get_width() - 200, 0])
     screen.blit(pygame.transform.rotate(map_image, -45), [screen.get_width() - 198, 2])
     pygame.draw.rect(screen, utilities.colors.red, visible_tile_square, 1)
+    for menu in reversed(game_state.active_menus):
+        game_state.screen.blit(menu.cached_image, [menu.background_pane.rect.x, menu.background_pane.rect.y])
 
     pygame.display.flip()
 
