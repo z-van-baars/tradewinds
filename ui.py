@@ -54,6 +54,12 @@ buy_h_img = pygame.image.load('art/buttons/buy_hover.png')
 sell_r_img = pygame.image.load('art/buttons/sell_regular.png')
 sell_h_img = pygame.image.load('art/buttons/sell_hover.png')
 
+max_r_img = pygame.image.load('art/buttons/max_regular.png')
+max_h_img = pygame.image.load('art/buttons/max_hover.png')
+
+min_r_img = pygame.image.load('art/buttons/min_regular.png')
+min_h_img = pygame.image.load('art/buttons/min_hover.png')
+
 button_images = [leave_r_img,
                  leave_h_img,
                  market_r_img,
@@ -81,7 +87,11 @@ button_images = [leave_r_img,
                  buy_r_img,
                  buy_h_img,
                  sell_r_img,
-                 sell_h_img]
+                 sell_h_img,
+                 max_r_img,
+                 max_h_img,
+                 min_r_img,
+                 min_h_img]
 
 for img in button_images:
     img.set_colorkey(util.colors.key)
@@ -102,7 +112,7 @@ class Button(object):
 
 
 class Menu(object):
-    def __init__(self, game_state, pos):
+    def __init__(self, game_state):
         self.open = True
         self.player = game_state.player
         self.screen = game_state.screen
@@ -172,7 +182,7 @@ class Menu(object):
 
 class ImpassablePopup(Menu):
     def __init__(self, game_state, pos, tile):
-        super().__init__(game_state, pos)
+        super().__init__(game_state)
         self.background_pane = pygame.sprite.Sprite()
         self.background_pane.image = impassable_popup_pane
         self.background_pane.rect = self.background_pane.image.get_rect()
@@ -196,7 +206,7 @@ class ImpassablePopup(Menu):
 
 class TileInfoPane(Menu):
     def __init__(self, game_state, pos, tile):
-        super().__init__(game_state, pos)
+        super().__init__(game_state)
         self.background_pane = pygame.sprite.Sprite()
         self.background_pane.image = tile_info_pane
         self.background_pane.rect = self.background_pane.image.get_rect()
@@ -280,8 +290,8 @@ class TileInfoPane(Menu):
 
 
 class MarketMenu(Menu):
-    def __init__(self, game_state, pos, city):
-        super().__init__(game_state, pos)
+    def __init__(self, game_state, city):
+        super().__init__(game_state)
         self.background_pane = pygame.sprite.Sprite()
         self.background_pane.image = market_menu_pane
         self.background_pane.rect = self.background_pane.image.get_rect()
@@ -311,33 +321,16 @@ class MarketMenu(Menu):
 
         def sell_click():
             artikel_name = self.display_cache["cargo visible items"][self.display_cache["cargo selected"]]
-            artikel_quantity = self.player.ship.cargo[artikel_name]
-            new_quantity_popup = QuantityMenu(self.game_state, self.player, self.city, artikel_name, artikel_quantity, "sale")
-            amount_to_sell = new_quantity_popup.menu_onscreen()
-            if amount_to_sell != 0:
-                print(artikel_name, amount_to_sell)
-                self.player.ship.cargo[artikel_name] -= amount_to_sell
-                self.player.silver += amount_to_sell * self.city.sell_price[artikel_name]
-                self.city.increment_supply(artikel_name, amount_to_sell)
+            sell_quantity_popup = QuantityMenu(self.game_state, self.player, self.city, artikel_name, "sale")
+            sell_quantity_popup.menu_onscreen()
+
             self.update_display_cache()
 
         def buy_click():
             artikel_name = self.display_cache["market visible items"][self.display_cache["market selected"]]
-            print(artikel_name)
-            artikel_quantity = self.city.supply[artikel_name]
-            new_quantity_popup = QuantityMenu(self.game_state, self.player, self.city, artikel_name, artikel_quantity, "purchase")
-            amount_to_buy = new_quantity_popup.menu_onscreen()
-            current_cargo = 0
-            for artikel_id, artikel_quantity in self.player.ship.cargo.items():
-                current_cargo += artikel_quantity
-            if amount_to_buy != 0 and current_cargo + amount_to_buy <= self.player.ship.cargo_cap and amount_to_buy <= self.player.silver:
-                print(artikel_name, amount_to_buy)
-                self.city.increment_supply(artikel_name, -amount_to_buy)
-                self.player.silver -= amount_to_buy * self.city.purchase_price[artikel_name]
-                if artikel_name in self.player.ship.cargo:
-                    self.player.ship.cargo[artikel_name] += amount_to_buy
-                else:
-                    self.player.ship.cargo[artikel_name] = amount_to_buy
+            buy_quantity_popup = QuantityMenu(self.game_state, self.player, self.city, artikel_name, "purchase")
+            buy_quantity_popup.menu_onscreen()
+
             self.update_display_cache()
 
         def market_up_click():
@@ -527,40 +520,46 @@ class MarketMenu(Menu):
 
 
 class QuantityMenu(Menu):
-    def __init__(self, game_state, pos, player, city, artikel, artikel_max, transaction_type):
-        super().__init__(game_state, pos)
+    def __init__(self, game_state, player, city, artikel_name, transaction_type):
+        super().__init__(game_state)
         self.background_pane = pygame.sprite.Sprite()
         self.background_pane.image = quantity_popup
         self.background_pane.rect = self.background_pane.image.get_rect()
         self.background_pane.rect.x = self.screen.get_width() / 2 - self.background_pane.image.get_width() / 2
         self.background_pane.rect.y = (self.screen.get_height() / 2) - self.background_pane.image.get_height() / 2
+        self.artikel_name = artikel_name
         self.artikel_quantity = 0
-        self.city = city
-        self.step = 1
+        self.max_quantity = 0
         self.transaction_type = transaction_type
-        self.transaction_modifiers = {"purchase": self.city.purchase_price[artikel],
-                                      "sale": self.city.sell_price[artikel]}
+        self.city = city
+        if self.transaction_type == "sale":
+            self.max_quantity = self.player.ship.cargo[self.artikel_name]
+        else:
+            self.max_quantity = self.city.supply[self.artikel_name]
+        self.step = 1
+
+        self.transaction_modifiers = {"purchase": self.city.purchase_price[self.artikel_name],
+                                      "sale": self.city.sell_price[self.artikel_name]}
         self.transaction_colors = {"purchase": (200, 0, 0),
                                    "sale": (0, 210, 0)}
         header_font = pygame.font.SysFont("Calibri", 18, True, False)
 
         self.display_cache = {"artikel quantity": self.artikel_quantity,
-                              "artikel max": artikel_max,
-                              "artikel name": header_font.render(artikel, True, (255, 255, 255))}
+                              "artikel max": self.max_quantity,
+                              "artikel name": header_font.render(self.artikel_name, True, (255, 255, 255))}
 
         self.update_display_cache()
 
         def quantity_up_click():
-            cargo_margin = 0
+            cargo_margin = 0  # remaining empty space in the player's ship
             cargo_margin += self.player.ship.cargo_cap
             loaded_cargo = 0
-            for artikel_name, artikel_quantity in self.player.ship.cargo.items():
-                loaded_cargo += artikel_quantity
+            for artikel_name, quantity in self.player.ship.cargo.items():
+                loaded_cargo += quantity
             cargo_margin -= loaded_cargo
-            if self.artikel_quantity < artikel_max or self.transaction_type == "sale":
+            if self.artikel_quantity < self.max_quantity:
                 self.artikel_quantity = min(self.artikel_quantity + self.step,
-                                            artikel_max,
-                                            cargo_margin)
+                                            self.max_quantity)
             self.update_display_cache()
 
         def quantity_down_click():
@@ -569,11 +568,34 @@ class QuantityMenu(Menu):
                                             0)
             self.update_display_cache()
 
+        def max_click():
+            self.artikel_quantity = self.max_quantity
+            self.update_display_cache()
+
+        def min_click():
+            self.artikel_quantity = 0
+            self.update_display_cache()
+
         def done_click():
-            self.open = False
+            tcost = self.artikel_quantity * self.transaction_modifiers[self.transaction_type]
             if self.transaction_type == "purchase":
-                if self.player.silver < int(self.display_cache["transaction cost"]):
-                    self.open = True
+                if self.player.silver >= tcost:
+                    current_cargo = 0
+                    for artikel_id, quantity in self.player.ship.cargo.items():
+                        current_cargo += quantity
+                    if current_cargo + self.artikel_quantity <= self.player.ship.cargo_cap:
+                        self.city.increment_supply(artikel_name, -self.artikel_quantity)
+                        self.player.silver -= self.artikel_quantity * self.city.purchase_price[artikel_name]
+                        if artikel_name in self.player.ship.cargo:
+                            self.player.ship.cargo[artikel_name] += self.artikel_quantity
+                        else:
+                            self.player.ship.cargo[artikel_name] = self.artikel_quantity
+                        self.open = False
+            elif self.transaction_type == "sale":
+                self.player.ship.cargo[self.artikel_name] -= self.artikel_quantity
+                self.player.silver += self.artikel_quantity * self.city.sell_price[self.artikel_name]
+                self.city.increment_supply(self.artikel_name, self.artikel_quantity)
+                self.open = False
 
         def cancel_click():
             self.open = False
@@ -583,13 +605,13 @@ class QuantityMenu(Menu):
                                cancel_h_img,
                                cancel_click,
                                self.background_pane.rect.left + 6,
-                               self.background_pane.rect.top + 90)
+                               self.background_pane.rect.top + 120)
 
         done_button = Button(done_r_img,
                              done_h_img,
                              done_click,
                              self.background_pane.rect.x + 90,
-                             self.background_pane.rect.y + 90)
+                             self.background_pane.rect.y + 120)
 
         quantity_up_button = Button(arrow_r_r_img,
                                     arrow_r_h_img,
@@ -603,10 +625,24 @@ class QuantityMenu(Menu):
                                       self.background_pane.rect.left + 3,
                                       self.background_pane.rect.top + 48)
 
+        max_button = Button(max_r_img,
+                            max_h_img,
+                            max_click,
+                            self.background_pane.rect.right - 43,
+                            self.background_pane.rect.top + 86)
+
+        min_button = Button(min_r_img,
+                            min_h_img,
+                            min_click,
+                            self.background_pane.rect.left + 3,
+                            self.background_pane.rect.top + 86)
+
         self.buttons = [done_button,
                         cancel_button,
                         quantity_up_button,
-                        quantity_down_button]
+                        quantity_down_button,
+                        max_button,
+                        min_button]
 
     def keydown_handler(self, key):
         if key == pygame.K_LSHIFT or key == pygame.K_RSHIFT:
@@ -676,12 +712,11 @@ class QuantityMenu(Menu):
             self.render_decals(self.screen)
 
             pygame.display.flip()
-        return self.artikel_quantity
 
 
 class CityMenu(Menu):
-    def __init__(self, game_state, pos, city):
-        super().__init__(game_state, pos)
+    def __init__(self, game_state, city):
+        super().__init__(game_state)
         self.background_pane = pygame.sprite.Sprite()
         self.background_pane.image = city_menu_pane
         self.background_pane.rect = self.background_pane.image.get_rect()
@@ -695,10 +730,7 @@ class CityMenu(Menu):
             self.open = False
 
         def market_click():
-            new_market_menu = MarketMenu(game_state, pos, city)
-            for resource in self.city.supply:
-                print(resource)
-                print(self.city.supply[resource])
+            new_market_menu = MarketMenu(game_state, city)
             new_market_menu.menu_onscreen()
             self.open = False
 
@@ -761,7 +793,7 @@ class CityMenu(Menu):
 
 class ContextMenu(Menu):
     def __init__(self, game_state, pos, tile):
-        super().__init__(game_state, pos)
+        super().__init__(game_state)
         self.background_pane = pygame.sprite.Sprite()
         self.background_pane.image = context_menu
         self.background_pane.rect = self.background_pane.image.get_rect()
@@ -776,12 +808,12 @@ class ContextMenu(Menu):
                 game_state.player.column = tile.column
                 game_state.player.row = tile.row
             else:
-                cannot_move_popup = ImpassablePopup(game_state, pos, tile)
+                cannot_move_popup = ImpassablePopup(game_state, tile)
                 cannot_move_popup.menu_onscreen()
             self.open = False
 
         def enter_city_click():
-            new_city_menu = CityMenu(game_state, pos, self.tile.city)
+            new_city_menu = CityMenu(game_state, self.tile.city)
             new_city_menu.menu_onscreen()
             self.open = False
 

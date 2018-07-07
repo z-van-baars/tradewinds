@@ -104,6 +104,13 @@ class City(object):
             self.sell_price[artikel_id] = round(self.demand[artikel_id] * base_price * 0.8)
             self.purchase_price[artikel_id] = round(self.demand[artikel_id] * base_price * 1.1)
 
+    def increment_supply(self, artikel_id, quantity):
+        if artikel_id in self.supply:
+            self.supply[artikel_id] += quantity
+        else:
+            self.supply[artikel_id] = quantity
+
+
 
 def evaluate_local_food(active_map, zone_of_control):
     # local_tiles = utilities.get_nearby_tiles(active_map, (tile.column, tile.row), 3)
@@ -140,12 +147,7 @@ def cull_interior_watermasses(active_map):
     # filter the labeled array into layers. `==` does the filtering
     layers = [(labeled_array == i) for i in range(1, num_features + 1)]
 
-    for subarray in layers:
-        print(np.sum(subarray))
-
     sorted_water_bodies = sorted(((np.sum(subarray), subarray) for subarray in layers), key=lambda x: x[0], reverse=True)
-    for size, water_body in sorted_water_bodies:
-        print(size)
     largest_water_body = sorted_water_bodies[0][1]
     return largest_water_body
 
@@ -212,13 +214,10 @@ def cull_non_coastal_tiles(city_candidates, active_map):
 
     connected_coastal_tiles = []
     largest_water_body = cull_interior_watermasses(active_map)
-    print(largest_water_body)
     for each in coastal_tiles:
         neighbor_tiles = util.get_adjacent_tiles(each, active_map)
         if any(largest_water_body[neighbor.column, neighbor.row] == 1 for neighbor in neighbor_tiles):
             connected_coastal_tiles.append(each)
-        else:
-            print("dropped an interior coastline tile")
 
     return connected_coastal_tiles
 

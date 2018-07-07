@@ -3,7 +3,13 @@ import utilities
 
 
 pygame.init()
-pygame.display.set_mode([0, 0])
+pygame.display.set_mode([400, 400])
+load_screen_splash = pygame.image.load('art/menus/load_screen_splash.png').convert_alpha()
+
+load_screen = pygame.display.set_mode([400, 400])
+load_screen.blit(load_screen_splash, [0, 0])
+pygame.display.flip()
+
 
 key_color = utilities.colors.key
 
