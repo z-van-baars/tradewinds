@@ -9,9 +9,8 @@ class GameTile(object):
         self.biome = biome
         self.terrain = None
         self.resource = None
-        self.water_flux = 0
-        self.water_in = 0
-        self.water_out = 0
+        self.water_flux = (0, 0, 0)
+        self.water_source = ([], 0)
 
     def __lt__(self, other):
         return False

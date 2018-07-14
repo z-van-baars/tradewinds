@@ -76,7 +76,8 @@ class Colors(object):
                              "wet plains": (112, 87, 46),
                              "desert": (244, 240, 70),
                              "savannah": (244, 167, 66),
-                             "river": (255, 255, 255)}
+                             "river": (255, 255, 255),
+                             "lake": (50, 50, 255)}
 
 
 colors = Colors()
@@ -195,6 +196,25 @@ def get_vector(self, a, b, x, y):
     change_y = y_dist / factor
 
     return (change_x, change_y)
+
+
+def get_neighbor_position(tile, neighbor):
+    slots = {(-1, -1): 1,
+             (0, -1): 2,
+             (1, -1): 3,
+             (1, 0): 4,
+             (1, 1): 5,
+             (0, 1): 6,
+             (-1, 1): 7,
+             (-1, 0): 8}
+
+    x_dif = neighbor.column - tile.column
+    y_dif = neighbor.row - tile.row
+
+    diff = (x_dif, y_dif)
+    neighbor_slot = slots[diff]
+
+    return neighbor_slot
 
 
 def get_map_coords(pos, x_shift, y_shift, background_x_middle):

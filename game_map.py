@@ -31,10 +31,11 @@ class Map(object):
         self.screen_dimensions = screen_dimensions
         self.width = map_dimensions[0]
         self.height = map_dimensions[1]
-        self.number_of_columns = map_dimensions[0]
-        self.number_of_rows = map_dimensions[1]
         self.game_tile_rows = []
+        self.number_of_cities = 25
         self.cities = []
+        self.river_cutoff = 2000
+        self.water_cutoff = 0.5
         self.displayshift_x = 0
         self.displayshift_y = 0
 
@@ -51,6 +52,7 @@ class Map(object):
         self.tile_display_layer.image = self.tile_display_layer.image.convert_alpha()
 
     def paint_terrain_layer(self, game_tile_rows):
+        river_cutoff = self.river_cutoff
         tile_width = 40
         self.terrain_display_layer = DisplayLayer(self.width, self.height)
         background_x_middle = (self.tile_display_layer.image.get_width() / 2)
@@ -60,6 +62,18 @@ class Map(object):
                     new_terrain_image = random.choice(art.terrain_images[tile.terrain][tile.biome])
                     x, y = utilities.get_screen_coords(tile.column, tile.row)
                     self.terrain_display_layer.image.blit(new_terrain_image, [x + background_x_middle + (tile_width / 2), y - 25])
+
+                if tile.terrain is not any(["low hill", "hill", "low mountain", "mountain"]):
+                    if tile.water_flux[2] > river_cutoff:
+                        x, y = utilities.get_screen_coords(tile.column, tile.row)
+                        if tile.biome != "lake":
+                            self.terrain_display_layer.image.blit(art.river_images[0], [x + background_x_middle + (tile_width / 2), y])
+                        for source in tile.water_source[0]:
+                            self.terrain_display_layer.image.blit(art.river_images[source],
+                                                                  [x + background_x_middle + (tile_width / 2), y])
+                        self.terrain_display_layer.image.blit(art.river_images[tile.water_source[1]],
+                                                              [x + background_x_middle + (tile_width / 2), y])
+
         self.terrain_display_layer.image.set_colorkey(colors.key)
         self.terrain_display_layer.image = self.terrain_display_layer.image.convert_alpha()
 

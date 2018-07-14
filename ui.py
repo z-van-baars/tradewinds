@@ -205,26 +205,107 @@ class Menu(object):
         self.render_decals(pos)
 
 
-class ImpassablePopup(Menu):
+class ContextMenu(Menu):
     def __init__(self, game_state, pos, tile):
         super().__init__(game_state)
         self.background_pane = pygame.sprite.Sprite()
-        self.background_pane.image = impassable_popup_pane
+        self.background_pane.image = context_menu
         self.background_pane.rect = self.background_pane.image.get_rect()
         self.background_pane.rect.x = pos[0]
         self.background_pane.rect.y = pos[1]
         self.tile = tile
 
+        def move_click():
+            if tile.biome in ["ocean", "sea", "shallows", "river"]:
+                game_state.player.column = tile.column
+                game_state.player.row = tile.row
+                self.open = False
+            else:
+                cannot_move_popup = ImpassablePopup(game_state)
+                game_state.active_menus = [cannot_move_popup] + game_state.active_menus
+
+        def enter_city_click():
+            new_city_menu = CityMenu(game_state, self.tile.city)
+            game_state.active_menus = [new_city_menu] + game_state.active_menus
+            self.open = False
+
+        def tile_info_click():
+            new_tile_info_pane = TileInfoPane(game_state, pos, tile)
+            game_state.active_menus = [new_tile_info_pane] + game_state.active_menus
+            self.open = False
+
+        def cancel_click():
+            self.open = False
+
+        move_button = Button(move_r_img,
+                             move_h_img,
+                             move_click,
+                             5,
+                             25)
+
+        enter_city_button = Button(enter_city_r_img,
+                                   enter_city_h_img,
+                                   enter_city_click,
+                                   5,
+                                   25)
+
+        tile_info_button = Button(tile_info_r_img,
+                                  tile_info_h_img,
+                                  tile_info_click,
+                                  100,
+                                  25)
+
+        cancel_button = Button(cancel_r_img,
+                               cancel_h_img,
+                               cancel_click,
+                               180,
+                               25)
+        self.buttons = [move_button, tile_info_button, cancel_button]
+        player_neighbors = util.get_adjacent_tiles(game_state.active_map.game_tile_rows[game_state.player.row][game_state.player.column],
+                                                   game_state.active_map)
+        if self.tile.city and self.tile in player_neighbors:
+            self.buttons = [enter_city_button, tile_info_button, cancel_button]
+
+    def render_decals(self, pos):
+        header_font = pygame.font.SysFont('Calibri', 18, True, False)
+        header_text = "{0} {1}".format(self.tile.biome, self.tile.terrain)
+        if self.tile.city:
+            header_text = "{0}".format(self.tile.city.name)
+        header_stamp = header_font.render(header_text, True, util.colors.white)
+        self.cached_image.blit(header_stamp, [5, 5])
+
+
+class ImpassablePopup(Menu):
+    def __init__(self, game_state):
+        super().__init__(game_state)
+        self.background_pane = pygame.sprite.Sprite()
+        self.background_pane.image = impassable_popup_pane
+        self.background_pane.rect = self.background_pane.image.get_rect()
+        self.background_pane.rect.x = (self.game_state.screen.get_width() / 2) - (self.background_pane.image.get_width() / 2)
+        self.background_pane.rect.y = (self.game_state.screen.get_height() / 2) - (self.background_pane.image.get_height() / 2)
+
         def ok_click():
             self.open = False
+
+        def dragbar_click():
+            self.dragging = True
 
         ok_button = Button(ok_r_img,
                            ok_h_img,
                            ok_click,
                            self.background_pane.image.get_width() / 2 - 28,
-                           self.background_pane.rect.top + 56)
+                           56)
 
-        self.buttons = [ok_button]
+        dragbar_r_img = pygame.Surface([self.background_pane.image.get_width() - 2, 9])
+        dragbar_r_img.fill(util.colors.dragbar)
+
+        dragbar = Button(dragbar_r_img,
+                         dragbar_r_img,
+                         dragbar_click,
+                         1,
+                         1)
+
+        self.buttons = [ok_button, dragbar]
 
 
 class TileInfoPane(Menu):
@@ -276,14 +357,72 @@ class TileInfoPane(Menu):
         terrain_stamp = header_font.render(terrain_text, True, util.colors.white)
         resource_stamp = header_font.render(resource_text, True, util.colors.white)
         city_stamp = header_font.render(city_text, True, util.colors.white)
+        water_flux_stamp = header_font.render("{0}, {1}, {2}".format(self.tile.water_source[0], self.tile.water_source[1], self.tile.water_flux[2]),
+                                              True,
+                                              util.colors.white)
 
         self.cached_image.blit(coordinates_stamp, [8, 73])
         self.cached_image.blit(biome_stamp, [8, 115])
+        self.cached_image.blit(water_flux_stamp, [100, 115])
         self.cached_image.blit(terrain_stamp, [8, 156])
         if self.tile.resource:
-            self.cached_image.blit(art.resource_images[self.tile.resource][0], [5 + resource_stamp.get_width(), 190 - 20])
+            self.cached_image.blit(art.resource_images[self.tile.resource][0], [5 + resource_stamp.get_width(), 200 - 20])
         self.cached_image.blit(resource_stamp, [8, 200])
         self.cached_image.blit(city_stamp, [8, 245])
+
+
+class CityMenu(Menu):
+    def __init__(self, game_state, city):
+        super().__init__(game_state)
+        self.background_pane = pygame.sprite.Sprite()
+        self.background_pane.image = city_menu_pane
+        self.background_pane.rect = self.background_pane.image.get_rect()
+        self.background_pane.rect.x = (self.game_state.screen.get_width() / 2) - (self.background_pane.image.get_width() / 2)
+        self.background_pane.rect.y = (self.game_state.screen.get_height() / 2) - (self.background_pane.image.get_height() / 2)
+        self.city = city
+
+        def leave_click():
+            self.open = False
+
+        def market_click():
+            new_market_menu = MarketMenu(game_state, city)
+            game_state.clear_menutype([MarketMenu])
+            game_state.active_menus = [new_market_menu] + game_state.active_menus
+            self.open = False
+
+        def dragbar_click():
+            self.dragging = True
+
+        dragbar_r_img = pygame.Surface([self.background_pane.image.get_width() - 2, 9])
+        dragbar_r_img.fill(util.colors.dragbar)
+
+        dragbar = Button(dragbar_r_img,
+                         dragbar_r_img,
+                         dragbar_click,
+                         1,
+                         1)
+
+        market_button = Button(market_r_img,
+                               market_h_img,
+                               market_click,
+                               5,
+                               35)
+
+        leave_button = Button(leave_r_img,
+                              leave_h_img,
+                              leave_click,
+                              5,
+                              65)
+
+        self.buttons = [leave_button, market_button,
+                        dragbar]
+
+    def render_decals(self, pos):
+        header_font = pygame.font.SysFont('Calibri', 18, True, False)
+        city_name_text = "{0}".format(self.city.name)
+        city_name_stamp = header_font.render(city_name_text, True, util.colors.white)
+        self.cached_image.blit(city_name_stamp, [self.background_pane.image.get_width() / 2 - city_name_stamp.get_width() / 2,
+                                                 15])
 
 
 class MarketMenu(Menu):
@@ -702,127 +841,3 @@ class QuantityMenu(Menu):
         cost_margin = (self.background_pane.image.get_width() / 2) - (cost_stamp.get_width() / 2)
         self.cached_image.blit(quantity_stamp, [quantity_margin, 80])
         self.cached_image.blit(cost_stamp, [cost_margin, 60])
-
-
-class CityMenu(Menu):
-    def __init__(self, game_state, city):
-        super().__init__(game_state)
-        self.background_pane = pygame.sprite.Sprite()
-        self.background_pane.image = city_menu_pane
-        self.background_pane.rect = self.background_pane.image.get_rect()
-        self.background_pane.rect.x = (self.game_state.screen.get_width() / 2) - (self.background_pane.image.get_width() / 2)
-        self.background_pane.rect.y = (self.game_state.screen.get_height() / 2) - (self.background_pane.image.get_height() / 2)
-        self.city = city
-
-        def leave_click():
-            self.open = False
-
-        def market_click():
-            new_market_menu = MarketMenu(game_state, city)
-            game_state.clear_menutype([MarketMenu])
-            game_state.active_menus = [new_market_menu] + game_state.active_menus
-            self.open = False
-
-        def dragbar_click():
-            self.dragging = True
-
-        dragbar_r_img = pygame.Surface([self.background_pane.image.get_width() - 2, 9])
-        dragbar_r_img.fill(util.colors.dragbar)
-
-        dragbar = Button(dragbar_r_img,
-                         dragbar_r_img,
-                         dragbar_click,
-                         1,
-                         1)
-
-        market_button = Button(market_r_img,
-                               market_h_img,
-                               market_click,
-                               5,
-                               35)
-
-        leave_button = Button(leave_r_img,
-                              leave_h_img,
-                              leave_click,
-                              5,
-                              65)
-
-        self.buttons = [leave_button, market_button,
-                        dragbar]
-
-    def render_decals(self, pos):
-        header_font = pygame.font.SysFont('Calibri', 18, True, False)
-        city_name_text = "{0}".format(self.city.name)
-        city_name_stamp = header_font.render(city_name_text, True, util.colors.white)
-        self.cached_image.blit(city_name_stamp, [self.background_pane.image.get_width() / 2 - city_name_stamp.get_width() / 2,
-                                                 15])
-
-
-class ContextMenu(Menu):
-    def __init__(self, game_state, pos, tile):
-        super().__init__(game_state)
-        self.background_pane = pygame.sprite.Sprite()
-        self.background_pane.image = context_menu
-        self.background_pane.rect = self.background_pane.image.get_rect()
-        self.background_pane.rect.x = pos[0]
-        self.background_pane.rect.y = pos[1]
-        self.tile = tile
-
-        def move_click():
-            if tile.biome in ["ocean", "sea", "shallows", "river"]:
-                game_state.player.column = tile.column
-                game_state.player.row = tile.row
-            else:
-                cannot_move_popup = ImpassablePopup(game_state, tile)
-                game_state.active_menus = [cannot_move_popup] + game_state.active_menus
-            self.open = False
-
-        def enter_city_click():
-            new_city_menu = CityMenu(game_state, self.tile.city)
-            game_state.active_menus = [new_city_menu] + game_state.active_menus
-            self.open = False
-
-        def tile_info_click():
-            new_tile_info_pane = TileInfoPane(game_state, pos, tile)
-            game_state.active_menus = [new_tile_info_pane] + game_state.active_menus
-            self.open = False
-
-        def cancel_click():
-            self.open = False
-
-        move_button = Button(move_r_img,
-                             move_h_img,
-                             move_click,
-                             5,
-                             25)
-
-        enter_city_button = Button(enter_city_r_img,
-                                   enter_city_h_img,
-                                   enter_city_click,
-                                   5,
-                                   25)
-
-        tile_info_button = Button(tile_info_r_img,
-                                  tile_info_h_img,
-                                  tile_info_click,
-                                  100,
-                                  25)
-
-        cancel_button = Button(cancel_r_img,
-                               cancel_h_img,
-                               cancel_click,
-                               180,
-                               25)
-        self.buttons = [move_button, tile_info_button, cancel_button]
-        player_neighbors = util.get_adjacent_tiles(game_state.active_map.game_tile_rows[game_state.player.row][game_state.player.column],
-                                                   game_state.active_map)
-        if self.tile.city and self.tile in player_neighbors:
-            self.buttons = [enter_city_button, tile_info_button, cancel_button]
-
-    def render_decals(self, pos):
-        header_font = pygame.font.SysFont('Calibri', 18, True, False)
-        header_text = "{0} {1}".format(self.tile.biome, self.tile.terrain)
-        if self.tile.city:
-            header_text = "{0}".format(self.tile.city.name)
-        header_stamp = header_font.render(header_text, True, util.colors.white)
-        self.cached_image.blit(header_stamp, [5, 5])

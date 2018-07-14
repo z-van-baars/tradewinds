@@ -28,3 +28,27 @@ class GameState(object):
                 offending_menus.append(menu)
         for each_offender in offending_menus:
             self.active_menus.remove(each_offender)
+
+    @property
+    def background_left(self):
+        return self.active_map.x_shift
+
+    @property
+    def background_top(self):
+        return self.active_map.y_shift
+
+    @property
+    def background_x_middle(self):
+        return 20 + (self.background_left + self.background_width / 2)
+
+    @property
+    def background_bottom(self):
+        return (self.background_top + self.background_height)
+
+    @property
+    def background_right(self):
+        return (self.background_left + self.background_width)
+
+    @property
+    def display_parameters(self):
+        return (self.background_left, self.background_top, self.background_right, self.background_bottom, self.background_x_middle)

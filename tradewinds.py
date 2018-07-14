@@ -118,25 +118,19 @@ def main(game_state):
 
     while not done:
         game_state.time += 1
-        background_left = game_state.active_map.x_shift
-        background_top = game_state.active_map.y_shift
-        background_x_middle = 20 + (background_left + background_width / 2)
-        background_bottom = (background_top + background_height)
-        background_right = (background_left + background_width)
-        display_parameters = (background_left, background_top, background_right, background_bottom, background_x_middle)
         mouse_pos = pygame.mouse.get_pos()
         map_xy = util.get_map_coords(mouse_pos,
                                      game_state.active_map.x_shift,
                                      game_state.active_map.y_shift,
-                                     background_x_middle)
+                                     game_state.background_x_middle)
         selected_tile = None
         if util.check_if_inside(0, active_map.width - 1, 0, active_map.height - 1, map_xy):
             selected_tile = active_map.game_tile_rows[map_xy[1]][map_xy[0]]
-        input_processing(game_state, selected_tile, display_parameters, mouse_pos, map_xy)
+        input_processing(game_state, selected_tile, game_state.display_parameters, mouse_pos, map_xy)
 
         game_state.calendar.increment_date(game_state.game_speed)
 
-        display.update_display(game_state, selected_tile, display_parameters, mouse_pos, map_xy)
+        display.update_display(game_state, selected_tile, game_state.display_parameters, mouse_pos, map_xy)
         menu_cache = []
         for menu in game_state.active_menus:
             menu_cache.append(menu)

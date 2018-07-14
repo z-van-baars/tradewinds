@@ -145,7 +145,7 @@ river_tile = pygame.image.load("art/tiles/river.png").convert_alpha()
 river_tile.set_colorkey(utilities.colors.key)
 river_tile = river_tile.convert_alpha()
 
-lake_tile = pygame.image.load("art/tiles/ocean_1.png").convert_alpha()
+lake_tile = pygame.image.load("art/tiles/lake_1.png").convert_alpha()
 lake_tile.set_colorkey(utilities.colors.key)
 lake_tile = lake_tile.convert_alpha()
 
@@ -226,6 +226,32 @@ for each in desert_images_raw:
 
 
 # TERRAIN
+river_0 = pygame.image.load('art/tiles/river_0.png').convert_alpha()
+river_1 = pygame.image.load('art/tiles/river_1.png').convert_alpha()
+river_2 = pygame.image.load('art/tiles/river_2.png').convert_alpha()
+river_3 = pygame.image.load('art/tiles/river_3.png').convert_alpha()
+river_4 = pygame.image.load('art/tiles/river_4.png').convert_alpha()
+river_5 = pygame.image.load('art/tiles/river_5.png').convert_alpha()
+river_6 = pygame.image.load('art/tiles/river_6.png').convert_alpha()
+river_7 = pygame.image.load('art/tiles/river_7.png').convert_alpha()
+river_8 = pygame.image.load('art/tiles/river_8.png').convert_alpha()
+
+river_images_raw = [river_0,
+                    river_1,
+                    river_2,
+                    river_3,
+                    river_4,
+                    river_5,
+                    river_6,
+                    river_7,
+                    river_8]
+
+river_images = []
+for img in river_images_raw:
+    img.set_colorkey(utilities.colors.key)
+    img = img.convert_alpha()
+    river_images.append(img)
+
 tree_1 = pygame.image.load("art/constructs/terrain/tree_1.png").convert_alpha()
 forest_1 = pygame.image.load("art/terrain/forest_1.png").convert_alpha()
 forest_1.set_colorkey(utilities.colors.key)

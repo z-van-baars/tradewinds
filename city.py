@@ -111,7 +111,6 @@ class City(object):
             self.supply[artikel_id] = quantity
 
 
-
 def evaluate_local_food(active_map, zone_of_control):
     # local_tiles = utilities.get_nearby_tiles(active_map, (tile.column, tile.row), 3)
     total_local_food = 0
@@ -134,6 +133,50 @@ def get_movement_cost(active_map, tile):
     return cost
 
 
+def get_distance_score(active_map, tile):
+    total_distance_score = 0
+    for each in active_map.cities:
+        distance = util.distance(tile.column, tile.row, each.column, each.row)
+        power = 3  # * (len(active_map.cities) / active_map.number_of_cities)
+        map_size = math.sqrt(active_map.width * active_map.height)
+        distance = max(0, ((0.16 * map_size) - distance)) ** power
+        total_distance_score += distance * 0.1  # / len(active_map.cities)
+    return math.floor(total_distance_score)
+
+
+def get_zone_of_control(active_map, tile):
+    zone_of_control = util.get_nearby_tiles(active_map, (tile.column, tile.row), 4)
+    return zone_of_control
+
+
+def get_trade_score(active_map, coastal_sites, site):
+    trade_score = 0
+
+    trade_score = (site.water_flux[2] ** (1.0 / 3.0)) * 3
+    trade_score = min(trade_score, 55)
+    if site in coastal_sites:
+        trade_score *= 1.25
+        trade_score + 40
+
+    return trade_score
+
+
+def evaluate_city_score(active_map, scores, site):
+    zoc = scores['zone of control'][site]
+    z = (len(zoc))
+    f = scores['food score'][site]
+    t = scores['temperature score'][site]
+    tr = scores['trade score'][site]
+    r = scores['resource score'][site]
+    d = scores['distance score'][site]
+    # as the map fills up, we want to weight proximity to other cities less and less
+    crowding_factor = ((active_map.number_of_cities - len(active_map.cities)) / active_map.number_of_cities)
+    city_score = z + f * 2 + t + r * 20 + ((tr / 2) * (tr / 2)) - d
+    city_score = max(50, city_score)
+    time.sleep(0)
+    return city_score
+
+
 def cull_interior_watermasses(active_map):
     water_array = np.ones((active_map.width, active_map.height))
     for row in active_map.game_tile_rows:
@@ -152,62 +195,11 @@ def cull_interior_watermasses(active_map):
     return largest_water_body
 
 
-def evaluate_distance_to_cities(cities, tile):
-    total_distance_score = 0
-    for each in cities:
-        distance = util.distance(tile.column, tile.row, each.column, each.row)
-        distance = max(0, 6 - distance)
-        total_distance_score += distance * 20
-    return math.floor(total_distance_score)
-
-
-def evaluate_total_score(zone_of_control, food_score, temperature_score, resource_score, tile, existing_cities):
-    distance_score = evaluate_distance_to_cities(existing_cities, tile)
-    city_score = len(zone_of_control) + food_score + temperature_score + resource_score * 15 - distance_score
-    time.sleep(0)
-    return city_score
-
-
-def get_zone_of_control(active_map, tile):
-    zone_of_control = util.get_nearby_tiles(active_map, (tile.column, tile.row), 4)
-    return zone_of_control
-
-
-def add_new_city(active_map, city_candidates, zone_of_control, food_score, temperature_score, resource_score, cities):
-    city_sites = queue.PriorityQueue()
-    for each in city_candidates:
-        city_score = evaluate_total_score(zone_of_control[each.row][each.column],
-                                          food_score[each.row][each.column],
-                                          temperature_score[each.row][each.column],
-                                          resource_score[each.row][each.column],
-                                          each,
-                                          cities)
-        if city_score > 0:
-            city_sites.put((-city_score, each))
-            active_map.city_score[each.row][each.column] = city_score
-        else:
-            active_map.city_score[each.row][each.column] = 0
-
-    score, candidate = city_sites.get()
-    name_chosen = False
-    while not name_chosen:
-        new_name = random.choice(city_names)
-        if not any((city.name == new_name) for city in active_map.cities):
-            name_chosen = True
-    print(new_name)
-    new_city = City(candidate.column, candidate.row, new_name)
-    cities.append(new_city)
-    candidate.city = new_city
-    active_map.city_score[candidate.row][candidate.column] = 0
-    city_candidates.remove(candidate)
-    return cities
-
-
-def cull_non_coastal_tiles(city_candidates, active_map):
+def cull_non_coastal_tiles(active_map, viable_sites):
     print("culling non coastal tiles...")
 
     coastal_tiles = []
-    for each_tile in city_candidates:
+    for each_tile in viable_sites:
         neighbor_tiles = util.get_adjacent_tiles(each_tile, active_map)
         if any(neighbor.biome in ['ocean', 'sea', 'shallows'] for neighbor in neighbor_tiles):
             coastal_tiles.append(each_tile)
@@ -222,50 +214,72 @@ def cull_non_coastal_tiles(city_candidates, active_map):
     return connected_coastal_tiles
 
 
-def survey_city_sites(active_map):
-    city_candidates = []
+def get_viable_sites(active_map):
+    viable_sites = []
     for y in active_map.game_tile_rows:
         for x in y:
-            if x.biome != "ocean" and x.biome != "ice" and x.biome != "sea" and x.biome != "shallows":
+            if x.biome != "ocean" and x.biome != "ice" and x.biome != "sea" and x.biome != "shallows" and x.biome != "lake":
                 if x.terrain != "mountain" and x.terrain != "low_mountain" and x.terrain != "hill":
-                    city_candidates.append(x)
+                    viable_sites.append(x)
+    return viable_sites
 
-    city_candidates = cull_non_coastal_tiles(city_candidates, active_map)
-    food_score = []
-    temperature_score = []
-    zone_of_control = []
-    city_score = []
-    resource_score = []
 
-    for y in range(active_map.height):
-        row = []
-        row2 = []
-        row3 = []
-        row4 = []
-        row5 = []
-        for x in range(active_map.width):
-            row.append(None)
-            row2.append([])
-            row3.append(0)
-            row4.append(0)
-            row5.append(0)
-        food_score.append(row)
-        temperature_score.append(row5)
-        zone_of_control.append(row2)
-        resource_score.append(row3)
-        city_score.append(row4)
-        active_map.city_score = city_score
+def initialize_blank_scores(active_map):
+    scores = {'distance score': {},
+              'zone of control': {},
+              'trade score': {},
+              'food score': {},
+              'temperature score': {},
+              'trade score': {},
+              'resource score': {},
+              'city score': {}}
 
-    for each in city_candidates:
-        zone_of_control[each.row][each.column] = get_zone_of_control(active_map, each)
-        food_score[each.row][each.column] = evaluate_local_food(active_map, zone_of_control[each.row][each.column])
-        temperature_score[each.row][each.column] = math.floor(active_map.temperature[each.row][each.column] / 3)
-        resource_score[each.row][each.column] = evaluate_local_resources(active_map, zone_of_control[each.row][each.column])
-        z = (len(zone_of_control[each.row][each.column]))
-        f = food_score[each.row][each.column]
-        t = temperature_score[each.row][each.column]
-        r = resource_score[each.row][each.column] * 15
-        d = 0
-        active_map.city_score[each.row][each.column] = z + f + t + r - d
+    for score_type in ['distance score',
+                       'zone of control',
+                       'trade score',
+                       'food score',
+                       'temperature score',
+                       'trade score',
+                       'resource score',
+                       'city score']:
+        for y in range(active_map.height):
+            for x in range(active_map.width):
+                scores[score_type][active_map.game_tile_rows[y - 1][x - 1]] = 0
+    return scores
 
-    return zone_of_control, food_score, temperature_score, resource_score, city_score, city_candidates
+
+def survey_city_sites(active_map, viable_sites, coastal_sites, scores, initial=False):
+    print("surveying sites...")
+    for each in viable_sites:
+        if initial:
+            scores['zone of control'][each] = get_zone_of_control(active_map, each)
+            zoc = scores['zone of control'][each]
+            scores['food score'][each] = evaluate_local_food(active_map, zoc)
+            scores['temperature score'][each] = math.floor(active_map.temperature[each.row][each.column] / 3)
+            scores['resource score'][each] = evaluate_local_resources(active_map, zoc)
+
+        scores['distance score'][each] = get_distance_score(active_map, each)
+        scores['trade score'][each] = get_trade_score(active_map, coastal_sites, each)
+        scores['city score'][each] = evaluate_city_score(active_map, scores, each)
+    return scores
+
+
+def add_new_city(active_map, viable_sites, coastal_sites, scores):
+    city_sites = queue.PriorityQueue()
+    for site in viable_sites:
+        if scores['city score'][site] > 1:
+            city_sites.put((-scores['city score'][site], site))
+
+    score, candidate = city_sites.get()
+    name_chosen = False
+    while not name_chosen:
+        new_name = random.choice(city_names)
+        if not any((city.name == new_name) for city in active_map.cities):
+            name_chosen = True
+    print(new_name)
+    new_city = City(candidate.column, candidate.row, new_name)
+    active_map.cities.append(new_city)
+    candidate.city = new_city
+    scores['city score'][candidate] = 50
+    viable_sites.remove(candidate)
+    scores = survey_city_sites(active_map, viable_sites, coastal_sites, scores)

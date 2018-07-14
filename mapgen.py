@@ -1,9 +1,10 @@
 from opensimplex import OpenSimplex
-import utilities
+import utilities as util
 import math
 import random
 import queue
-import construct
+import numpy as np
+from scipy.ndimage import label, generate_binary_structure
 from game_tile import GameTile
 import pygame
 import city
@@ -93,7 +94,7 @@ def generate_tempmap(width, height):
                 # south_pole = utilities.distance(width, height, x, y)
                 equatorial_distances = []
                 for each in equator:
-                    equatorial_distances.append(utilities.distance(each[0], each[1], x, y))
+                    equatorial_distances.append(util.distance(each[0], each[1], x, y))
                 # equatorial_distance = min(north_pole, south_pole)
                 equatorial_distance = min(equatorial_distances)
                 pole_distances[y].append(math.floor(equatorial_distance))
@@ -139,56 +140,184 @@ def generate_moisture_map(width, height, elevation, water_cutoff):
     return moisture
 
 
+def classify_masses(active_map):
+    print('classifying landmasses...')
+    water_array = np.ones((active_map.width, active_map.height))
+    for row in active_map.game_tile_rows:
+        for tile in row:
+            if active_map.elevation[tile.row][tile.column] >= active_map.water_cutoff:
+                water_array[tile.column, tile.row] = 0
+    s = generate_binary_structure(2, 2)
+    labeled_array, num_features = label(water_array, structure=s)
+
+    # filter the labeled array into layers. `==` does the filtering
+    layers = [(labeled_array == i) for i in range(1, num_features + 1)]
+
+    sorted_water_bodies = sorted(((np.sum(subarray), subarray) for subarray in layers), key=lambda x: x[0], reverse=True)
+    lake_constant = ((active_map.width * active_map.height) ** (1 / 4)) * 2
+    print(lake_constant)
+    small_water_bodies = []
+    for size, water_body in sorted_water_bodies:
+        if size < lake_constant:
+            small_water_bodies.append(water_body)
+    all_tiles = []
+    for row in active_map.game_tile_rows:
+        for tile in row:
+            all_tiles.append(tile)
+    tiles_to_raise = []
+    for water_body in small_water_bodies:
+        for new_tile in all_tiles:
+            if water_body[new_tile.column, new_tile.row] == 1:
+                tiles_to_raise.append(new_tile)
+    return tiles_to_raise
+
+
+def adjust_landmass_height(active_map):
+    tiles_to_raise = classify_masses(active_map)
+    print('adjusting interior landmass elevation...')
+    print('tiles to raise: {0}'.format(len(tiles_to_raise)))
+    raising = True
+    while raising:
+        raising = False
+        for each_tile in tiles_to_raise:
+            active_map.elevation[each_tile.row][each_tile.column] += 0.01
+            if active_map.elevation[each_tile.row][each_tile.column] <= active_map.water_cutoff + 0.01:
+                raising = True
+
+
+def infill_basins(active_map):
+    print("filling basins...")
+    water_cutoff = 0.5
+
+    # builds a stack of layer tuples to iterate through
+    z_layers = queue.PriorityQueue()
+    for y_row in active_map.game_tile_rows:
+        for tile in y_row:
+            elevation = active_map.elevation[tile.row][tile.column]
+            if active_map.elevation[tile.row][tile.column] > water_cutoff:
+                z_layers.put((-elevation, tile))  # inverting the highest elevation brings it to the top of the queue for the get() operator
+
+    # works from the highest z(elevation) to the lowest, adding water flux to lower tiles cumulatively
+    while not z_layers.empty():
+        elevation, tile = z_layers.get()
+        neighbors = util.get_adjacent_tiles(tile, active_map)
+
+        # builds a list of neighbors who are at a lower Z level
+        flowable_neighbors = []
+        all_neighbors = []  # backup list in case we bottom out and need to fill in a lake
+        for each_tile in neighbors:
+            if active_map.elevation[each_tile.row][each_tile.column] < active_map.elevation[tile.row][tile.column]:
+                flowable_neighbors.append((active_map.elevation[each_tile.row][each_tile.column], each_tile))
+            all_neighbors.append((active_map.elevation[each_tile.row][each_tile.column], each_tile))
+
+        # if no neighboring tile is lower, then cease to flow, turn this tile into a SHALLOWS tile / LAKE
+        if len(flowable_neighbors) == 0:
+            frontier = sorted(all_neighbors)
+            last_addition = tile
+            last_addition_elevation = active_map.elevation[tile.row][tile.column]
+            tiles_to_raise = [tile]
+            while frontier[0][0] >= last_addition_elevation:
+                last_addition = frontier[0][1]
+                del frontier[0]
+                last_addition_elevation = active_map.elevation[last_addition.row][last_addition.column]
+                tiles_to_raise.append(last_addition)
+                new_neighbors = util.get_adjacent_tiles(last_addition, active_map)
+                for neighbor in new_neighbors:
+                    if (active_map.elevation[neighbor.row][neighbor.column], neighbor) not in frontier:
+                        if neighbor not in tiles_to_raise:
+                            frontier.append((active_map.elevation[neighbor.row][neighbor.column], neighbor))
+                            frontier = sorted(frontier)
+                for tile_to_raise in tiles_to_raise:
+                    active_map.elevation[tile_to_raise.row][tile_to_raise.column] = last_addition_elevation
+
+
 def generate_rivers(active_map, water_cutoff):
     print("running rivers...")
-    river_cutoff = 1000
+    river_cutoff = active_map.river_cutoff
+
+    # builds a stack of layer tuples to iterate through
     moisture_layers = queue.PriorityQueue()
     for y_row in active_map.game_tile_rows:
         for tile in y_row:
             elevation = active_map.elevation[tile.row][tile.column]
             if active_map.elevation[tile.row][tile.column] > water_cutoff:
-                moisture_layers.put((-elevation, tile))
+                moisture_layers.put((-elevation, tile))  # inverting the highest elevation brings it to the top of the queue for the get() operator
+
+    # works from the highest z(elevation) to the lowest, adding water flux to lower tiles cumulatively
     while not moisture_layers.empty():
-        moisture, tile = moisture_layers.get()
-        moisture = -moisture
-        neighbors = utilities.get_adjacent_tiles(tile, active_map)
-        flow_neighbors = []
+        elevation, tile = moisture_layers.get()
+        neighbors = util.get_adjacent_tiles(tile, active_map)
+
+        # builds a list of neighbors who are at a lower Z level
+        flowable_neighbors = []
+        all_neighbors = []  # backup list in case we bottom out and need to fill in a lake
         for each_tile in neighbors:
             if active_map.elevation[each_tile.row][each_tile.column] < active_map.elevation[tile.row][tile.column]:
-                flow_neighbors.append(each_tile)
-        if len(flow_neighbors) == 0:
-            tile.water_flux = tile.water_in
-            if tile.water_flux >= river_cutoff:
-                tile.biome = "ocean"
+                flowable_neighbors.append((active_map.elevation[each_tile.row][each_tile.column], each_tile))
+            all_neighbors.append((active_map.elevation[each_tile.row][each_tile.column], each_tile))
+
+        # if no neighboring tile is lower, then cease to flow, turn this tile into a SHALLOWS tile / LAKE
+        if len(flowable_neighbors) == 0:
+            water_in = tile.water_flux[0]
+            water_out = water_in
+            total_flux = water_in + water_out + active_map.moisture[tile.row][tile.column]
+            tile.water_flux = (water_in, water_out, total_flux)
+            if total_flux >= river_cutoff:
+                tile.biome = "lake"
+                frontier = sorted(all_neighbors)
+                last_addition = tile
+                last_addition_elevation = active_map.elevation[tile.row][tile.column]
+                tiles_filled = [tile]
+                while frontier[0][0] >= last_addition_elevation:
+                    last_addition = frontier[0][1]
+                    last_addition_elevation = frontier[0][0]
+                    del frontier[0]
+                    last_addition.biome = "lake"
+                    tiles_filled.append(last_addition)
+                    last_addition.water_flux = (water_in, water_out, total_flux)
+                    new_neighbors = util.get_adjacent_tiles(last_addition, active_map)
+                    for neighbor in new_neighbors:
+                        if (active_map.elevation[neighbor.row][neighbor.column], neighbor) not in frontier:
+                            if neighbor not in tiles_filled:
+                                frontier.append((active_map.elevation[neighbor.row][neighbor.column], neighbor))
+                                frontier = sorted(frontier)
+                # frontier[0][1].water_flux = (frontier[0][1].water_flux[0] + water_in, 0, frontier[0][1].water_flux[2] + total_flux)
+                # frontier[0][1].water_source = (frontier[0][1].water_source[0] + [util.get_neighbor_position(frontier[0][1], last_addition)], 0)
+                frontier[0][1].water_flux = (water_in, 0, 0)
+                frontier[0][1].water_source = ([util.get_neighbor_position(frontier[0][1], last_addition)], 0)
+
+                # ADD A THING HERE TO MAKE WATER SPREAD AND FILL UP BASINS ACCORDING TO ACCUMULATED WATER FLUX
+
+        # if we have >1 lower tile, add our collected water flux to it's water flux in
         else:
-            lowest_neighbor = tile
-            for each_neighbor in flow_neighbors:
-                if active_map.elevation[each_neighbor.row][each_neighbor.column] < active_map.elevation[lowest_neighbor.row][lowest_neighbor.column]:
-                    lowest_neighbor = each_neighbor
-            assert lowest_neighbor != tile
-            tile.water_out = tile.water_in + active_map.moisture[tile.row][tile.column]
-            lowest_neighbor.water_in = tile.water_in + active_map.moisture[tile.row][tile.column]
-            tile.water_flux = tile.water_in + tile.water_out
-    for each_row in active_map.game_tile_rows:
-        for each_tile in each_row:
-            if each_tile.water_flux > river_cutoff and each_tile.biome != "ocean":
-                each_tile.biome = "river"
+            lowest_neighbor = sorted(flowable_neighbors)[0][1]
+
+            water_in, water_out, total_flux = tile.water_flux
+
+            water_out = water_in + active_map.moisture[tile.row][tile.column]  # add incoming water flux to local moisture and send it out
+            total_flux = water_in + water_out
+            tile.water_source = (tile.water_source[0], util.get_neighbor_position(tile, lowest_neighbor))
+            lowest_neighbor.water_flux = (water_out + lowest_neighbor.water_flux[0], 0, 0)
+            if total_flux > river_cutoff:
+                lowest_neighbor.water_source = (lowest_neighbor.water_source[0] + [util.get_neighbor_position(lowest_neighbor, tile)], 0)
+
+            tile.water_flux = (water_in, water_out, total_flux)
 
 
 def generate_blank_grass_tiles(active_map):
     active_map.game_tile_rows = []
-    for y_row in range(active_map.number_of_rows):
+    for y_row in range(active_map.height):
         this_row = []
-        for x_column in range(active_map.number_of_columns):
+        for x_column in range(active_map.width):
             this_row.append(GameTile(x_column, y_row, "grass"))
         active_map.game_tile_rows.append(this_row)
 
 
 def generate_blank_ocean_tiles(active_map):
     active_map.game_tile_rows = []
-    for y_row in range(active_map.number_of_rows):
+    for y_row in range(active_map.height):
         this_row = []
-        for x_column in range(active_map.number_of_columns):
+        for x_column in range(active_map.width):
             this_row.append(GameTile(x_column, y_row, "ocean"))
         active_map.game_tile_rows.append(this_row)
 
@@ -291,7 +420,7 @@ def generate_terrain(active_map):
 
 
 def check_local_resources(active_map, tile):
-    tiles_in_radius = utilities.get_nearby_tiles(active_map, [tile.row, tile.column], 5)
+    tiles_in_radius = util.get_nearby_tiles(active_map, [tile.row, tile.column], 5)
     for each_tile in tiles_in_radius:
         if tile.resource:
             return False
@@ -301,7 +430,7 @@ def check_local_resources(active_map, tile):
 def pick_random_location(active_map):
     selected = False
     while not selected:
-        tile_xy = utilities.get_random_coordinates(0, active_map.width - 1, 0, active_map.height - 1)
+        tile_xy = util.get_random_coordinates(0, active_map.width - 1, 0, active_map.height - 1)
         if check_local_resources(active_map, active_map.game_tile_rows[tile_xy[1]][tile_xy[0]]):
             selected = True
     tile = active_map.game_tile_rows[tile_xy[1]][tile_xy[0]]
@@ -328,7 +457,7 @@ def place_resources(active_map, max_cluster_size):
                 tile_chosen = True
         active_map.game_tile_rows[tile.row][tile.column].resource = resource_choice
 
-        nearby_tiles = utilities.get_nearby_tiles(active_map, [tile.row, tile.column], 5)
+        nearby_tiles = util.get_nearby_tiles(active_map, [tile.row, tile.column], 5)
         for jj in range(cluster_size):
             try_count = 0
             clear_matching_tile = False
@@ -343,7 +472,21 @@ def place_resources(active_map, max_cluster_size):
                     active_map.game_tile_rows[new_resource.row][new_resource.column].resource = resource_choice
 
 
-def render_raw_maps(active_map, width, height, raw_maps, exclusive=None):
+def city_score_to_array(active_map, city_scores):
+    # turns an input dict - city scores - into an output array - city score array
+    city_score_array = []
+
+    for y in range(active_map.height):
+        new_row = []
+        for x in range(active_map.width):
+            new_row.append(0)
+        city_score_array.append(new_row)
+    for site, score in city_scores.items():
+        active_map.city_score[site.row][site.column] = score
+    return city_score_array
+
+
+def render_raw_maps(active_map, width, height, raw_maps, exclusive=None, scores=None):
     tile_marker = pygame.Surface([1, 1])
     tile_marker.fill((0, 0, 0))
     if not exclusive or exclusive == "height":
@@ -393,23 +536,23 @@ def render_raw_maps(active_map, width, height, raw_maps, exclusive=None):
         for y in range(height):
             for x in range(width):
                 biome = active_map.game_tile_rows[y][x].biome
-                tile_marker.fill(utilities.colors.biome_colors[biome])
+                tile_marker.fill(util.colors.biome_colors[biome])
                 raw_maps[3].blit(tile_marker, [x, y])
 
-        tile_marker.fill(utilities.colors.purple)
+        tile_marker.fill(util.colors.purple)
         for each in active_map.cities:
             # zoc_tiles = utilities.get_nearby_tiles(active_map, [each.column, each.row], 8)
             # for tile in zoc_tiles:
                 # biome_map_image.blit(tile_marker, [tile.column, tile.row])
             raw_maps[3].blit(tile_marker, [each.column, each.row])
-        tile_marker.fill(utilities.colors.red)
+        tile_marker.fill(util.colors.red)
         for row in active_map.game_tile_rows:
             for tile in row:
                 if tile.resource:
                     raw_maps[3].blit(tile_marker, [tile.column, tile.row])
     if not exclusive or exclusive == "city score":
         print("rendering city score map")
-        max_score = 160
+        max_score = 500
         score_gradient = {0: (3, 0, 87),
                           10: (59, 211, 13),
                           9: (78, 91, 13),
@@ -422,22 +565,41 @@ def render_raw_maps(active_map, width, height, raw_maps, exclusive=None):
                           2: (211, 52, 13),
                           1: (231, 33, 13)}
         largest = 0
-        for y in range(height):
-            for x in range(width):
-                score = active_map.city_score[y][x]
-                value = min(10, round((score / max_score) * 10))
-                if score > largest:
-                    largest = score
-                tile_marker.fill(score_gradient[value])
-                raw_maps[5].blit(tile_marker, [x, y])
-        # print("largest score recorder: {0}".format(largest))
+        for site, score in scores['city score'].items():
+            normalized_value = min(10, round((score / max_score) * 10))
+            if score > largest:
+                largest = score
+            tile_marker.fill(score_gradient[normalized_value])
+            raw_maps[5].blit(tile_marker, [site.column, site.row])
+    if not exclusive or exclusive == "trade score":
+        print("rendering trade score map")
+        max_score = 25
+        score_gradient = {0: (3, 0, 87),
+                          10: (59, 211, 13),
+                          9: (78, 91, 13),
+                          8: (97, 171, 13),
+                          7: (116, 151, 13),
+                          6: (135, 132, 13),
+                          5: (154, 112, 13),
+                          4: (173, 92, 13),
+                          3: (192, 72, 13),
+                          2: (211, 52, 13),
+                          1: (231, 33, 13)}
+        largest = 0
+        for site, score in scores['trade score'].items():
+            normalized_value = min(10, round((score / max_score) * 10))
+            if score > largest:
+                largest = score
+            tile_marker.fill(score_gradient[normalized_value])
+            raw_maps[4].blit(tile_marker, [site.column, site.row])
+        print("largest score recorder: {0}".format(largest))
     if not exclusive or exclusive == "water flux":
         print("rendering water flux")
         max_flux = 0
         for each_row in active_map.game_tile_rows:
             for each_tile in each_row:
-                if each_tile.water_flux > max_flux:
-                    max_flux = each_tile.water_flux
+                if each_tile.water_flux[2] > max_flux:
+                    max_flux = each_tile.water_flux[2]
         flux_gradient = {0: (0, 76, 229),
                          1: (24, 91, 206),
                          2: (48, 106, 184),
@@ -449,9 +611,10 @@ def render_raw_maps(active_map, width, height, raw_maps, exclusive=None):
                          8: (192, 196, 49),
                          9: (216, 211, 26),
                          10: (241, 226, 4)}
+        max_flux = active_map.river_cutoff * 1.25
         for y in range(height):
             for x in range(width):
-                flux = active_map.game_tile_rows[y][x].water_flux
+                flux = active_map.game_tile_rows[y][x].water_flux[2]
                 value = min(10, round((flux / max_flux) * 10))
                 tile_marker.fill(flux_gradient[value])
                 raw_maps[6].blit(tile_marker, [x, y])
@@ -472,7 +635,7 @@ def prepare_map_surfaces(display_data):
     blank_maps = []
     for each in map_surfaces:
         each.fill((110, 110, 110))
-        each.set_colorkey(utilities.colors.key)
+        each.set_colorkey(util.colors.key)
         each = each.convert_alpha()
         blank_maps.append(each)
     return blank_maps
@@ -480,9 +643,7 @@ def prepare_map_surfaces(display_data):
 
 def scale_maps(raw_maps, display_data):
     # resizes raw maps and returns a list of resized surfaces
-    display_width, display_height, display_scale = (display_data[0],
-                                                    display_data[1],
-                                                    display_data[2])
+    display_width, display_height, display_scale = display_data
     if display_scale:
         display_width = 264
         display_height = 264
@@ -493,9 +654,10 @@ def scale_maps(raw_maps, display_data):
     return scaled_maps
 
 
-def render_rotated_maps(screen, scaled_maps, display_scale):
+def render_rotated_maps(screen, scaled_maps, display_data):
     # prints rendered and prepped map surfaces to the screen after rotating
     rotation = -45  # rotation for map previews in degrees
+    display_width, display_height, display_scale = display_data
     if display_scale:
         c = math.sqrt(264 ** 2 + 264 ** 2)
     else:
@@ -504,10 +666,35 @@ def render_rotated_maps(screen, scaled_maps, display_scale):
     screen.blit(pygame.transform.rotate(scaled_maps[0], rotation), [0, 0])  # heightmap
     screen.blit(pygame.transform.rotate(scaled_maps[1], rotation), [c + display_offset, 0])  # tempmap
     screen.blit(pygame.transform.rotate(scaled_maps[2], rotation), [0, c + display_offset])  # moisture map
-    screen.blit(pygame.transform.rotate(scaled_maps[3], rotation), [c + display_offset, c + 5])  # biome map with cities marked
-    screen.blit(pygame.transform.rotate(scaled_maps[4], rotation), [c * 2 + display_offset * 2, 0])  # trade connectivity map
+    screen.blit(pygame.transform.rotate(scaled_maps[3], rotation), [c + display_offset, c + display_offset])  # biome map with cities marked
+    screen.blit(pygame.transform.rotate(scaled_maps[4], rotation), [c * 2 + display_offset * 2, 0])  # trade connectivity score map
     screen.blit(pygame.transform.rotate(scaled_maps[5], rotation), [c * 2 + display_offset * 2, c + display_offset])  # city score map
     screen.blit(pygame.transform.rotate(scaled_maps[6], rotation), [c * 3 + display_offset * 3, 0])  # water flux map
+
+
+def render_map_labels(screen, scaled_maps, display_data):
+    display_width, display_height, display_scale = display_data
+    if display_scale:
+        c = math.sqrt(264 ** 2 + 264 ** 2)
+    else:
+        c = pygame.transform.rotate(scaled_maps[0], -45).get_width()  # offset for left edge of map displays
+    display_offset = 5
+    label_font = pygame.font.SysFont("Minion Pro", 26, False, False)
+    screen.blit(label_font.render("Elevation", True, util.colors.white), [0, c])
+    screen.blit(label_font.render("Temperature", True, util.colors.white), [c + display_offset, c])
+    screen.blit(label_font.render("Moisture", True, util.colors.white), [0, c + display_offset + c])
+    screen.blit(label_font.render("Biomes", True, util.colors.white), [c + display_offset, c + display_offset + c])
+    screen.blit(label_font.render("Trade Score", True, util.colors.white), [c * 2 + display_offset * 2, c])
+    screen.blit(label_font.render("City Score", True, util.colors.white), [c * 2 + display_offset * 2, c * 2 + display_offset])
+    screen.blit(label_font.render("Water Flux", True, util.colors.white), [c * 3 + display_offset * 3, c])
+
+
+def display_update(screen, raw_maps, display_data, clock):
+    scaled_maps = scale_maps(raw_maps, display_data)
+    render_rotated_maps(screen, scaled_maps, display_data)
+    pygame.display.flip()
+    clock.tick(60)
+    time.sleep(0.01)
 
 
 def map_generation(active_map):
@@ -516,29 +703,29 @@ def map_generation(active_map):
     width = active_map.width
     height = active_map.height
     screen = pygame.display.set_mode([1600, 1000])
-    water_cutoff = 0.5
+    screen.fill(util.colors.black)
+    water_cutoff = active_map.water_cutoff
     max_resource_cluster_size = 5
 
     display_scale = False
     display_data = (width, height, display_scale)
 
-    def reset_previews(width, height):
+    def initialize_raw_maps(width, height):
         generate_blank_ocean_tiles(active_map)
         map_previews = [pygame.Surface([width, height])
                         for i in range(7)]
         clean_map_previews = []
         for each in map_previews:
             each.fill((110, 110, 110))
-            each.set_colorkey(utilities.colors.key)
+            each.set_colorkey(util.colors.key)
             each = each.convert_alpha()
             clean_map_previews.append(each)
         return clean_map_previews
 
-    raw_maps = reset_previews(width, height)
+    raw_maps = initialize_raw_maps(width, height)
     scaled_maps = scale_maps(raw_maps, display_data)
 
     while not accepted:
-        render_rotated_maps(screen, scaled_maps, display_scale)
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -546,7 +733,15 @@ def map_generation(active_map):
                 pygame.quit()
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_RETURN:
+                    raw_maps = initialize_raw_maps(width, height)
+
                     generate_heightmap(active_map)
+                    adjust_landmass_height(active_map)
+                    infill_basins(active_map)
+
+                    render_raw_maps(active_map, width, height, raw_maps, 'height')
+                    display_update(screen, raw_maps, display_data, clock)
+
                     active_map.temperature = generate_tempmap(width, height)
                     active_map.moisture = generate_moisture_map(width, height, active_map.elevation, water_cutoff)
                     generate_biomes(active_map, water_cutoff)
@@ -554,53 +749,44 @@ def map_generation(active_map):
                     generate_rivers(active_map, water_cutoff)
                     place_resources(active_map, max_resource_cluster_size)
                     print("map complete")
+
                     for map_type in ('height', 'temp', 'moisture', 'water flux', 'biome'):
                         render_raw_maps(active_map, width, height, raw_maps, map_type)
 
-                    scaled_maps = scale_maps(raw_maps, display_data)
-                    render_rotated_maps(screen, scaled_maps, display_scale)
-                    pygame.display.flip()
-                    clock.tick(60)
-                    time.sleep(0.5)
+                    display_update(screen, raw_maps, display_data, clock)
 
                     print("surveying city candidates...")
-                    zone_of_control, food_score, temperature_score, resource_score, city_score, city_candidates = city.survey_city_sites(active_map)
-                    number_of_cities = math.floor(math.sqrt(active_map.width * active_map.height) / 5)
-                    active_map.city_score = city_score
-                    cities = []
+                    scores = city.initialize_blank_scores(active_map)
+                    viable_sites = city.get_viable_sites(active_map)
+                    coastal_sites = city.cull_non_coastal_tiles(active_map, viable_sites)
+                    city.survey_city_sites(active_map, viable_sites, coastal_sites, scores, True)
+                    render_raw_maps(active_map, width, height, raw_maps, "trade score", scores)
+                    render_raw_maps(active_map, width, height, raw_maps, "city score", scores)
+                    display_update(screen, raw_maps, display_data, clock)
+                    clock.tick(1)
 
-                    number_of_cities = 25
                     print("placing cities...")
-                    for ii in range(number_of_cities):
-                        active_map.cities = city.add_new_city(active_map,
-                                                              city_candidates,
-                                                              zone_of_control,
-                                                              food_score,
-                                                              temperature_score,
-                                                              resource_score,
-                                                              cities)
-                        print("city placed: {0} / {1}".format(len(cities), number_of_cities))
-                        render_raw_maps(active_map, width, height, raw_maps, "city score")
+                    for ii in range(active_map.number_of_cities):
+                        city.add_new_city(active_map, viable_sites, coastal_sites, scores)
+                        print("city placed: {0} / {1}".format(len(active_map.cities), active_map.number_of_cities))
+                        render_raw_maps(active_map, width, height, raw_maps, "trade score", scores)
+                        render_raw_maps(active_map, width, height, raw_maps, "city score", scores)
 
-                        scaled_maps = scale_maps(raw_maps, display_data)
-
-                        render_rotated_maps(screen, scaled_maps, display_scale)
-                        pygame.display.flip()
-                        clock.tick(60)
-                        time.sleep(0.01)
-                    active_map.cities = cities
+                        display_update(screen, raw_maps, display_data, clock)
                     print("cities placed!")
                 elif event.key == pygame.K_SPACE:
                     accepted = True
-        pygame.display.flip()
-        clock.tick(60)
+        screen.fill(util.colors.black)
+        render_map_labels(screen, scaled_maps, display_data)
+        display_update(screen, raw_maps, display_data, clock)
 
     active_map.paint_background_tiles(active_map.game_tile_rows)
     active_map.paint_terrain_layer(active_map.game_tile_rows)
     active_map.paint_resource_layer(active_map.game_tile_rows)
     active_map.paint_building_layer(active_map.game_tile_rows)
 
+    scaled_maps = scale_maps(raw_maps, display_data)
     active_map.biome_map_preview = pygame.Surface([140, 140])
     pygame.transform.smoothscale(scaled_maps[3], (140, 140), active_map.biome_map_preview)
-    active_map.biome_map_preview.set_colorkey(utilities.colors.key)
+    active_map.biome_map_preview.set_colorkey(util.colors.key)
     active_map.biome_map_preview = active_map.biome_map_preview.convert_alpha()

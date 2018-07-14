@@ -61,6 +61,7 @@ mountain = {"taiga": ["iron", "silver", "gold"],
             "ocean": [None],
             "sea": [None],
             "shallows": [None],
+            "lake": [None],
             "river": [None]}
 
 low_mountain = {"taiga": ["iron", "silver", "gold"],
@@ -79,6 +80,7 @@ low_mountain = {"taiga": ["iron", "silver", "gold"],
                 "ocean": [None],
                 "sea": [None],
                 "shallows": [None],
+                "lake": [None],
                 "river": [None]}
 
 hill = {"taiga": ["iron", "silver"],
@@ -97,6 +99,7 @@ hill = {"taiga": ["iron", "silver"],
         "ocean": [None],
         "sea": [None],
         "shallows": [None],
+        "lake": [None],
         "river": [None]}
 
 low_hill = {"taiga": ["iron", "silver"],
@@ -115,6 +118,7 @@ low_hill = {"taiga": ["iron", "silver"],
             "ocean": [None],
             "sea": [None],
             "shallows": [None],
+            "lake": [None],
             "river": [None]}
 
 
@@ -134,6 +138,7 @@ vegetation = {"taiga": ["pelts", "iron", "silver"],
               "ocean": [None],
               "sea": [None],
               "shallows": [None],
+              "lake": [None],
               "river": [None]}
 
 
