@@ -1,12 +1,12 @@
 import pygame
-from game_tile import GameTile
 import utilities
 from utilities import colors
 import queue
 import math
 import random
-import construct
 import art
+from typing import List
+assert List
 
 tile_width = 40
 tile_height = 15
@@ -36,8 +36,14 @@ class Map(object):
         self.cities = []
         self.river_cutoff = 2000
         self.water_cutoff = 0.5
+        self.max_resource_cluster_size = 5
         self.displayshift_x = 0
         self.displayshift_y = 0
+        self.temperature = []
+        self.moisture = []
+        self.elevation = []
+        self.biome_map_preview = None
+        self.all_tiles = []
 
     def paint_background_tiles(self, game_tile_rows):
         tile_width = 40

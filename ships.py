@@ -5,28 +5,31 @@ import pygame
 
 
 class Ship(object):
-    def __init__(self, speed, cargo_cap, crew_cap, defense, attack, wounds, purchase_cost):
-        """
-        CARGO CAP
+    """
+    Attributes
+    ----------
+    speed
+        Gotta go fast.  For now this does nothing.
+    cargo_cap : int
         Max Loaded Cargo in Tons.  Less loaded cargo increases speed, but this has
         not been implemented.
-        CREW CAP
+    crew_cap :int
         Maximum number of crew the ship can support.  Ships have a minimum needed, but
         additional crew can be taken on to increase speed, attack/defense power, etc.
         For now this does nothing, and crew is always at cap maximum.
-        SPEED
-        Gotta go fast.  For now this does nothing.
-        DEFENSE
+    defense : int
         Defensive power of the ship.  Ability to resist cannon shots and repel boarders during
         attacks.  Negates incoming attack power
-        ATTACK
+    attack : int
         Attack Power (cannons, small arms, etc).  Think Warhammer.
-        PURCHASE COST
-        Self Explanatory.
-        WOUNDS
+    wounds : int
         for combat purposes.  Multiple wounds means you can fail more than one defense roll during
         combat before losing the ship.  Again, think Warhammer.
-        """
+    purchase_cost : int
+        Self Explanatory.
+    """
+
+    def __init__(self, speed, cargo_cap, crew_cap, defense, attack, wounds, purchase_cost):
         self.cargo_cap = cargo_cap
         self.crew_cap = crew_cap
         self.speed = speed
@@ -56,7 +59,7 @@ class Ship(object):
         self.target_port = None
         self.path = None
 
-    def set_display_coordinates(self, node_x, node_y):
+    def set_display_coordinates(self, node_x: int, node_y: int) -> None:
         self.x = node_x
         self.y = node_y
 

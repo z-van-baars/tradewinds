@@ -1,2 +1,3 @@
 *.pyc
 *.psd
+.mypy_cache/*

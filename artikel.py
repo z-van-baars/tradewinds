@@ -1,4 +1,6 @@
+from enum import Enum
 
+#Resources = Enum('Resources', 'Saffron,Cinnamon,Vanilla,Clove,Ivory,Fine_Timber,Wool,Pelts,Cattle,Rice,Wheat,Iron,Gold,Silver')
 
 Saffron = ["plains", "savannah"]
 

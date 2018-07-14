@@ -7,6 +7,7 @@ import mapgen
 import random
 import player
 import ui
+from typing import Dict
 
 pygame.init()
 pygame.display.set_mode([0, 0])
@@ -109,11 +110,8 @@ def main(game_state):
     active_map = game_state.active_map
 
     done = False
-
-    background_width = game_state.active_map.tile_display_layer.image.get_width()
-    background_height = game_state.active_map.tile_display_layer.image.get_height()
-    active_map.x_shift = game_state.screen_width / 2 - background_width / 2
-    active_map.y_shift = game_state.screen_height / 2 - (background_height / 2)
+    active_map.x_shift = game_state.screen_width / 2 - (game_state.background_width / 2)
+    active_map.y_shift = game_state.screen_height / 2 - (game_state.background_height / 2)
     game_state.year = 1000
 
     while not done:
@@ -160,3 +158,13 @@ game_state.player.silver = 100
 game_state.player.ship.cargo['wool'] = 10
 print(start_location.column, start_location.row)
 main(game_state)
+
+
+x = {"foo": 3}  # type: Dict[str, int]
+
+
+def foobaz(zar: Dict[str, int]) -> int:
+    return zar["foo"]
+
+
+foobaz(x)

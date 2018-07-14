@@ -38,6 +38,14 @@ class GameState(object):
         return self.active_map.y_shift
 
     @property
+    def background_width(self):
+        return self.active_map.tile_display_layer.image.get_width()
+
+    @property
+    def background_height(self):
+        return self.active_map.tile_display_layer.image.get_height()
+
+    @property
     def background_x_middle(self):
         return 20 + (self.background_left + self.background_width / 2)
 
