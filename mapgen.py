@@ -11,6 +11,7 @@ import pygame
 import city
 import artikel
 import time
+import region
 
 pygame.init()
 pygame.display.set_mode([0, 0])
@@ -155,8 +156,8 @@ def classify_masses(active_map):
     layers = [(labeled_array == i) for i in range(1, num_features + 1)]
 
     sorted_water_bodies = sorted(((np.sum(subarray), subarray) for subarray in layers), key=lambda x: x[0], reverse=True)
-    lake_constant = ((active_map.width * active_map.height) ** (1 / 4)) * 2
-    print(lake_constant)
+    lake_constant = math.floor(((active_map.width * active_map.height) ** (1 / 4)) * 3)
+    print("{0} lake constant".format(lake_constant))
     small_water_bodies = []
     for size, water_body in sorted_water_bodies:
         if size < lake_constant:
@@ -181,8 +182,9 @@ def adjust_landmass_height(active_map):
     while raising:
         raising = False
         for each_tile in tiles_to_raise:
-            active_map.elevation[each_tile.row][each_tile.column] += 0.01
-            if active_map.elevation[each_tile.row][each_tile.column] <= active_map.water_cutoff + 0.01:
+            active_map.elevation[each_tile.row][each_tile.column] = min(active_map.water_cutoff + 0.01,
+                                                                        active_map.elevation[each_tile.row][each_tile.column] + 0.01)
+            if active_map.elevation[each_tile.row][each_tile.column] < active_map.water_cutoff + 0.01:
                 raising = True
 
 
@@ -275,7 +277,9 @@ def generate_rivers(active_map, water_cutoff):
                     del frontier[0]
                     last_addition.biome = "lake"
                     tiles_filled.append(last_addition)
-                    last_addition.water_flux = (water_in, water_out, total_flux)
+                    last_addition.water_flux = (max(water_in, last_addition.water_flux[0]),
+                                                max(water_out, last_addition.water_flux[1]),
+                                                max(total_flux, last_addition.water_flux[2]))
                     new_neighbors = util.get_adjacent_tiles(last_addition, active_map)
                     for neighbor in new_neighbors:
                         if (active_map.elevation[neighbor.row][neighbor.column], neighbor) not in frontier:
@@ -286,8 +290,6 @@ def generate_rivers(active_map, water_cutoff):
                 # frontier[0][1].water_source = (frontier[0][1].water_source[0] + [util.get_neighbor_position(frontier[0][1], last_addition)], 0)
                 frontier[0][1].water_flux = (water_in, 0, 0)
                 frontier[0][1].water_source = ([util.get_neighbor_position(frontier[0][1], last_addition)], 0)
-
-                # ADD A THING HERE TO MAKE WATER SPREAD AND FILL UP BASINS ACCORDING TO ACCUMULATED WATER FLUX
 
         # if we have >1 lower tile, add our collected water flux to it's water flux in
         else:
@@ -772,11 +774,10 @@ def make_map(mgs: MapgenState):
         for tile in row:
             mgs.active_map.all_tiles.append(tile)
     all_sites = [city.Site(tile, mgs.active_map) for tile in mgs.active_map.all_tiles]
-    print(len(all_sites))
     viable_sites = list(filter(city.Site.is_viable, all_sites))
-    print(len(viable_sites))
     largest_water_body = city.cull_interior_watermasses(mgs.active_map)
     coastal_sites = list(filter(lambda x: is_coastal(mgs.active_map, largest_water_body, x), viable_sites))
+    print(len(coastal_sites))
     for site in all_sites:
         if site.tile.biome not in ('ocean', 'shallows', 'sea', 'lake'):
             site.update_scores(mgs.active_map, coastal_sites)
@@ -788,14 +789,20 @@ def make_map(mgs: MapgenState):
 
     print("placing cities...")
     for ii in range(mgs.active_map.number_of_cities):
-        print("debug A")
         city.add_new_city(mgs.active_map, viable_sites, coastal_sites)
-        print("city placed: {0} / {1}".format(len(mgs.active_map.cities), mgs.active_map.number_of_cities))
-        render_raw_maps(mgs.active_map, mgs.width, mgs.height, mgs.raw_maps, "trade score", viable_sites)
-        render_raw_maps(mgs.active_map, mgs.width, mgs.height, mgs.raw_maps, "city score", viable_sites)
 
+        start = time.time()
+        for site in viable_sites:
+            site.update_scores(mgs.active_map, coastal_sites)
+        elapsed = time.time() - start
+        print('scoring time: {}s'.format(round(elapsed, 3)))
+
+        print("city placed: {0} / {1}".format(len(mgs.active_map.cities), mgs.active_map.number_of_cities))
+        render_raw_maps(mgs.active_map, mgs.width, mgs.height, mgs.raw_maps, "trade score", all_sites)
+        render_raw_maps(mgs.active_map, mgs.width, mgs.height, mgs.raw_maps, "city score", viable_sites)
         display_update(mgs.screen, mgs.raw_maps, mgs.display_data, mgs.clock)
     print("cities placed!")
+    region.grow_cities(mgs.active_map)
 
 
 def map_generation(active_map: Map):

@@ -41,12 +41,12 @@ class Ship(object):
         """x y pair for screen rendering"""
         self.x = 0
         self.y = 0
-        """node ID of current node"""
-        self.node = None
+        """tile ID of current tile"""
+        self.tile = None
         """path object.  Should be None if there is no target"""
         self.path = None
-        """Target Node ID (for now this will always be chained to the target port / port ID)"""
-        self.target_node = None
+        """Target Tile ID (for now this will always be chained to the target port / port ID)"""
+        self.target_tile = None
         self.target_port = None
         self.move_timer = 0
         """
@@ -55,13 +55,13 @@ class Ship(object):
         self.cargo = {}
 
     def clear_target(self):
-        self.target_node = None
+        self.target_tile = None
         self.target_port = None
         self.path = None
 
-    def set_display_coordinates(self, node_x: int, node_y: int) -> None:
-        self.x = node_x
-        self.y = node_y
+    def set_display_coordinates(self, tile_x: int, tile_y: int) -> None:
+        self.x = tile_x
+        self.y = tile_y
 
     def check_move_timer(self):
         if self.move_timer <= 0:
@@ -69,9 +69,9 @@ class Ship(object):
         return False
 
     def move(self, nav_mesh):
-        if self.target_node:
+        if self.target_tile:
             if not self.path:
-                self.path = navigate.get_path(self.node, nav_mesh, self.target_node)
+                self.path = navigate.get_path(self.tile, nav_mesh, self.target_tile)
                 self.move_timer = self.path.edges[0].cost
             assert self.path
             assert self.path.steps
@@ -91,7 +91,14 @@ class Ship(object):
 
 class Cog(Ship):
     def __init__(self):
-        super().__init__(10, 50, 10, 10, 10, 1, 1000)
+        super().__init__(
+            speed=10,
+            cargo_cap=50,
+            crew_cap=10,
+            defense=10,
+            attack=10,
+            wounds=1,
+            purchase_cost=1000)
         self.image = pygame.Surface([40, 40])
         self.image.fill(util.colors.key)
         self.image.blit(art.cog_icon, [0, 0])

@@ -32,7 +32,7 @@ class Map(object):
         self.width = map_dimensions[0]
         self.height = map_dimensions[1]
         self.game_tile_rows = []
-        self.number_of_cities = 25
+        self.number_of_cities = 50
         self.cities = []
         self.river_cutoff = 2000
         self.water_cutoff = 0.5
@@ -64,16 +64,15 @@ class Map(object):
         background_x_middle = (self.tile_display_layer.image.get_width() / 2)
         for y_row in game_tile_rows:
             for tile in y_row:
-                if tile.terrain and art.terrain_images[tile.terrain][tile.biome]:
+                if tile.terrain and tile.water_flux[2] < river_cutoff and art.terrain_images[tile.terrain][tile.biome]:
                     new_terrain_image = random.choice(art.terrain_images[tile.terrain][tile.biome])
                     x, y = utilities.get_screen_coords(tile.column, tile.row)
                     self.terrain_display_layer.image.blit(new_terrain_image, [x + background_x_middle + (tile_width / 2), y - 25])
 
-                if tile.terrain is not any(["low hill", "hill", "low mountain", "mountain"]):
+                if tile.biome != 'lake' and tile.terrain is not any(["low hill", "hill", "low mountain", "mountain"]):
                     if tile.water_flux[2] > river_cutoff:
                         x, y = utilities.get_screen_coords(tile.column, tile.row)
-                        if tile.biome != "lake":
-                            self.terrain_display_layer.image.blit(art.river_images[0], [x + background_x_middle + (tile_width / 2), y])
+                        self.terrain_display_layer.image.blit(art.river_images[0], [x + background_x_middle + (tile_width / 2), y])
                         for source in tile.water_source[0]:
                             self.terrain_display_layer.image.blit(art.river_images[source],
                                                                   [x + background_x_middle + (tile_width / 2), y])

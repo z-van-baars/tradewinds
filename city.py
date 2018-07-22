@@ -5,7 +5,7 @@ import random
 import artikel
 import numpy as np
 from scipy.ndimage import label, generate_binary_structure
-from collections import defaultdict
+import time
 
 
 city_names = []
@@ -29,9 +29,9 @@ food_value = {"taiga": 2,
               "snowpack": 0,
               "ice": 0,
               "shrubland": 1,
-              "ocean": 1,
-              "sea": 1,
-              "shallows": 1,
+              "ocean": 2,
+              "sea": 2,
+              "shallows": 2,
               "lake": 1,
               "river": 1}
 
@@ -44,22 +44,22 @@ terrain_food_value = {"vegetation": 1.0,
 
 movement_cost = {"taiga": 1,
                  "tundra": 2,
-                 "snowy tundra": 3,
+                 "snowy tundra": 2,
                  "grassland": 1,
                  "plains": 1,
                  "wet plains": 2,
                  "savannah": 1,
-                 "desert": 3,
-                 "forest": 3,
-                 "jungle": 3,
-                 "snowpack": 3,
-                 "ice": 3,
-                 "shrubland": 2,
+                 "desert": 2,
+                 "forest": 2,
+                 "jungle": 2,
+                 "snowpack": 2,
+                 "ice": 2,
+                 "shrubland": 1,
                  "ocean": 1,
-                 "sea": 1,
-                 "shallows": 1,
-                 "lake": 1,
-                 "river": 1}
+                 "sea": 0.5,
+                 "shallows": 0.5,
+                 "lake": 0.5,
+                 "river": 0.3}
 
 
 terrain_movement_cost = {"mountain": 5.0,
@@ -82,6 +82,7 @@ class City(object):
         self.column = x
         self.row = y
         self.name = name
+        self.size = 0
         self.demand = {}
         self.supply = {}
         self.produces = {}
@@ -151,18 +152,17 @@ def get_zone_of_control(active_map, tile):
 def get_trade_score(active_map, coastal_sites, site):
     trade_score = 0
 
-    trade_score = (site.water_flux[2] ** (1.0 / 3.0)) * 3
+    trade_score = (site.tile.water_flux[2] ** (1.0 / 3.0)) * 3
     trade_score = min(trade_score, 55)
     if site in coastal_sites:
         trade_score *= 1.25
-        trade_score + 40
-
+        trade_score += 10
     return trade_score
 
 
 def math_helper(z, f, t, r, tr, d):
     """Algorithms"""
-    return z + f * 2 + t + r * 20 + ((tr / 2) * (tr / 2)) - d
+    return z + f + t + r * 20 + ((tr / 2) * (tr / 2)) - d
 
 
 def evaluate_city_score(active_map, site):
@@ -212,7 +212,7 @@ class Site(object):
 
     def update_scores(self, active_map, coastal_sites):
         self.distance_score = get_distance_score(active_map, self.tile)
-        self.trade_score = get_trade_score(active_map, coastal_sites, self.tile)
+        self.trade_score = get_trade_score(active_map, coastal_sites, self)
         self.city_score = evaluate_city_score(active_map, self)
 
     def is_viable(self):
@@ -229,15 +229,11 @@ class Site(object):
 
 def add_new_city(active_map, viable_sites, coastal_sites):
     city_sites = queue.PriorityQueue()
-    print(len(viable_sites))
     for site in viable_sites:
         if site.city_score > 1:
             city_sites.put((-site.city_score, site.tile, site))
-    print("Debug B")
-    print(city_sites.qsize())
     score, candidate, site = city_sites.get()
     name_chosen = False
-    print("you cannot lose")
     while not name_chosen:
         new_name = random.choice(city_names)
         if not any((city.name == new_name) for city in active_map.cities):
@@ -248,5 +244,3 @@ def add_new_city(active_map, viable_sites, coastal_sites):
     candidate.city = new_city
     site.city_score = 50
     viable_sites.remove(site)
-    for site in viable_sites:
-        site.update_scores(active_map, coastal_sites)

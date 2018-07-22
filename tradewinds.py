@@ -13,7 +13,7 @@ pygame.init()
 pygame.display.set_mode([0, 0])
 
 
-def do_nothing(game_state, mouse_pos=(0, 0), map_xy=(0, 0), button_states=None):
+def do_nothing(game_state, mouse_pos=(0, 0), map_xy=(0, 0), *button_states):
     pass
 
 
@@ -70,7 +70,7 @@ def scrollwheel_click(game_state, mouse_pos, map_xy, button_states, event):
 
 def right_click(game_state, mouse_pos, map_xy, button_states, event):
     tile = game_state.active_map.game_tile_rows[map_xy[1]][map_xy[0]]
-    game_state.clear_menutype([ui.ContextMenu, ui.CityMenu, ui.MarketMenu])
+    game_state.clear_menutype([ui.ContextMenu, ui.CityMenu, ui.MarketMenu, ui.TileInfoPane, ui.ImpassablePopup])
     new_context_menu = ui.ContextMenu(game_state, mouse_pos, tile)
     game_state.active_menus = [new_context_menu] + game_state.active_menus
 
