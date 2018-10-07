@@ -19,7 +19,7 @@ class GameState(object):
         self.reset_surfaces()
 
     def reset_surfaces(self):
-        self.screen = pygame.display.set_mode([self.screen_width, self.screen_height])
+        self.screen = pygame.display.set_mode([self.screen_width, self.screen_height], pygame.RESIZABLE)
 
     def clear_menutype(self, typematch):
         offending_menus = []

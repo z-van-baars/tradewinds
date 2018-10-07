@@ -1,7 +1,7 @@
 import utilities as util
 import pygame
 import art
-import display
+import math
 
 
 context_menu = pygame.image.load('art/menus/context_menu.png')
@@ -125,7 +125,8 @@ class Menu(object):
         self.cached_image = pygame.Surface([0, 0])
 
     def render_buttons(self, pos):
-        mouse_pos = (pos[0] - self.background_pane.rect.x, pos[1] - self.background_pane.rect.y)
+        mouse_pos = (pos[0] - self.background_pane.rect.x,
+                     pos[1] - self.background_pane.rect.y)
         for button in self.buttons:
             if util.check_if_inside(button.sprite.rect.x,
                                     button.sprite.rect.right,
@@ -135,7 +136,8 @@ class Menu(object):
                 button.sprite.image = button.hover
             else:
                 button.sprite.image = button.regular
-            self.screen.blit(button.sprite.image, [button.sprite.rect.x, button.sprite.rect.y])
+            self.screen.blit(button.sprite.image,
+                             [button.sprite.rect.x, button.sprite.rect.y])
 
     def drag(self, pos):
         if not self.dragging:
@@ -174,7 +176,8 @@ class Menu(object):
         self.drag_offset = None
 
     def mouse_click_handler(self, event, pos):
-        mouse_pos = (pos[0] - self.background_pane.rect.x, pos[1] - self.background_pane.rect.y)
+        mouse_pos = (pos[0] - self.background_pane.rect.x,
+                     pos[1] - self.background_pane.rect.y)
         for button in self.buttons:
             if util.check_if_inside(button.sprite.rect.x,
                                     button.sprite.rect.right,
@@ -197,11 +200,13 @@ class Menu(object):
             self.keyup_handler(event.key)
 
     def render_onscreen_cache(self, pos):
-        self.cached_image = pygame.Surface([self.background_pane.image.get_width(), self.background_pane.image.get_height()])
+        self.cached_image = pygame.Surface([self.background_pane.image.get_width(),
+                                            self.background_pane.image.get_height()])
         self.render_buttons(pos)
         self.cached_image.blit(self.background_pane.image, [0, 0])
         for button in self.buttons:
-            self.cached_image.blit(button.sprite.image, [button.sprite.rect.x, button.sprite.rect.y])
+            self.cached_image.blit(button.sprite.image,
+                                   [button.sprite.rect.x, button.sprite.rect.y])
         self.render_decals(pos)
 
 
@@ -431,12 +436,18 @@ class MarketMenu(Menu):
         self.background_pane = pygame.sprite.Sprite()
         self.background_pane.image = market_menu_pane
         self.background_pane.rect = self.background_pane.image.get_rect()
-        self.background_pane.rect.x = self.screen.get_width() / 2 - (self.background_pane.image.get_width() / 2)
-        self.background_pane.rect.y = (self.screen.get_height() / 2) - (self.background_pane.image.get_height() / 2)
+        x_origin = (self.screen.get_width() / 2 -
+                    self.background_pane.image.get_width() / 2)
+        y_origin = (self.screen.get_height() / 2 -
+                    self.background_pane.image.get_height() / 2)
+        self.background_pane.rect.x = x_origin
+        self.background_pane.rect.y = y_origin
 
         self.city = city
         header_font = pygame.font.SysFont('Calibri', 18, True, False)
-        self.name_stamp = header_font.render("{0} Market".format(city.name), True, (255, 255, 255))
+        self.name_stamp = header_font.render("{0} Market".format(city.name),
+                                             True,
+                                             (255, 255, 255))
 
         self.display_cache = {"market commodities list": [],
                               "cargo commodities list": [],
@@ -830,14 +841,80 @@ class QuantityMenu(Menu):
         small_font = pygame.font.SysFont("Calibri", 14, True, False)
         left_margin = (self.background_pane.image.get_width() / 2) - (self.display_cache["artikel name"].get_width() / 2)
         self.cached_image.blit(self.display_cache["artikel name"], [left_margin, 13])
-        self.cached_image.blit(small_font.render("0", True, (255, 255, 255)), [6, 80])
-        self.cached_image.blit(small_font.render(str(self.display_cache["artikel max"]), True, (255, 255, 255)),
+        self.cached_image.blit(small_font.render("0",
+                                                 True,
+                                                 (255, 255, 255)),
+                               [6, 80])
+        self.cached_image.blit(small_font.render(str(self.display_cache["artikel max"]),
+                                                 True,
+                                                 (255, 255, 255)),
                                [150, 80])
 
-        quantity_stamp = small_font.render(self.display_cache["artikel quantity"], True, (255, 255, 255))
+        quantity_stamp = small_font.render(self.display_cache["artikel quantity"],
+                                           True,
+                                           (255, 255, 255))
         cost_string = self.display_cache["transaction cost"]
         cost_stamp = small_font.render("$ {0} ".format(str(cost_string)), True, self.transaction_colors[self.transaction_type])
         quantity_margin = (self.background_pane.image.get_width() / 2) - (quantity_stamp.get_width() / 2)
         cost_margin = (self.background_pane.image.get_width() / 2) - (cost_stamp.get_width() / 2)
         self.cached_image.blit(quantity_stamp, [quantity_margin, 80])
         self.cached_image.blit(cost_stamp, [cost_margin, 60])
+
+
+class MiniMap(Menu):
+    def __init__(self, game_state):
+        super().__init__(game_state)
+        self.background_pane = pygame.sprite.Sprite()
+        map_image = game_state.active_map.biome_map_preview
+        self.background_pane.image = art.mini_map_preview
+        self.background_pane.image.blit(pygame.transform.rotate(map_image, -45),
+                                        [2, 2])
+        self.background_pane.rect = self.background_pane.image.get_rect()
+        self.background_pane.rect.x = game_state.screen_width - 200
+        self.background_pane.rect.y = 0
+
+        self.buttons = []
+
+    def mouse_click_handler(self, event, pos):
+        mouse_pos = (pos[0] - self.background_pane.rect.x,
+                     pos[1] - self.background_pane.rect.y)
+
+        if util.check_if_inside(0, self.background_pane.rect.width,
+                                0, self.background_pane.rect.height,
+                                mouse_pos):
+            x_new, y_new = util.get_map_coords(mouse_pos, 0, 0, 102)
+            x_pixel_new, y_pixel_new = util.get_screen_coords(x_new, y_new)
+            x_shift = x_pixel_new - self.game_state.screen_width / 2
+            self.game_state.active_map.x_shift = x_shift
+            y_shift = y_pixel_new - self.game_state.screen_height / 2
+            self.game_state.active_map.y_shift = y_shift
+
+        for button in self.buttons:
+            if util.check_if_inside(button.sprite.rect.x,
+                                    button.sprite.rect.right,
+                                    button.sprite.rect.y,
+                                    button.sprite.rect.bottom,
+                                    mouse_pos):
+                button.click()
+
+    def render_decals(self, pos):
+        def get_visible_tile_square(x_shift, y_shift, background_x_middle, width, height):
+            xw = math.floor(width / 40)
+            yh = math.floor(height / 15)
+            x = width - 198
+            y = 2
+            x2 = x - (x_shift / 40)
+            y2 = y - (y_shift / 15)
+            tile_square = pygame.Rect(x2, y2, xw, yh)
+            # tile_square = tile_square.move(0, 0)
+            return tile_square, x2, y2
+
+        background_left, background_top, background_right, background_bottom, background_x_middle = self.game_state.display_parameters
+        visible_tile_square, x, y = get_visible_tile_square(background_left,
+                                                            background_top,
+                                                            background_x_middle,
+                                                            self.game_state.screen.get_width(),
+                                                            self.game_state.screen.get_height())
+        visible_tile_square.x -= self.background_pane.rect.x
+        visible_tile_square.y -= self.background_pane.rect.y
+        pygame.draw.rect(self.cached_image, util.colors.red, visible_tile_square, 1)

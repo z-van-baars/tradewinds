@@ -10,7 +10,7 @@ import ui
 from typing import Dict
 
 pygame.init()
-pygame.display.set_mode([0, 0])
+pygame.display.set_mode([0, 0], pygame.RESIZABLE)
 
 
 def do_nothing(game_state, mouse_pos=(0, 0), map_xy=(0, 0), *button_states):
@@ -104,6 +104,11 @@ def input_processing(game_state, selected_tile, display_parameters, mouse_pos, m
         elif event.type == pygame.KEYUP:
             if event.key == pygame.K_LCTRL:
                 game_state.control = False
+        elif event.type == pygame.VIDEORESIZE:
+            game_state.screen = pygame.display.set_mode((event.w, event.h),
+                                                        pygame.RESIZABLE)
+            game_state.screen_width = event.w
+            game_state.screen_height = event.h
 
 
 def main(game_state):
@@ -113,6 +118,8 @@ def main(game_state):
     active_map.x_shift = game_state.screen_width / 2 - (game_state.background_width / 2)
     active_map.y_shift = game_state.screen_height / 2 - (game_state.background_height / 2)
     game_state.year = 1000
+    mini_map = ui.MiniMap(game_state)
+    game_state.active_menus.append(mini_map)
 
     while not done:
         game_state.time += 1
@@ -143,14 +150,14 @@ def main(game_state):
         game_state.time += 1
 
 
-screen_width = 1600
-screen_height = 1000
+screen_width = 1200
+screen_height = 800
 
 game_state = state.GameState(screen_width, screen_height)
 
 
 game_state.active_map = game_map.Map((200, 200), (screen_width, screen_height))
-mapgen.map_generation(game_state.active_map)
+mapgen.map_generation(game_state, game_state.active_map)
 start_location = random.choice(game_state.active_map.cities)
 # game_state.player = player.Player(start_location.column, start_location.row)
 game_state.player = player.Player(0, 5)

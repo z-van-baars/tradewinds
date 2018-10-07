@@ -50,6 +50,7 @@ class Colors(object):
         self.background_blue = (16, 69, 87)
         self.light_gray = (194, 194, 194)
         self.light_green = (0, 210, 0)
+        self.yellow = (239, 210, 19)
         self.dark_green = (0, 200, 0)
         self.red = (255, 0, 0)
         self.blue = (0, 0, 255)
@@ -233,3 +234,7 @@ def get_screen_coords(x_tile, y_tile):
     x = int(x)
     y = int(y)
     return (x, y)
+
+
+def sigmoid(x):
+    return 1 / (1 + math.exp(-x))

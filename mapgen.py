@@ -12,6 +12,7 @@ import city
 import artikel
 import time
 import region
+import sound
 
 pygame.init()
 pygame.display.set_mode([0, 0])
@@ -664,15 +665,30 @@ def render_rotated_maps(screen, scaled_maps, display_data):
     if display_scale:
         c = math.sqrt(264 ** 2 + 264 ** 2)
     else:
-        c = pygame.transform.rotate(scaled_maps[0], -45).get_width()  # offset for left edge of map displays
+        # offset for left edge of map displays
+        c = pygame.transform.rotate(scaled_maps[0], -45).get_width()
     display_offset = 5
-    screen.blit(pygame.transform.rotate(scaled_maps[0], rotation), [0, 0])  # heightmap
-    screen.blit(pygame.transform.rotate(scaled_maps[1], rotation), [c + display_offset, 0])  # tempmap
-    screen.blit(pygame.transform.rotate(scaled_maps[2], rotation), [0, c + display_offset])  # moisture map
-    screen.blit(pygame.transform.rotate(scaled_maps[3], rotation), [c + display_offset, c + display_offset])  # biome map with cities marked
-    screen.blit(pygame.transform.rotate(scaled_maps[4], rotation), [c * 2 + display_offset * 2, 0])  # trade connectivity score map
-    screen.blit(pygame.transform.rotate(scaled_maps[5], rotation), [c * 2 + display_offset * 2, c + display_offset])  # city score map
-    screen.blit(pygame.transform.rotate(scaled_maps[6], rotation), [c * 3 + display_offset * 3, 0])  # water flux map
+    # heightmap
+    screen.blit(pygame.transform.rotate(scaled_maps[0], rotation),
+                [0, 0])
+    # tempmap
+    screen.blit(pygame.transform.rotate(scaled_maps[1], rotation),
+                [c + display_offset, 0])
+    # moisture map
+    screen.blit(pygame.transform.rotate(scaled_maps[2], rotation),
+                [0, c + display_offset])
+    # biome map with cities marked
+    screen.blit(pygame.transform.rotate(scaled_maps[3], rotation),
+                [c + display_offset, c + display_offset])
+    # trade connectivity score map
+    screen.blit(pygame.transform.rotate(scaled_maps[4], rotation),
+                [c * 2 + display_offset * 2, 0])
+    # city score map
+    screen.blit(pygame.transform.rotate(scaled_maps[5], rotation),
+                [c * 2 + display_offset * 2, c + display_offset])
+    # water flux map
+    screen.blit(pygame.transform.rotate(scaled_maps[6], rotation),
+                [c * 3 + display_offset * 3, 0])
 
 
 def render_map_labels(screen, scaled_maps, display_data):
@@ -680,27 +696,75 @@ def render_map_labels(screen, scaled_maps, display_data):
     if display_scale:
         c = math.sqrt(264 ** 2 + 264 ** 2)
     else:
-        c = pygame.transform.rotate(scaled_maps[0], -45).get_width()  # offset for left edge of map displays
+        # offset for left edge of map displays
+        c = pygame.transform.rotate(scaled_maps[0], -45).get_width()
     display_offset = 5
     label_font = pygame.font.SysFont("Minion Pro", 26, False, False)
-    screen.blit(label_font.render("Elevation", True, util.colors.white), [0, c])
-    screen.blit(label_font.render("Temperature", True, util.colors.white), [c + display_offset, c])
-    screen.blit(label_font.render("Moisture", True, util.colors.white), [0, c + display_offset + c])
-    screen.blit(label_font.render("Biomes", True, util.colors.white), [c + display_offset, c + display_offset + c])
-    screen.blit(label_font.render("Trade Score", True, util.colors.white), [c * 2 + display_offset * 2, c])
-    screen.blit(label_font.render("City Score", True, util.colors.white), [c * 2 + display_offset * 2, c * 2 + display_offset])
-    screen.blit(label_font.render("Water Flux", True, util.colors.white), [c * 3 + display_offset * 3, c])
+    screen.blit(label_font.render("Elevation", True, util.colors.white),
+                [0, c])
+    screen.blit(label_font.render("Temperature", True, util.colors.white),
+                [c + display_offset, c])
+    screen.blit(label_font.render("Moisture", True, util.colors.white),
+                [0, c + display_offset + c])
+    screen.blit(label_font.render("Biomes", True, util.colors.white),
+                [c + display_offset, c + display_offset + c])
+    screen.blit(label_font.render("Trade Score", True, util.colors.white),
+                [c * 2 + display_offset * 2, c])
+    screen.blit(label_font.render("City Score", True, util.colors.white),
+                [c * 2 + display_offset * 2, c * 2 + display_offset])
+    screen.blit(label_font.render("Water Flux", True, util.colors.white),
+                [c * 3 + display_offset * 3, c])
 
 
 def display_update(screen, raw_maps, display_data, clock):
     scaled_maps = scale_maps(raw_maps, display_data)
     render_rotated_maps(screen, scaled_maps, display_data)
-    pygame.display.flip()
-    clock.tick(60)
+    render_map_labels(screen, scaled_maps, display_data)
+
+
+def quit_check():
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            pygame.display.quit()
+            pygame.quit()
+
+
+def input_loop(game_state, mgs, message="Press Enter to Continue"):
+    message_font = pygame.font.SysFont('Calibri', 14, True, False)
+    enter_message = message_font.render(message,
+                                        True,
+                                        util.colors.white)
+
+    enter_key = False
+    while not enter_key:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.display.quit()
+                pygame.quit()
+            elif event.type == pygame.KEYDOWN and event.key == pygame.K_RETURN:
+                sound.click.play()
+                enter_key = True
+                enter_message = message_font.render("Please Wait...",
+                                                    True,
+                                                    util.colors.white)
+            elif event.type == pygame.VIDEORESIZE:
+                game_state.screen = pygame.display.set_mode((event.w, event.h),
+                                                            pygame.RESIZABLE)
+                game_state.screen_width = event.w
+                game_state.screen_height = event.h
+
+        game_state.screen.fill(util.colors.black)
+        display_update(game_state.screen,
+                       mgs.raw_maps,
+                       mgs.display_data,
+                       mgs.clock)
+
+        game_state.screen.blit(enter_message,
+                               [10, game_state.screen_height - 24])
+        pygame.display.flip()
 
 
 class MapgenState(object):
-
     def __init__(self, active_map: Map) -> None:
         self.active_map = active_map
         self.display_scale = False
@@ -708,8 +772,6 @@ class MapgenState(object):
         self.clock = pygame.time.Clock()
         self.raw_maps = self.initialize_raw_maps(self.width, self.height)
         self.map_accepted = False
-        self.screen = pygame.display.set_mode([1600, 1000])
-        self.screen.fill(util.colors.black)
         self.scaled_maps = scale_maps(self.raw_maps, self.display_data)
 
     @property
@@ -748,16 +810,27 @@ def is_coastal(active_map, largest_water_body, site):
         any(largest_water_body[neighbor.column, neighbor.row] == 1 for neighbor in neighbor_tiles))
 
 
-def make_map(mgs: MapgenState):
+def make_map(game_state, mgs: MapgenState):
+    message_font = pygame.font.SysFont('Calibri', 14, True, False)
     generate_heightmap(mgs.active_map)
     adjust_landmass_height(mgs.active_map)
     infill_basins(mgs.active_map)
 
-    render_raw_maps(mgs.active_map, mgs.width, mgs.height, mgs.raw_maps, 'height')
-    display_update(mgs.screen, mgs.raw_maps, mgs.display_data, mgs.clock)
+    render_raw_maps(mgs.active_map,
+                    mgs.width,
+                    mgs.height,
+                    mgs.raw_maps,
+                    'height')
+    display_update(game_state.screen,
+                   mgs.raw_maps,
+                   mgs.display_data,
+                   mgs.clock)
 
     mgs.active_map.temperature = generate_tempmap(mgs.width, mgs.height)
-    mgs.active_map.moisture = generate_moisture_map(mgs.width, mgs.height, mgs.active_map.elevation, mgs.water_cutoff)
+    mgs.active_map.moisture = generate_moisture_map(mgs.width,
+                                                    mgs.height,
+                                                    mgs.active_map.elevation,
+                                                    mgs.water_cutoff)
     generate_biomes(mgs.active_map, mgs.water_cutoff)
     generate_terrain(mgs.active_map)
     generate_rivers(mgs.active_map, mgs.water_cutoff)
@@ -765,30 +838,57 @@ def make_map(mgs: MapgenState):
     print("map complete")
 
     for map_type in ('height', 'temp', 'moisture', 'water flux', 'biome'):
-        render_raw_maps(mgs.active_map, mgs.width, mgs.height, mgs.raw_maps, map_type)
+        render_raw_maps(mgs.active_map,
+                        mgs.width,
+                        mgs.height,
+                        mgs.raw_maps,
+                        map_type)
 
-    display_update(mgs.screen, mgs.raw_maps, mgs.display_data, mgs.clock)
+    display_update(game_state.screen,
+                   mgs.raw_maps,
+                   mgs.display_data,
+                   mgs.clock)
+
+    input_loop(game_state, mgs, "Press Enter to Survey City Sites")
 
     print("surveying city candidates...")
     for row in mgs.active_map.game_tile_rows:
         for tile in row:
             mgs.active_map.all_tiles.append(tile)
-    all_sites = [city.Site(tile, mgs.active_map) for tile in mgs.active_map.all_tiles]
+    all_sites = [city.Site(tile, mgs.active_map)
+                 for tile in mgs.active_map.all_tiles]
     viable_sites = list(filter(city.Site.is_viable, all_sites))
     largest_water_body = city.cull_interior_watermasses(mgs.active_map)
-    coastal_sites = list(filter(lambda x: is_coastal(mgs.active_map, largest_water_body, x), viable_sites))
+    coastal_sites = list(filter(lambda x: is_coastal(mgs.active_map,
+                                                     largest_water_body,
+                                                     x), viable_sites))
     print(len(coastal_sites))
     for site in all_sites:
         if site.tile.biome not in ('ocean', 'shallows', 'sea', 'lake'):
             site.update_scores(mgs.active_map, coastal_sites)
 
-    render_raw_maps(mgs.active_map, mgs.width, mgs.height, mgs.raw_maps, "trade score", all_sites)
-    render_raw_maps(mgs.active_map, mgs.width, mgs.height, mgs.raw_maps, "city score", all_sites)
-    display_update(mgs.screen, mgs.raw_maps, mgs.display_data, mgs.clock)
-    mgs.clock.tick(1)
+    render_raw_maps(mgs.active_map,
+                    mgs.width,
+                    mgs.height,
+                    mgs.raw_maps,
+                    "trade score",
+                    all_sites)
+    render_raw_maps(mgs.active_map,
+                    mgs.width,
+                    mgs.height,
+                    mgs.raw_maps,
+                    "city score",
+                    all_sites)
+    display_update(game_state.screen,
+                   mgs.raw_maps,
+                   mgs.display_data,
+                   mgs.clock)
+    input_loop(game_state, mgs, "Map Surveyed, Press Enter to Place Cities")
 
     print("placing cities...")
     for ii in range(mgs.active_map.number_of_cities):
+        quit_check()
+        print("Debug A")
         city.add_new_city(mgs.active_map, viable_sites, coastal_sites)
 
         start = time.time()
@@ -797,30 +897,54 @@ def make_map(mgs: MapgenState):
         elapsed = time.time() - start
         print('scoring time: {}s'.format(round(elapsed, 3)))
 
-        print("city placed: {0} / {1}".format(len(mgs.active_map.cities), mgs.active_map.number_of_cities))
-        render_raw_maps(mgs.active_map, mgs.width, mgs.height, mgs.raw_maps, "trade score", all_sites)
-        render_raw_maps(mgs.active_map, mgs.width, mgs.height, mgs.raw_maps, "city score", viable_sites)
-        display_update(mgs.screen, mgs.raw_maps, mgs.display_data, mgs.clock)
+        print("city placed: {0} / {1}".format(len(mgs.active_map.cities),
+                                              mgs.active_map.number_of_cities))
+        city_counter = message_font.render("Cities Placed:".format(len(mgs.active_map.cities),
+                                                                         mgs.active_map.number_of_cities),
+                                           True,
+                                           util.colors.white)
+        n_cities_placed = message_font.render("{0} / {1}".format(str(len(mgs.active_map.cities)), str(mgs.active_map.number_of_cities)),
+                                              True,
+                                              util.colors.light_green)
+        game_state.screen.fill(util.colors.black)
+        render_raw_maps(mgs.active_map,
+                        mgs.width,
+                        mgs.height,
+                        mgs.raw_maps,
+                        "trade score",
+                        all_sites)
+        render_raw_maps(mgs.active_map,
+                        mgs.width,
+                        mgs.height,
+                        mgs.raw_maps,
+                        "city score",
+                        viable_sites)
+        display_update(game_state.screen, mgs.raw_maps, mgs.display_data, mgs.clock)
+        game_state.screen.blit(city_counter,
+                               [10, game_state.screen_height - 24])
+        game_state.screen.blit(n_cities_placed,
+                               [90, game_state.screen_height - 24])
+        pygame.display.flip()
+
     print("cities placed!")
+    sound.chime.play()
     region.grow_cities(mgs.active_map)
 
 
-def map_generation(active_map: Map):
+def map_generation(game_state, active_map: Map):
     mgs = MapgenState(active_map)
-
+    input_loop(game_state, mgs)
+    render_map_labels(game_state.screen, mgs.scaled_maps, mgs.display_data)
+    display_update(game_state.screen, mgs.raw_maps, mgs.display_data, mgs.clock)
+    make_map(game_state, mgs)
     while not mgs.map_accepted:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.display.quit()
                 pygame.quit()
             elif event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_RETURN:
-                    make_map(mgs)
-                elif event.key == pygame.K_SPACE:
+                if event.key == pygame.K_SPACE:
                     mgs.map_accepted = True
-        mgs.screen.fill(util.colors.black)
-        render_map_labels(mgs.screen, mgs.scaled_maps, mgs.display_data)
-        display_update(mgs.screen, mgs.raw_maps, mgs.display_data, mgs.clock)
 
     active_map.paint_background_tiles(active_map.game_tile_rows)
     active_map.paint_terrain_layer(active_map.game_tile_rows)
@@ -829,6 +953,8 @@ def map_generation(active_map: Map):
 
     scaled_maps = scale_maps(mgs.raw_maps, mgs.display_data)
     active_map.biome_map_preview = pygame.Surface([140, 140])
-    pygame.transform.smoothscale(scaled_maps[3], (140, 140), active_map.biome_map_preview)
+    pygame.transform.smoothscale(scaled_maps[3],
+                                 (140, 140),
+                                 active_map.biome_map_preview)
     active_map.biome_map_preview.set_colorkey(util.colors.key)
     active_map.biome_map_preview = active_map.biome_map_preview.convert_alpha()
