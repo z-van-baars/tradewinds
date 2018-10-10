@@ -45,6 +45,13 @@ def right_key(game_state):
                                        game_state.screen_height)
 
 
+def s_key(game_state):
+    if any(menu_type == ui.ShipStatus for menu_type in game_state.active_menus):
+        return
+    new_ship_status_menu = ui.ShipStatus(game_state)
+    game_state.active_menus.append(new_ship_status_menu)
+
+
 def left_click(game_state, mouse_pos, map_xy, button_states, event):
     if len(game_state.active_menus) == 0:
         return
@@ -78,7 +85,8 @@ def right_click(game_state, mouse_pos, map_xy, button_states, event):
 key_functions = {pygame.K_UP: up_key,
                  pygame.K_DOWN: down_key,
                  pygame.K_LEFT: left_key,
-                 pygame.K_RIGHT: right_key}
+                 pygame.K_RIGHT: right_key,
+                 pygame.K_s: s_key}
 
 mouseclick_functions = {(1, 0, 0): left_click,
                         (0, 1, 0): scrollwheel_click,
@@ -111,6 +119,14 @@ def input_processing(game_state, selected_tile, display_parameters, mouse_pos, m
             game_state.screen_height = event.h
 
 
+def game_tick(game_state):
+    for ship in game_state.ships:
+        if ship.path:
+            step = ship.path.get_step()
+            ship.move(step.column, step.row)
+            ship.check_path()
+
+
 def main(game_state):
     active_map = game_state.active_map
 
@@ -134,6 +150,7 @@ def main(game_state):
         input_processing(game_state, selected_tile, game_state.display_parameters, mouse_pos, map_xy)
 
         game_state.calendar.increment_date(game_state.game_speed)
+        game_tick(game_state)
 
         display.update_display(game_state, selected_tile, game_state.display_parameters, mouse_pos, map_xy)
         menu_cache = []
@@ -160,10 +177,10 @@ game_state.active_map = game_map.Map((200, 200), (screen_width, screen_height))
 mapgen.map_generation(game_state, game_state.active_map)
 start_location = random.choice(game_state.active_map.cities)
 # game_state.player = player.Player(start_location.column, start_location.row)
-game_state.player = player.Player(0, 5)
+game_state.player = player.Player(game_state.active_map)
 game_state.player.silver = 100
 game_state.player.ship.cargo['wool'] = 10
-print(start_location.column, start_location.row)
+game_state.ships.add(game_state.player.ship)
 main(game_state)
 
 

@@ -46,17 +46,26 @@ def explore_frontier_to_target(game_map, visited, target_tile, closest_tile, fro
             tile_neighbors = utilities.get_adjacent_tiles(current_tile, game_map)
             for each in tile_neighbors:
                 if each == target_tile or not each.is_occupied():
-                    if each.biome == "ocean":
-                        distance_to_target = distance(each.column, each.row, target_tile.column, target_tile.row)
+                    if each.terrain == "river" or each.biome in ("ocean",
+                                                                 "sea",
+                                                                 "shallows",
+                                                                 "lake"):
+                        distance_to_target = distance(each.column,
+                                                      each.row,
+                                                      target_tile.column,
+                                                      target_tile.row)
                         priority = distance_to_target + new_steps
                         frontier.put((priority, each, current_tile))
-            distance_to_target = distance(current_tile.column, current_tile.row, target_tile.column, target_tile.row)
+            distance_to_target = distance(current_tile.column,
+                                          current_tile.row,
+                                          target_tile.column,
+                                          target_tile.row)
             if distance_to_target < closest_tile[0]:
                 closest_tile = [distance_to_target, current_tile]
             visited[current_tile] = (new_steps, previous_tile)
         if target_tile in visited:
             break
-    return visited, closest_tile
+    return closest_tile
 
 
 def get_path(my_position, game_map, target_coordinates):
@@ -67,22 +76,29 @@ def get_path(my_position, game_map, target_coordinates):
     frontier = queue.PriorityQueue()
     closest_tile = [99999, start_tile]
     for each in tile_neighbors:
-        if not each.is_occupied() and each.biome == "ocean":
+        if not each.is_occupied() and (each.terrain == "river" or
+                                       each.biome in ("ocean",
+                                                      "sea",
+                                                      "shallows",
+                                                      "lake")):
             frontier.put((0, each, start_tile))
-    visited, closest_tile = explore_frontier_to_target(game_map, visited, target_tile, closest_tile, frontier)
+    closest_tile = explore_frontier_to_target(
+        game_map,
+        visited,
+        target_tile,
+        closest_tile,
+        frontier)
+
+    if closest_tile[1] is not target_tile:
+        print("no target_match!")
+        return None
 
     new_path = utilities.Path()
-    new_path.tiles.append(closest_tile[1])
-    new_path.steps.append(visited[closest_tile[1]][1])
-    while start_tile not in new_path.tiles:
-        next_tile = new_path.steps[-1]
-        if next_tile != start_tile:
-            new_path.steps.append(visited[next_tile][1])
-        new_path.tiles.append(next_tile)
-    new_path.tiles.reverse()
-    # removes the start tile from the tiles list and the steps list in the path object
-    new_path.tiles.pop(0)
-    new_path.steps.reverse()
-    new_path.steps.pop(0)
-    return new_path, (closest_tile[1].column, closest_tile[1].row)
+    new_path.steps = [closest_tile[1]]
+    while True:
+        next_tile = new_path.steps[0]
+        if next_tile == start_tile:
+            break
+        new_path.steps.insert(0, visited[next_tile][1])
+    return new_path
 

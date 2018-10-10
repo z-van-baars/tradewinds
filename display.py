@@ -1,7 +1,5 @@
 import pygame
-import math
-import utilities
-import state
+import utilities as util
 import art
 
 
@@ -17,15 +15,14 @@ def update_display(game_state, selected_tile, display_parameters, mouse_pos, map
     background_left, background_top, background_right, background_bottom, background_x_middle = display_parameters
     active_map = game_state.active_map
     screen = game_state.screen
-    game_state.screen.fill(utilities.colors.background_blue)
+    game_state.screen.fill(util.colors.background_blue)
     tile_width = 40
-
 
     game_state.screen.blit(active_map.tile_display_layer.image, [background_left,
                                                                  background_top])
 
     if selected_tile:
-        st_pixel_coordinates = utilities.get_screen_coords(map_xy[0], map_xy[1])
+        st_pixel_coordinates = util.get_screen_coords(map_xy[0], map_xy[1])
         st_screen_coordinates = st_pixel_coordinates[0] + background_x_middle + (tile_width / 2) - 20, st_pixel_coordinates[1] + background_top
         screen.blit(art.selected_tile_image, [st_screen_coordinates[0], st_screen_coordinates[1]])
 
@@ -36,12 +33,21 @@ def update_display(game_state, selected_tile, display_parameters, mouse_pos, map
     screen.blit(active_map.building_display_layer.image, [background_left,
                                                           background_top])
     # converts the player's x, y tile to pixel coordinates
-    player_pixel_coordinates = utilities.get_screen_coords(game_state.player.column, game_state.player.row)
+    player_pixel_coordinates = util.get_screen_coords(game_state.player.ship.column,
+                                                      game_state.player.ship.row)
     # offsets the true pixel coordinates by the current display shift
-    player_screen_coordinates = player_pixel_coordinates[0] + background_x_middle + (tile_width / 2), player_pixel_coordinates[1] + background_top
+    player_screen_coordinates = (player_pixel_coordinates[0] + background_x_middle + (tile_width / 2),
+                                 player_pixel_coordinates[1] + background_top)
     # 20 and 25 are graphical offsets - x and y - so that the player's ship image is centered on the tile
-    screen.blit(game_state.player.ship.image, [player_screen_coordinates[0] - 20, player_screen_coordinates[1] - 25])
-
+    screen.blit(game_state.player.ship.image, [player_screen_coordinates[0] - 20,
+                                               player_screen_coordinates[1] - 25])
+    if game_state.player.ship.path:
+        # print(len(game_state.player.ship.path.steps))
+        shifted_pts_list = []
+        for point in game_state.player.ship.path_pts:
+            shifted_pts_list.append((point[0] + background_x_middle + (tile_width / 2),
+                                     point[1] + background_top + 7))  # half tile height 
+        pygame.draw.aalines(screen, util.colors.red, False, shifted_pts_list)
     for menu in reversed(game_state.active_menus):
         game_state.screen.blit(menu.cached_image, [menu.background_pane.rect.x, menu.background_pane.rect.y])
 

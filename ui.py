@@ -210,6 +210,71 @@ class Menu(object):
         self.render_decals(pos)
 
 
+class ShipStatus(Menu):
+    def __init__(self, game_state):
+        super().__init__(game_state)
+        self.background_pane = pygame.sprite.Sprite()
+        self.background_pane.image = art.ship_status_screen
+        self.background_pane.rect = self.background_pane.image.get_rect()
+        self.background_pane.rect.x = (
+            game_state.screen_width / 2 - self.background_pane.image.get_width() / 2)
+        self.background_pane.rect.y = (
+            game_state.screen_height / 2 - self.background_pane.image.get_height() / 2)
+
+        def x_click():
+            self.open = False
+
+        def dragbar_click():
+            self.dragging = True
+
+        x_button = Button(x_button_r_img,
+                          x_button_h_img,
+                          x_click,
+                          self.background_pane.image.get_width() - 22,
+                          10)
+
+        dragbar_r_img = pygame.Surface([self.background_pane.image.get_width() - 2, 9])
+        dragbar_r_img.fill(util.colors.dragbar)
+
+        dragbar = Button(dragbar_r_img,
+                         dragbar_r_img,
+                         dragbar_click,
+                         1,
+                         1)
+
+        self.buttons = [x_button, dragbar]
+
+    def render_decals(self, pos):
+        ship = self.game_state.player.ship
+        header_font = pygame.font.SysFont('Calibri', 14, True, False)
+
+        hull_class_stamp = header_font.render("{0}".format(ship.hull_class),
+                                              True, util.colors.yellow)  # 14, 32
+        speed_stamp = header_font.render("{0}".format(ship.speed),
+                                         True, util.colors.yellow)  # 12, 82
+        attack_stamp = header_font.render("{0}".format(ship.attack),
+                                          True, util.colors.yellow)  # 82, 82
+        defense_stamp = header_font.render("{0}".format(str(ship.defense)),
+                                           True, util.colors.yellow)  # 152, 82
+        crew_stamp = header_font.render("{0} / {1}".format(str(ship.crew_cap),
+                                                           str(ship.crew_cap)),
+                                        True, util.colors.yellow)  # 12, 138
+        upkeep_stamp = header_font.render("₴{0}".format(str(ship.upkeep)),
+                                          True, util.colors.yellow)  # 142, 136
+        cargo_cap_stamp = header_font.render("{0} / {1}".format(str(ship.cargo_cap),
+                                                                str(ship.cargo_cap)),
+                                             True, util.colors.yellow)  # 46, 182
+        self.cached_image.blit(hull_class_stamp, [14, 32])
+        self.cached_image.blit(speed_stamp, [12, 82])
+        self.cached_image.blit(attack_stamp, [82, 82])
+        self.cached_image.blit(defense_stamp, [152, 82])
+        self.cached_image.blit(crew_stamp, [12, 138])
+        self.cached_image.blit(upkeep_stamp, [142, 138])
+        self.cached_image.blit(cargo_cap_stamp, [46, 182])
+        self.cached_image.blit(
+            pygame.transform.scale(ship.image, (300, 300)), [145, -100])
+
+
 class ContextMenu(Menu):
     def __init__(self, game_state, pos, tile):
         super().__init__(game_state)
@@ -221,13 +286,24 @@ class ContextMenu(Menu):
         self.tile = tile
 
         def move_click():
-            if tile.biome in ["ocean", "sea", "shallows", "river"]:
-                game_state.player.column = tile.column
-                game_state.player.row = tile.row
+            if tile.biome in (
+                ["ocean",
+                 "sea",
+                 "shallows",
+                 "lake"]) or tile.terrain == "river":
+                game_state.player.ship.target_tile = tile
+                new_path = game_state.player.ship.check_path_to_target()
+                if new_path is not None:
+                    game_state.player.ship.set_path(new_path)
+                else:
+                    cannot_move_popup = ImpassablePopup(game_state)
+                    game_state.active_menus = (
+                        [cannot_move_popup] + game_state.active_menus)
                 self.open = False
             else:
                 cannot_move_popup = ImpassablePopup(game_state)
                 game_state.active_menus = [cannot_move_popup] + game_state.active_menus
+                self.open = False
 
         def enter_city_click():
             new_city_menu = CityMenu(game_state, self.tile.city)
@@ -242,17 +318,19 @@ class ContextMenu(Menu):
         def cancel_click():
             self.open = False
 
-        move_button = Button(move_r_img,
-                             move_h_img,
-                             move_click,
-                             5,
-                             25)
+        move_button = Button(
+            move_r_img,
+            move_h_img,
+            move_click,
+            5,
+            25)
 
-        enter_city_button = Button(enter_city_r_img,
-                                   enter_city_h_img,
-                                   enter_city_click,
-                                   5,
-                                   25)
+        enter_city_button = Button(
+            enter_city_r_img,
+            enter_city_h_img,
+            enter_city_click,
+            5,
+            25)
 
         tile_info_button = Button(tile_info_r_img,
                                   tile_info_h_img,
@@ -260,15 +338,15 @@ class ContextMenu(Menu):
                                   100,
                                   25)
 
-        cancel_button = Button(cancel_r_img,
-                               cancel_h_img,
-                               cancel_click,
-                               180,
-                               25)
+        cancel_button = Button(
+            cancel_r_img,
+            cancel_h_img,
+            cancel_click,
+            180,
+            25)
         self.buttons = [move_button, tile_info_button, cancel_button]
-        player_neighbors = util.get_adjacent_tiles(game_state.active_map.game_tile_rows[game_state.player.row][game_state.player.column],
-                                                   game_state.active_map)
-        if self.tile.city and self.tile in player_neighbors:
+        player_tile = self.game_state.active_map.game_tile_rows[game_state.player.ship.row][game_state.player.ship.column]
+        if self.tile.city and self.tile == player_tile:
             self.buttons = [enter_city_button, tile_info_button, cancel_button]
 
     def render_decals(self, pos):
@@ -876,18 +954,17 @@ class MiniMap(Menu):
         self.buttons = []
 
     def mouse_click_handler(self, event, pos):
-        mouse_pos = (pos[0] - self.background_pane.rect.x,
-                     pos[1] - self.background_pane.rect.y)
+        mouse_pos = (pos[0] - self.background_pane.rect.x + 2,
+                     pos[1] - self.background_pane.rect.y + 2)
 
-        if util.check_if_inside(0, self.background_pane.rect.width,
-                                0, self.background_pane.rect.height,
-                                mouse_pos):
-            x_new, y_new = util.get_map_coords(mouse_pos, 0, 0, 102)
-            x_pixel_new, y_pixel_new = util.get_screen_coords(x_new, y_new)
-            x_shift = x_pixel_new - self.game_state.screen_width / 2
-            self.game_state.active_map.x_shift = x_shift
-            y_shift = y_pixel_new - self.game_state.screen_height / 2
-            self.game_state.active_map.y_shift = y_shift
+        x1 = self.game_state.background_width
+        y1 = self.game_state.background_height
+        x2 = x1 / (self.background_pane.image.get_width() - 2)
+        y2 = y1 / (self.background_pane.image.get_height() - 2)
+        x3 = mouse_pos[0] * x2 - self.game_state.screen_width / 2
+        y3 = mouse_pos[1] * y2 - self.game_state.screen_height / 2
+        self.game_state.active_map.x_shift = -x3
+        self.game_state.active_map.y_shift = -y3
 
         for button in self.buttons:
             if util.check_if_inside(button.sprite.rect.x,
@@ -918,3 +995,14 @@ class MiniMap(Menu):
         visible_tile_square.x -= self.background_pane.rect.x
         visible_tile_square.y -= self.background_pane.rect.y
         pygame.draw.rect(self.cached_image, util.colors.red, visible_tile_square, 1)
+
+    def render_onscreen_cache(self, pos):
+        self.background_pane.rect.x = self.game_state.screen_width - 200
+        self.cached_image = pygame.Surface([self.background_pane.image.get_width(),
+                                            self.background_pane.image.get_height()])
+        self.render_buttons(pos)
+        self.cached_image.blit(self.background_pane.image, [0, 0])
+        for button in self.buttons:
+            self.cached_image.blit(button.sprite.image,
+                                   [button.sprite.rect.x, button.sprite.rect.y])
+        self.render_decals(pos)

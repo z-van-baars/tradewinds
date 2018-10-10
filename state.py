@@ -14,6 +14,7 @@ class GameState(object):
         self.timer = 0
 
         self.active_map = None
+        self.ships = set()
         self.player = None
         self.active_menus = []
         self.reset_surfaces()

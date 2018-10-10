@@ -86,8 +86,11 @@ colors = Colors()
 
 class Path(object):
     def __init__(self):
-        self.tiles = []
         self.steps = []
+
+    def get_step(self):
+        step = self.steps.pop(0)
+        return step
 
 
 def on_screen(screen_width, screen_height, x_position, y_position, x_shift, y_shift):
@@ -221,18 +224,14 @@ def get_neighbor_position(tile, neighbor):
 def get_map_coords(pos, x_shift, y_shift, background_x_middle):
     x_true = (pos[0] - x_shift) - (background_x_middle - x_shift)
     y_true = pos[1] - y_shift
-    x = (x_true / 20 + y_true / 7) / 2
-    y = (y_true / 7 - x_true / 20) / 2
-    x = int(x)
-    y = int(y)
+    x = int((x_true / 20 + y_true / 7) / 2)
+    y = int((y_true / 7 - x_true / 20) / 2)
     return (x, y)
 
 
 def get_screen_coords(x_tile, y_tile):
-    x = (((x_tile + 1) - (y_tile + 1)) * 20) - 20
-    y = ((y_tile + x_tile) * 7)
-    x = int(x)
-    y = int(y)
+    x = int((((x_tile + 1) - (y_tile + 1)) * 20) - 20)
+    y = int(((y_tile + x_tile) * 7))
     return (x, y)
 
 

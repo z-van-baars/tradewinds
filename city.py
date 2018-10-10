@@ -101,8 +101,10 @@ class City(object):
         for artikel_id in artikel.all_resources:
             base_price = 100
             self.demand[artikel_id] = get_demand()
-            self.sell_price[artikel_id] = round(self.demand[artikel_id] * base_price * 0.8)
-            self.purchase_price[artikel_id] = round(self.demand[artikel_id] * base_price * 1.1)
+            self.sell_price[artikel_id] = round(
+                self.demand[artikel_id] * base_price * 0.8)
+            self.purchase_price[artikel_id] = round(
+                self.demand[artikel_id] * base_price * 1.1)
 
     def increment_supply(self, artikel_id, quantity):
         if artikel_id in self.supply:
@@ -115,7 +117,8 @@ def evaluate_local_food(active_map, zone_of_control):
     # local_tiles = utilities.get_nearby_tiles(active_map, (tile.column, tile.row), 3)
     total_local_food = 0
     for each in zone_of_control:
-        total_local_food += food_value[each.biome] * terrain_food_value[each.terrain]
+        total_local_food += (
+            food_value[each.biome] * terrain_food_value[each.terrain])
     return total_local_food
 
 

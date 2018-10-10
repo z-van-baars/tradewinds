@@ -1,7 +1,8 @@
-import navigate
+import nav
 import art
 import utilities as util
 import pygame
+import crew
 
 
 class Ship(object):
@@ -29,15 +30,20 @@ class Ship(object):
         Self Explanatory.
     """
 
-    def __init__(self, speed, cargo_cap, crew_cap, defense, attack, wounds, purchase_cost):
+    def __init__(self, active_map, column, row, speed, cargo_cap, crew_cap, defense, attack, wounds, purchase_cost):
         self.cargo_cap = cargo_cap
         self.crew_cap = crew_cap
+        self.crew = {}
         self.speed = speed
         self.defense = defense
         self.attack = attack
         self.purchase_cost = purchase_cost
         self.wounds = wounds
+        self.upkeep = purchase_cost * 0.025
 
+        self.active_map = active_map
+        self.column = column
+        self.row = row
         """x y pair for screen rendering"""
         self.x = 0
         self.y = 0
@@ -68,10 +74,23 @@ class Ship(object):
             return True
         return False
 
-    def move(self, nav_mesh):
+    def get_upkeep_cost(self):
+        u = self.purchase_cost * 0.025
+        return u + sum(quantity * crew.wages[sailor_name]
+                       for sailor_name, quantity in self.crew.items())
+
+    def check_path(self):
+        if len(self.path.steps) < 1:
+            self.path = None
+
+    def move(self, x, y):
+        self.column = x
+        self.row = y
+
+    def old_move(self, nav_mesh):
         if self.target_tile:
             if not self.path:
-                self.path = navigate.get_path(self.tile, nav_mesh, self.target_tile)
+                self.path = nav.get_path(self.tile, nav_mesh, self.target_tile)
                 self.move_timer = self.path.edges[0].cost
             assert self.path
             assert self.path.steps
@@ -85,13 +104,31 @@ class Ship(object):
             else:
                 self.move_timer -= 1
 
-    def get_path(self):
-        navigate.get_path()
+    def check_path_to_target(self):
+        new_path = nav.get_path(
+            (self.column, self.row),
+            self.active_map,
+            (self.target_tile.column,
+             self.target_tile.row))
+        return new_path
+
+    def set_path(self, new_path):
+        self.path = new_path
+        line_pts = []
+        for step in self.path.steps:
+            map_x = step.column
+            map_y = step.row
+            pixel_xy = util.get_screen_coords(map_x, map_y)
+            line_pts.append(pixel_xy)
+        self.path_pts = line_pts
 
 
 class Cog(Ship):
-    def __init__(self):
+    def __init__(self, active_map, column, row):
         super().__init__(
+            active_map,
+            column,
+            row,
             speed=10,
             cargo_cap=50,
             crew_cap=10,
@@ -108,8 +145,8 @@ class Cog(Ship):
 
 
 class Carrack(Ship):
-    def __init__(self):
-        super().__init__(12, 150, 20, 11, 15, 2, 2000)
+    def __init__(self, active_map, column, row):
+        super().__init__(active_map, column, row, 12, 150, 20, 11, 15, 2, 2000)
         self.image = pygame.Surface([40, 40])
         self.image.fill(util.colors.key)
         self.image.blit(art.carrack_icon, [0, 0])
@@ -119,8 +156,8 @@ class Carrack(Ship):
 
 
 class Argosy(Ship):
-    def __init__(self):
-        super().__init__(12, 200, 25, 11, 12, 2, 2500)
+    def __init__(self, active_map, column, row):
+        super().__init__(active_map, column, row, 12, 200, 25, 11, 12, 2, 2500)
         self.image = pygame.Surface([40, 40])
         self.image.fill(util.colors.key)
         self.image.blit(art.argosy_icon, [0, 0])
@@ -130,8 +167,8 @@ class Argosy(Ship):
 
 
 class Caravel(Ship):
-    def __init__(self):
-        super().__init__(15, 300, 30, 15, 15, 2, 5000)
+    def __init__(self, active_map, column, row):
+        super().__init__(active_map, column, row, 15, 300, 30, 15, 15, 2, 5000)
         self.image = pygame.Surface([40, 40])
         self.image.fill(util.colors.key)
         self.image.blit(art.caravel_icon, [0, 0])
@@ -141,8 +178,8 @@ class Caravel(Ship):
 
 
 class Galleon(Ship):
-    def __init__(self):
-        super().__init__(12, 500, 50, 25, 25, 3, 10000)
+    def __init__(self, active_map, column, row):
+        super().__init__(active_map, column, row, 12, 500, 50, 25, 25, 3, 10000)
         self.image = pygame.Surface([40, 40])
         self.image.fill(util.colors.key)
         self.image.blit(art.galleon_icon, [0, 0])
@@ -152,8 +189,8 @@ class Galleon(Ship):
 
 
 class Fluyt(Ship):
-    def __init__(self):
-        super().__init__(15, 750, 25, 12, 10, 2, 10000)
+    def __init__(self, active_map, column, row):
+        super().__init__(active_map, column, row, 15, 750, 25, 12, 10, 2, 10000)
         self.image = pygame.Surface([40, 40])
         self.image.fill(util.colors.key)
         self.image.blit(art.fluyt_icon, [0, 0])
@@ -163,8 +200,8 @@ class Fluyt(Ship):
 
 
 class Corvette(Ship):
-    def __init__(self):
-        super().__init__(15, 250, 50, 25, 40, 3, 12000)
+    def __init__(self, active_map, column, row):
+        super().__init__(active_map, column, row, 15, 250, 50, 25, 40, 3, 12000)
         self.image = pygame.Surface([40, 40])
         self.image.fill(util.colors.key)
         self.image.blit(art.corvette_icon, [0, 0])

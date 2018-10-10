@@ -264,7 +264,8 @@ def generate_rivers(active_map, water_cutoff):
         if len(flowable_neighbors) == 0:
             water_in = tile.water_flux[0]
             water_out = water_in
-            total_flux = water_in + water_out + active_map.moisture[tile.row][tile.column]
+            total_flux = (water_in + water_out +
+                          active_map.moisture[tile.row][tile.column])
             tile.water_flux = (water_in, water_out, total_flux)
             if total_flux >= river_cutoff:
                 tile.biome = "lake"
@@ -278,9 +279,12 @@ def generate_rivers(active_map, water_cutoff):
                     del frontier[0]
                     last_addition.biome = "lake"
                     tiles_filled.append(last_addition)
-                    last_addition.water_flux = (max(water_in, last_addition.water_flux[0]),
-                                                max(water_out, last_addition.water_flux[1]),
-                                                max(total_flux, last_addition.water_flux[2]))
+                    last_addition.water_flux = (max(water_in,
+                                                    last_addition.water_flux[0]),
+                                                max(water_out,
+                                                    last_addition.water_flux[1]),
+                                                max(total_flux,
+                                                    last_addition.water_flux[2]))
                     new_neighbors = util.get_adjacent_tiles(last_addition, active_map)
                     for neighbor in new_neighbors:
                         if (active_map.elevation[neighbor.row][neighbor.column], neighbor) not in frontier:
@@ -805,9 +809,10 @@ class MapgenState(object):
 
 def is_coastal(active_map, largest_water_body, site):
     neighbor_tiles = util.get_adjacent_tiles(site.tile, active_map)
-    return (
-        any(neighbor.biome in ['ocean', 'sea', 'shallows'] for neighbor in neighbor_tiles) and
-        any(largest_water_body[neighbor.column, neighbor.row] == 1 for neighbor in neighbor_tiles))
+    return (any(neighbor.biome in (
+        ['ocean', 'sea', 'shallows']) for neighbor in neighbor_tiles) and
+        any(largest_water_body[neighbor.column, neighbor.row] == 1
+            for neighbor in neighbor_tiles))
 
 
 def make_map(game_state, mgs: MapgenState):
@@ -899,13 +904,13 @@ def make_map(game_state, mgs: MapgenState):
 
         print("city placed: {0} / {1}".format(len(mgs.active_map.cities),
                                               mgs.active_map.number_of_cities))
-        city_counter = message_font.render("Cities Placed:".format(len(mgs.active_map.cities),
-                                                                         mgs.active_map.number_of_cities),
+        city_counter = message_font.render("Cities Placed:",
                                            True,
                                            util.colors.white)
-        n_cities_placed = message_font.render("{0} / {1}".format(str(len(mgs.active_map.cities)), str(mgs.active_map.number_of_cities)),
-                                              True,
-                                              util.colors.light_green)
+        n_cities_placed = message_font.render("{0} / {1}".format(
+            str(len(mgs.active_map.cities)), str(mgs.active_map.number_of_cities)),
+            True,
+            util.colors.light_green)
         game_state.screen.fill(util.colors.black)
         render_raw_maps(mgs.active_map,
                         mgs.width,
