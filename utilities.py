@@ -42,7 +42,6 @@ class Calendar(object):
         self.month_count += 1
 
 
-
 class Colors(object):
     def __init__(self):
         self.black = (0, 0, 0)
@@ -136,6 +135,13 @@ def distance(a, b, x, y):
     return c
 
 
+def quit_check():
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            pygame.display.quit()
+            pygame.quit()
+
+
 # function for N repeated rolls of random(S+1), returning a number from 0 to N*S
 def roll_dice(number_of_dice, sides):
     # Sum of N dice each of which goes from 0 to sides
@@ -152,7 +158,8 @@ def get_nearby_tiles(current_map, center, radius):
     for tile_y in range((y - radius), (y + radius)):
         for tile_x in range((x - radius), (x + radius)):
             if within_map(tile_x, tile_y, current_map.game_tile_rows):
-                distance_from_center = math.ceil(distance(tile_x, tile_y, center[0], center[1]))
+                distance_from_center = math.ceil(
+                    distance(tile_x, tile_y, center[0], center[1]))
                 if distance_from_center < radius:
                     nearby_tiles.append(current_map.game_tile_rows[tile_y][tile_x])
     return nearby_tiles
@@ -173,6 +180,20 @@ def get_adjacent_tiles(tile, current_map):
                 adjacent_tiles.append(current_map.game_tile_rows[tile_y][tile_x])
     adjacent_tiles.remove(tile)
     return adjacent_tiles
+
+
+def get_fat_x(tile, active_map):
+    adjacent_tiles = get_adjacent_tiles(tile, active_map)
+    outer_ring_xy = [(-1, -2), (0, -2), (1, -2),
+                     (-2, -1), (-2, 0), (-2, 1),
+                     (2, -1), (2, 0), (2, 1),
+                     (-1, 2), (0, 2), (1, 2)]
+    outer_ring = []
+    for xy_pair in outer_ring_xy:
+        if within_map(xy_pair[0], xy_pair[1], active_map.game_tile_rows):
+            new_tile = active_map.game_tile_rows[tile.row + xy_pair[1]][tile.column + xy_pair[0]]
+            outer_ring.append(new_tile)
+    return outer_ring + adjacent_tiles
 
 
 def get_adjacent_movement_tiles(tile, current_map):

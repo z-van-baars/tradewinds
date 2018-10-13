@@ -1,0 +1,43 @@
+
+food_value = {"taiga": 2,
+              "tundra": 1,
+              "snowy tundra": 1,
+              "grassland": 3,
+              "plains": 2,
+              "wet plains": 2,
+              "savannah": 1,
+              "desert": 0,
+              "forest": 2,
+              "jungle": 2,
+              "snowpack": 0,
+              "ice": 0,
+              "shrubland": 1,
+              "ocean": 2,
+              "sea": 2,
+              "shallows": 2,
+              "lake": 1}
+
+terrain_food_value = {"vegetation": 1.0,
+                      "low hill": 0.25,
+                      "hill": 0.1,
+                      "low mountain": 0.0,
+                      "mountain": 0.0}
+
+
+chart = {"taiga": 2,
+         "tundra": 1,
+         "snowy tundra": 1,
+         "grassland": 3,
+         "plains": 2,
+         "wet plains": 2,
+         "savannah": 1,
+         "desert": 0,
+         "forest": 2,
+         "jungle": 2,
+         "snowpack": 0,
+         "ice": 0,
+         "shrubland": 1,
+         "ocean": 2,
+         "sea": 2,
+         "shallows": 2,
+         "lake": 1}

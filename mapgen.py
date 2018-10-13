@@ -183,9 +183,11 @@ def adjust_landmass_height(active_map):
     while raising:
         raising = False
         for each_tile in tiles_to_raise:
-            active_map.elevation[each_tile.row][each_tile.column] = min(active_map.water_cutoff + 0.01,
-                                                                        active_map.elevation[each_tile.row][each_tile.column] + 0.01)
-            if active_map.elevation[each_tile.row][each_tile.column] < active_map.water_cutoff + 0.01:
+            active_map.elevation[each_tile.row][each_tile.column] = min(
+                active_map.water_cutoff + 0.01, (
+                    active_map.elevation[each_tile.row][each_tile.column] + 0.01))
+            e = active_map.elevation[each_tile.row][each_tile.column]
+            if e < active_map.water_cutoff + 0.01:
                 raising = True
 
 
@@ -199,22 +201,27 @@ def infill_basins(active_map):
         for tile in y_row:
             elevation = active_map.elevation[tile.row][tile.column]
             if active_map.elevation[tile.row][tile.column] > water_cutoff:
-                z_layers.put((-elevation, tile))  # inverting the highest elevation brings it to the top of the queue for the get() operator
+                # inverting the highest elevation - get() operation takes lowest float
+                z_layers.put((-elevation, tile))
 
-    # works from the highest z(elevation) to the lowest, adding water flux to lower tiles cumulatively
+    # works from the highest z(elevation) to the lowest
+    # adding water flux to lower tiles cumulatively
     while not z_layers.empty():
-        elevation, tile = z_layers.get()
+        elevation, previous_tile = z_layers.get()
         neighbors = util.get_adjacent_tiles(tile, active_map)
 
         # builds a list of neighbors who are at a lower Z level
         flowable_neighbors = []
-        all_neighbors = []  # backup list in case we bottom out and need to fill in a lake
+        # backup list in case we bottom out and need to fill in a lake
+        all_neighbors = []
         for each_tile in neighbors:
-            if active_map.elevation[each_tile.row][each_tile.column] < active_map.elevation[tile.row][tile.column]:
-                flowable_neighbors.append((active_map.elevation[each_tile.row][each_tile.column], each_tile))
-            all_neighbors.append((active_map.elevation[each_tile.row][each_tile.column], each_tile))
+            e = active_map.elevation[each_tile.row][each_tile.column]
+            if e < active_map.elevation[previous_tile.row][previous_tile.column]:
+                flowable_neighbors.append((e, each_tile))
+            all_neighbors.append((e, each_tile))
 
-        # if no neighboring tile is lower, then cease to flow, turn this tile into a SHALLOWS tile / LAKE
+        # if no neighboring tile is lower, cease flow
+        # turn this tile into a SHALLOWS tile / LAKE
         if len(flowable_neighbors) == 0:
             frontier = sorted(all_neighbors)
             last_addition = tile
@@ -726,12 +733,6 @@ def display_update(screen, raw_maps, display_data, clock):
     render_map_labels(screen, scaled_maps, display_data)
 
 
-def quit_check():
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            pygame.display.quit()
-            pygame.quit()
-
 
 def input_loop(game_state, mgs, message="Press Enter to Continue"):
     message_font = pygame.font.SysFont('Calibri', 14, True, False)
@@ -867,10 +868,12 @@ def make_map(game_state, mgs: MapgenState):
     coastal_sites = list(filter(lambda x: is_coastal(mgs.active_map,
                                                      largest_water_body,
                                                      x), viable_sites))
-    print(len(coastal_sites))
-    for site in all_sites:
-        if site.tile.biome not in ('ocean', 'shallows', 'sea', 'lake'):
+    for site in viable_sites:
             site.update_scores(mgs.active_map, coastal_sites)
+    sorted_sites = queue.PriorityQueue()
+    for site in viable_sites:
+        if site.city_score > 1:
+            sorted_sites.put((-site.city_score, site.tile, site))
 
     render_raw_maps(mgs.active_map,
                     mgs.width,
@@ -892,16 +895,12 @@ def make_map(game_state, mgs: MapgenState):
 
     print("placing cities...")
     for ii in range(mgs.active_map.number_of_cities):
-        quit_check()
-        print("Debug A")
-        city.add_new_city(mgs.active_map, viable_sites, coastal_sites)
-
-        start = time.time()
+        util.quit_check()
+        city.add_new_city(mgs.active_map, sorted_sites, viable_sites)
+        sorted_sites = queue.PriorityQueue()
         for site in viable_sites:
-            site.update_scores(mgs.active_map, coastal_sites)
-        elapsed = time.time() - start
-        print('scoring time: {}s'.format(round(elapsed, 3)))
-
+            if site.city_score > 1:
+                sorted_sites.put((-site.city_score, site.tile, site))
         print("city placed: {0} / {1}".format(len(mgs.active_map.cities),
                                               mgs.active_map.number_of_cities))
         city_counter = message_font.render("Cities Placed:",
@@ -932,8 +931,10 @@ def make_map(game_state, mgs: MapgenState):
         pygame.display.flip()
 
     print("cities placed!")
-    sound.chime.play()
+
+    region.assign_provinces(mgs.active_map)
     region.grow_cities(mgs.active_map)
+    sound.chime.play()
 
 
 def map_generation(game_state, active_map: Map):

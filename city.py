@@ -1,11 +1,12 @@
 import utilities as util
 import queue
+import nav
+import production as prod
 import math
 import random
 import artikel
 import numpy as np
 from scipy.ndimage import label, generate_binary_structure
-import time
 
 
 city_names = []
@@ -13,60 +14,9 @@ city_names = []
 cn = open('city_names.txt', 'r')
 lines = cn.readlines()
 for line in lines:
+    line = line.capitalize()
     city_names.append(line[:-1])
 cn.close()
-
-food_value = {"taiga": 2,
-              "tundra": 1,
-              "snowy tundra": 1,
-              "grassland": 3,
-              "plains": 2,
-              "wet plains": 2,
-              "savannah": 1,
-              "desert": 0,
-              "forest": 2,
-              "jungle": 2,
-              "snowpack": 0,
-              "ice": 0,
-              "shrubland": 1,
-              "ocean": 2,
-              "sea": 2,
-              "shallows": 2,
-              "lake": 1,
-              "river": 1}
-
-terrain_food_value = {"vegetation": 1.0,
-                      "low hill": 0.8,
-                      "hill": 0.6,
-                      "low mountain": 0.4,
-                      "mountain": 0.25}
-
-
-movement_cost = {"taiga": 1,
-                 "tundra": 2,
-                 "snowy tundra": 2,
-                 "grassland": 1,
-                 "plains": 1,
-                 "wet plains": 2,
-                 "savannah": 1,
-                 "desert": 2,
-                 "forest": 2,
-                 "jungle": 2,
-                 "snowpack": 2,
-                 "ice": 2,
-                 "shrubland": 1,
-                 "ocean": 1,
-                 "sea": 0.5,
-                 "shallows": 0.5,
-                 "lake": 0.5,
-                 "river": 0.3}
-
-
-terrain_movement_cost = {"mountain": 5.0,
-                         "low mountain": 3.0,
-                         "hill": 2.0,
-                         "low hill": 1.5,
-                         "vegetation": 1}
 
 
 def get_demand():
@@ -78,17 +28,20 @@ def get_demand():
 
 
 class City(object):
-    def __init__(self, x, y, name):
+    def __init__(self, active_map, x, y, tile, name):
+        self.active_map = active_map
         self.column = x
         self.row = y
+        self.tile = tile
         self.name = name
         self.size = 0
+        self.province_tiles = []
+        self.workers = set()
         self.demand = {}
         self.supply = {}
-        self.produces = {}
-        self.industries = []
         self.sell_price = {}
         self.purchase_price = {}
+        self.province_border = []
 
         self.set_random_supply()
         self.set_demand_for_artikels()
@@ -112,13 +65,58 @@ class City(object):
         else:
             self.supply[artikel_id] = quantity
 
+    def grow(self):
+        pass
+
+    def harvest_resources(self, active_map):
+        for worker in self.workers:
+            resources_gathered = worker.work_tile()
+            for key, value in resources_gathered.items():
+                self.supply[key] += value
+
+    def produce_secondary_goods(self):
+        pass
+
+    def turn_loop(self, active_map):
+        self.harvest_resources(active_map)
+        self.produce_secondary_goods()
+        self.grow()
+
+    def get_province_border(self, active_map):
+        province_border = []
+        border_tiles = []
+        frontier = set()
+        neighbors = util.get_adjacent_tiles(self.tile, active_map)
+        for each in neighbors:
+            if each in self.province_tiles:
+                frontier.add(each)
+        visited = set()
+        while len(frontier) > 0:
+            new_tile = frontier.pop()
+            if new_tile not in visited:
+                visited.add(new_tile)
+                tile_neighbors = util.get_adjacent_tiles(new_tile, active_map)
+                for each in tile_neighbors:
+                    if each in self.province_tiles and each not in visited:
+                        frontier.add(each)
+                if any(each not in self.province_tiles for each in tile_neighbors):
+                    if new_tile not in border_tiles:
+                        border_tiles.append(new_tile)
+        print(len(border_tiles))
+
+        for each_tile in border_tiles:
+            xy_pair = util.get_screen_coords(each_tile.column, each_tile.row)
+            province_border.append(xy_pair)
+
+        self.province_border = province_border
+
 
 def evaluate_local_food(active_map, zone_of_control):
     # local_tiles = utilities.get_nearby_tiles(active_map, (tile.column, tile.row), 3)
     total_local_food = 0
     for each in zone_of_control:
         total_local_food += (
-            food_value[each.biome] * terrain_food_value[each.terrain])
+            prod.food_value[each.biome] * prod.terrain_food_value[each.terrain])
     return total_local_food
 
 
@@ -132,19 +130,8 @@ def evaluate_local_resources(active_map, zone_of_control):
 
 
 def get_movement_cost(active_map, tile):
-    cost = movement_cost[tile.biome] * terrain_movement_cost[tile.terrain]
+    cost = nav.movement_cost[tile.biome] * nav.terrain_movement_cost[tile.terrain]
     return cost
-
-
-def get_distance_score(active_map, tile):
-    total_distance_score = 0
-    for each in active_map.cities:
-        distance = util.distance(tile.column, tile.row, each.column, each.row)
-        power = 3  # * (len(active_map.cities) / active_map.number_of_cities)
-        map_size = math.sqrt(active_map.width * active_map.height)
-        distance = max(0, ((0.16 * map_size) - distance)) ** power
-        total_distance_score += distance * 0.1  # / len(active_map.cities)
-    return math.floor(total_distance_score)
 
 
 def get_zone_of_control(active_map, tile):
@@ -163,9 +150,9 @@ def get_trade_score(active_map, coastal_sites, site):
     return trade_score
 
 
-def math_helper(z, f, t, r, tr, d):
+def math_helper(z, f, t, r, tr):
     """Algorithms"""
-    return z + f + t + r * 20 + ((tr / 2) * (tr / 2)) - d
+    return z + f + t + r * 20 + ((tr / 2) * (tr / 2))
 
 
 def evaluate_city_score(active_map, site):
@@ -175,10 +162,8 @@ def evaluate_city_score(active_map, site):
     t = site.temperature_score
     tr = site.trade_score
     r = site.resource_score
-    d = site.distance_score
-    # as the map fills up, we want to weight proximity to other cities less and less
-    # crowding_factor = ((active_map.number_of_cities - len(active_map.cities)) / active_map.number_of_cities)
-    return max(50, math_helper(z, f, t, r, tr, d))
+
+    return max(50, math_helper(z, f, t, r, tr))
 
 
 def cull_interior_watermasses(active_map):
@@ -194,56 +179,61 @@ def cull_interior_watermasses(active_map):
     # filter the labeled array into layers. `==` does the filtering
     layers = [(labeled_array == i) for i in range(1, num_features + 1)]
 
-    sorted_water_bodies = sorted(((np.sum(subarray), subarray) for subarray in layers), key=lambda x: x[0], reverse=True)
+    sorted_water_bodies = sorted(
+        ((np.sum(subarray), subarray) for subarray in layers),
+        key=lambda x: x[0], reverse=True)
     largest_water_body = sorted_water_bodies[0][1]
     return largest_water_body
 
 
 class Site(object):
     def __init__(self, tile, active_map):
+        self.active_map = active_map
         self.tile = tile
         self.establish_initial_scores(active_map)
 
     def establish_initial_scores(self, active_map):
         self.zone_of_control = get_zone_of_control(active_map, self.tile)
         self.food_score = evaluate_local_food(active_map, self.zone_of_control)
-        self.temperature_score = math.floor(active_map.temperature[self.tile.row][self.tile.column] / 3)
+        self.temperature_score = math.floor(
+            active_map.temperature[self.tile.row][self.tile.column] / 3)
         self.resource_score = evaluate_local_resources(active_map, self.zone_of_control)
-        self.distance_score = get_distance_score(active_map, self.tile)
         self.trade_score = 0
         self.city_score = 0
 
     def update_scores(self, active_map, coastal_sites):
-        self.distance_score = get_distance_score(active_map, self.tile)
         self.trade_score = get_trade_score(active_map, coastal_sites, self)
         self.city_score = evaluate_city_score(active_map, self)
 
     def is_viable(self):
-        return (
-            self.tile.biome != "ocean" and
-            self.tile.biome != "ice" and
-            self.tile.biome != "sea" and
-            self.tile.biome != "shallows" and
-            self.tile.biome != "lake" and
-            self.tile.terrain != "mountain" and
-            self.tile.terrain != "low_mountain" and
-            self.tile.terrain != "hill")
+        return self.tile.biome not in ("ocean", "ice", "sea",
+                                       "shallows", "lake", "mountain",
+                                       "low_mountain", "hill")
+
+    def lock_neighborhood(self, active_map, viable_sites):
+        neighborhood = util.get_fat_x(self.tile, active_map)
+        print("removing fat x from the running")
+        for i, tile in enumerate(neighborhood, start=1):
+            for site in viable_sites:
+                if site.tile == tile:
+                    site.city_score = 20
+                    viable_sites.remove(site)
+                    break
+        print("removed {0} tiles from the running".format(i))
 
 
-def add_new_city(active_map, viable_sites, coastal_sites):
-    city_sites = queue.PriorityQueue()
-    for site in viable_sites:
-        if site.city_score > 1:
-            city_sites.put((-site.city_score, site.tile, site))
-    score, candidate, site = city_sites.get()
+def add_new_city(active_map, sorted_sites, viable_sites):
+    score, candidate, site = sorted_sites.get()
+
     name_chosen = False
     while not name_chosen:
         new_name = random.choice(city_names)
         if not any((city.name == new_name) for city in active_map.cities):
             name_chosen = True
+    print("Debug C")
     print(new_name)
-    new_city = City(candidate.column, candidate.row, new_name)
+    new_city = City(active_map, candidate.column, candidate.row, candidate, new_name)
     active_map.cities.append(new_city)
     candidate.city = new_city
-    site.city_score = 50
-    viable_sites.remove(site)
+    site.city_score = 20
+    site.lock_neighborhood(active_map, viable_sites)

@@ -36,15 +36,33 @@ all_resources = ["saffron",
                  "vanilla",
                  "clove",
                  "ivory",
-                 "timber",
-                 "wool",
                  "pelts",
-                 "cattle",
-                 "rice",
-                 "wheat",
                  "iron",
                  "gold",
-                 "silver"]
+                 "silver",
+                 "timber",
+                 "wool",
+                 "cattle",
+                 "wheat",
+                 "rice"]
+
+rare_resources = ["saffron",
+                  "cinnamon",
+                  "vanilla",
+                  "clove",
+                  "ivory",
+                  "pelts",
+                  "iron",
+                  "gold",
+                  "silver"]
+
+
+common_resources = ["timber",
+                    "wool"]
+
+food_resources = ["cattle",
+                  "rice",
+                  "wheat"]
 
 
 mountain = {"taiga": ["iron", "silver", "gold"],

@@ -53,8 +53,6 @@ def s_key(game_state):
 
 
 def left_click(game_state, mouse_pos, map_xy, button_states, event):
-    if len(game_state.active_menus) == 0:
-        return
     if event.type == pygame.MOUSEBUTTONUP:
         for menu in game_state.active_menus:
             menu.event_handler(event, mouse_pos)
@@ -64,7 +62,12 @@ def left_click(game_state, mouse_pos, map_xy, button_states, event):
         if interacted:
             break
     if not interacted:
-        return
+        c = game_state.active_map.game_tile_rows[map_xy[1]][map_xy[0]].city
+        if c is None:
+            return
+        new_city_menu = ui.ViewCity(game_state, c)
+        game_state.active_menus.append(new_city_menu)
+        menu = new_city_menu
     top_menu = menu
     game_state.active_menus.remove(menu)
     game_state.active_menus = [top_menu] + game_state.active_menus

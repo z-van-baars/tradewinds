@@ -210,6 +210,63 @@ class Menu(object):
         self.render_decals(pos)
 
 
+class ViewCity(Menu):
+    def __init__(self, game_state, city, width=400, height=400):
+        super().__init__(game_state)
+        self.background_pane = pygame.sprite.Sprite()
+        city_tiles_image = pygame.Surface([400, 400])
+        city_tiles_image.fill((32, 61, 82))
+        print(city.column, city.row)
+        city_pxy = util.get_screen_coords(city.column, city.row)
+        print(city_pxy)
+        city_tiles_image.blit(
+            game_state.active_map.tile_display_layer.image,
+            (0, 0), [city_pxy[0], city_pxy[1], width, height])
+        city_tiles_image.blit(
+            game_state.active_map.terrain_display_layer.image,
+            (0, 0), [city_pxy[0], city_pxy[1], width, height])
+        city_tiles_image.blit(
+            game_state.active_map.resource_display_layer.image,
+            (0, 0), [city_pxy[0], city_pxy[1], width, height])
+        city_tiles_image.blit(
+            game_state.active_map.building_display_layer.image,
+            (0, 0), [city_pxy[0], city_pxy[1], width, height])
+        province_border = city.province_border
+        pygame.draw.aalines(city_tiles_image, util.colors.red, True, province_border)
+
+        self.background_pane.image = pygame.Surface([420, 420])
+        self.background_pane.image.fill((32, 61, 82))
+        self.background_pane.image.blit(city_tiles_image, [10, 18])
+        self.background_pane.rect = self.background_pane.image.get_rect()
+        self.background_pane.rect.x = (
+            game_state.screen_width / 2 - self.background_pane.image.get_width() / 2)
+        self.background_pane.rect.y = (
+            game_state.screen_height / 2 - self.background_pane.image.get_height() / 2)
+
+        def x_click():
+            self.open = False
+
+        def dragbar_click():
+            self.dragging = True
+
+        x_button = Button(x_button_r_img,
+                          x_button_h_img,
+                          x_click,
+                          self.background_pane.image.get_width() - 22,
+                          10)
+
+        dragbar_r_img = pygame.Surface([self.background_pane.image.get_width() - 2, 9])
+        dragbar_r_img.fill(util.colors.dragbar)
+
+        dragbar = Button(dragbar_r_img,
+                         dragbar_r_img,
+                         dragbar_click,
+                         1,
+                         1)
+
+        self.buttons = [x_button, dragbar]
+
+
 class ShipStatus(Menu):
     def __init__(self, game_state):
         super().__init__(game_state)

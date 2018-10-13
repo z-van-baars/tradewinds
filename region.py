@@ -9,12 +9,34 @@ water_biomes = ['ocean',
                 'river']
 
 
+def find_closest_city(active_map, tile):
+    closest_city = (9999, None)
+    for each_city in active_map.cities:
+        d = util.distance(tile.column, tile.row, each_city.column, each_city.row)
+        if d < closest_city[0]:
+            closest_city = (d, each_city)
+    return closest_city[1]
+
+
+def assign_provinces(active_map):
+    print("assigning provinces...")
+    for tile in active_map.all_tiles:
+        util.quit_check()
+        closest_city = find_closest_city(active_map, tile)
+        tile.closest_city = closest_city
+        closest_city.province_tiles.append(tile)
+
+    print("drawing borders...")
+    for each_city in active_map.cities:
+        each_city.get_province_border(active_map)
+
+
 def grow_cities(active_map):
+    print("growing cities...")
     for each_city in active_map.cities:
         zoc = city.get_zone_of_control(active_map, each_city)
         food_score = city.evaluate_local_food(active_map, zoc)
         each_city.size = food_score
-        print(each_city.size)
 
 
 def choose_capitals(active_map):
@@ -30,7 +52,8 @@ def carve_regions(active_map, capitals):
     for tile in all_tiles:
         capitals_by_distance = []
         for each_city in capitals:
-            path_cost = get_path((tile.column, tile.row), active_map, (each_city.column, each_city.row))
+            path_cost = get_path(
+                (tile.column, tile.row), active_map, (each_city.column, each_city.row))
             capitals_by_distance.append((path_cost, each_city))
         capitals_sorted = sorted(capitals_by_distance)
         print(capitals_sorted)
@@ -41,11 +64,17 @@ def get_tile_movement_cost(active_map, previous_tile, current_tile):
         current_tile_cost = 10
     elif previous_tile.biome not in water_biomes and current_tile.biome in water_biomes:
         current_tile_cost = 10
-    elif previous_tile.water_flux[2] >= active_map.river_cutoff and current_tile.water_flux[2] < active_map.river_cutoff:
+    elif previous_tile.water_flux[2] >= (
+        active_map.river_cutoff and (
+            current_tile.water_flux[2] < active_map.river_cutoff)):
         current_tile_cost = 10
-    elif previous_tile.water_flux[2] < active_map.river_cutoff and current_tile.water_flux[2] >= active_map.river_cutoff:
+    elif previous_tile.water_flux[2] < (
+        active_map.river_cutoff and (
+            current_tile.water_flux[2] >= active_map.river_cutoff)):
         current_tile_cost = 10
-    elif previous_tile.water_flux[2] >= active_map.river_cutoff and current_tile.water_flux[2] >= active_map.river_cutoff:
+    elif previous_tile.water_flux[2] >= (
+        active_map.river_cutoff and (
+            current_tile.water_flux[2] >= active_map.river_cutoff)):
         current_tile_cost = 0.4 * city.get_movement_cost(active_map, current_tile)
     else:
         current_tile_cost = city.get_movement_cost(active_map, current_tile)
@@ -56,16 +85,20 @@ def explore_frontier_to_target(active_map, visited, target_tile, closest_tile, f
     while not frontier.empty():
         priority, current_tile, previous_tile = frontier.get()
 
-        current_tile_cost = get_tile_movement_cost(active_map, previous_tile, current_tile)
+        current_tile_cost = get_tile_movement_cost(
+            active_map, previous_tile, current_tile)
         new_steps = visited[previous_tile][0] + current_tile_cost
         if current_tile not in visited or new_steps < visited[current_tile][0]:
             tile_neighbors = util.get_adjacent_tiles(current_tile, active_map)
             for each in tile_neighbors:
                 if each == target_tile or not each.is_occupied():
-                    distance_to_target = util.distance(each.column, each.row, target_tile.column, target_tile.row)
+                    distance_to_target = util.distance(
+                        each.column, each.row, target_tile.column, target_tile.row)
                     priority = distance_to_target + new_steps
                     frontier.put((priority, each, current_tile))
-            distance_to_target = util.distance(current_tile.column, current_tile.row, target_tile.column, target_tile.row)
+            distance_to_target = util.distance(
+                current_tile.column, current_tile.row,
+                target_tile.column, target_tile.row)
             if distance_to_target < closest_tile[0]:
                 closest_tile = [distance_to_target, current_tile]
             visited[current_tile] = (new_steps, previous_tile)
@@ -84,7 +117,8 @@ def get_path(my_position, active_map, target_coordinates):
     for each in tile_neighbors:
         if not each.is_occupied() and each.biome == "ocean":
             frontier.put((0, each, start_tile))
-    visited, closest_tile = explore_frontier_to_target(active_map, visited, target_tile, closest_tile, frontier)
+    visited, closest_tile = explore_frontier_to_target(
+        active_map, visited, target_tile, closest_tile, frontier)
 
     new_path = util.Path()
     new_path.tiles.append(closest_tile[1])

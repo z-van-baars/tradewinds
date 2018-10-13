@@ -4,6 +4,34 @@ import utilities
 import queue
 
 
+movement_cost = {"taiga": 1,
+                 "tundra": 2,
+                 "snowy tundra": 2,
+                 "grassland": 1,
+                 "plains": 1,
+                 "wet plains": 2,
+                 "savannah": 1,
+                 "desert": 2,
+                 "forest": 2,
+                 "jungle": 2,
+                 "snowpack": 2,
+                 "ice": 2,
+                 "shrubland": 1,
+                 "ocean": 1,
+                 "sea": 0.5,
+                 "shallows": 0.5,
+                 "lake": 0.5}
+
+
+terrain_movement_cost = {"mountain": 5.0,
+                         "low mountain": 3.0,
+                         "hill": 2.0,
+                         "low hill": 1.5,
+                         "vegetation": 1,
+                         "river": 1}
+
+
+
 def distance(a, b, x, y):
     a1 = abs(a - x)
     b1 = abs(b - y)
