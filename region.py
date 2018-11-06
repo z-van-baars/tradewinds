@@ -28,7 +28,8 @@ def assign_provinces(active_map):
 
     print("drawing borders...")
     for each_city in active_map.cities:
-        each_city.get_province_border(active_map)
+        # each_city.get_province_border(active_map)
+        pass
 
 
 def grow_cities(active_map):

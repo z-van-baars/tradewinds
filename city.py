@@ -7,6 +7,7 @@ import random
 import artikel
 import numpy as np
 from scipy.ndimage import label, generate_binary_structure
+import art
 
 
 city_names = []
@@ -42,6 +43,7 @@ class City(object):
         self.sell_price = {}
         self.purchase_price = {}
         self.province_border = []
+        self.portrait_img = random.choice(art.city_portraits)
 
         self.set_random_supply()
         self.set_demand_for_artikels()

@@ -23,8 +23,8 @@ cancel_h_img = pygame.image.load('art/buttons/cancel_hover.png')
 done_r_img = pygame.image.load('art/buttons/done_regular.png')
 done_h_img = pygame.image.load('art/buttons/done_hover.png')
 
-move_r_img = pygame.image.load('art/buttons/move_here_regular.png')
-move_h_img = pygame.image.load('art/buttons/move_here_hover.png')
+move_r_img = pygame.image.load('art/buttons/move_to_regular.png')
+move_h_img = pygame.image.load('art/buttons/move_to_hover.png')
 
 enter_city_r_img = pygame.image.load('art/buttons/enter_city_regular.png')
 enter_city_h_img = pygame.image.load('art/buttons/enter_city_hover.png')
@@ -163,11 +163,12 @@ class Menu(object):
         pass
 
     def get_interaction(self, event, pos):
-        if util.check_if_inside(self.background_pane.rect.left,
-                                self.background_pane.rect.right,
-                                self.background_pane.rect.top,
-                                self.background_pane.rect.bottom,
-                                pos):
+        if util.check_if_inside(
+            self.background_pane.rect.left,
+            self.background_pane.rect.right,
+            self.background_pane.rect.top,
+            self.background_pane.rect.bottom,
+                pos):
             return True
         return False
 
@@ -179,11 +180,12 @@ class Menu(object):
         mouse_pos = (pos[0] - self.background_pane.rect.x,
                      pos[1] - self.background_pane.rect.y)
         for button in self.buttons:
-            if util.check_if_inside(button.sprite.rect.x,
-                                    button.sprite.rect.right,
-                                    button.sprite.rect.y,
-                                    button.sprite.rect.bottom,
-                                    mouse_pos):
+            if util.check_if_inside(
+                button.sprite.rect.x,
+                button.sprite.rect.right,
+                button.sprite.rect.y,
+                button.sprite.rect.bottom,
+                    mouse_pos):
                 button.click()
 
     def event_handler(self, event, pos):
@@ -200,8 +202,9 @@ class Menu(object):
             self.keyup_handler(event.key)
 
     def render_onscreen_cache(self, pos):
-        self.cached_image = pygame.Surface([self.background_pane.image.get_width(),
-                                            self.background_pane.image.get_height()])
+        self.cached_image = pygame.Surface(
+            [self.background_pane.image.get_width(),
+             self.background_pane.image.get_height()])
         self.render_buttons(pos)
         self.cached_image.blit(self.background_pane.image, [0, 0])
         for button in self.buttons:
@@ -214,6 +217,7 @@ class ViewCity(Menu):
     def __init__(self, game_state, city, width=400, height=400):
         super().__init__(game_state)
         self.background_pane = pygame.sprite.Sprite()
+        x = game_state.active_map.tile_display_layer.image.get_width() / 2
         city_tiles_image = pygame.Surface([400, 400])
         city_tiles_image.fill((32, 61, 82))
         print(city.column, city.row)
@@ -221,18 +225,28 @@ class ViewCity(Menu):
         print(city_pxy)
         city_tiles_image.blit(
             game_state.active_map.tile_display_layer.image,
-            (0, 0), [city_pxy[0], city_pxy[1], width, height])
+            (0, 0), [city_pxy[0] + x - width / 2, city_pxy[1] - height / 2,
+                     width, height])
         city_tiles_image.blit(
             game_state.active_map.terrain_display_layer.image,
-            (0, 0), [city_pxy[0], city_pxy[1], width, height])
+            (0, 0), [city_pxy[0] + x - width / 2, city_pxy[1] - height / 2,
+                     width, height])
         city_tiles_image.blit(
             game_state.active_map.resource_display_layer.image,
-            (0, 0), [city_pxy[0], city_pxy[1], width, height])
+            (0, 0), [city_pxy[0] + x - width / 2, city_pxy[1] - height / 2,
+                     width, height])
         city_tiles_image.blit(
             game_state.active_map.building_display_layer.image,
-            (0, 0), [city_pxy[0], city_pxy[1], width, height])
+            (0, 0), [city_pxy[0] + x - width / 2, city_pxy[1] - height / 2,
+                     width, height])
         province_border = city.province_border
-        pygame.draw.aalines(city_tiles_image, util.colors.red, True, province_border)
+        adjusted_points = []
+        print(province_border)
+        for point in province_border:
+            adjusted_points.append(
+                (point[0] + x - city_pxy[0] + width / 2,
+                 point[1] - city_pxy[1] + height / 2))
+        pygame.draw.aalines(city_tiles_image, util.colors.red, True, adjusted_points)
 
         self.background_pane.image = pygame.Surface([420, 420])
         self.background_pane.image.fill((32, 61, 82))
@@ -249,20 +263,22 @@ class ViewCity(Menu):
         def dragbar_click():
             self.dragging = True
 
-        x_button = Button(x_button_r_img,
-                          x_button_h_img,
-                          x_click,
-                          self.background_pane.image.get_width() - 22,
-                          10)
+        x_button = Button(
+            x_button_r_img,
+            x_button_h_img,
+            x_click,
+            self.background_pane.image.get_width() - 22,
+            10)
 
         dragbar_r_img = pygame.Surface([self.background_pane.image.get_width() - 2, 9])
         dragbar_r_img.fill(util.colors.dragbar)
 
-        dragbar = Button(dragbar_r_img,
-                         dragbar_r_img,
-                         dragbar_click,
-                         1,
-                         1)
+        dragbar = Button(
+            dragbar_r_img,
+            dragbar_r_img,
+            dragbar_click,
+            1,
+            1)
 
         self.buttons = [x_button, dragbar]
 
@@ -284,20 +300,22 @@ class ShipStatus(Menu):
         def dragbar_click():
             self.dragging = True
 
-        x_button = Button(x_button_r_img,
-                          x_button_h_img,
-                          x_click,
-                          self.background_pane.image.get_width() - 22,
-                          10)
+        x_button = Button(
+            x_button_r_img,
+            x_button_h_img,
+            x_click,
+            self.background_pane.image.get_width() - 22,
+            10)
 
         dragbar_r_img = pygame.Surface([self.background_pane.image.get_width() - 2, 9])
         dragbar_r_img.fill(util.colors.dragbar)
 
-        dragbar = Button(dragbar_r_img,
-                         dragbar_r_img,
-                         dragbar_click,
-                         1,
-                         1)
+        dragbar = Button(
+            dragbar_r_img,
+            dragbar_r_img,
+            dragbar_click,
+            1,
+            1)
 
         self.buttons = [x_button, dragbar]
 
@@ -305,22 +323,34 @@ class ShipStatus(Menu):
         ship = self.game_state.player.ship
         header_font = pygame.font.SysFont('Calibri', 14, True, False)
 
-        hull_class_stamp = header_font.render("{0}".format(ship.hull_class),
-                                              True, util.colors.yellow)  # 14, 32
-        speed_stamp = header_font.render("{0}".format(ship.speed),
-                                         True, util.colors.yellow)  # 12, 82
-        attack_stamp = header_font.render("{0}".format(ship.attack),
-                                          True, util.colors.yellow)  # 82, 82
-        defense_stamp = header_font.render("{0}".format(str(ship.defense)),
-                                           True, util.colors.yellow)  # 152, 82
-        crew_stamp = header_font.render("{0} / {1}".format(str(ship.crew_cap),
-                                                           str(ship.crew_cap)),
-                                        True, util.colors.yellow)  # 12, 138
-        upkeep_stamp = header_font.render("₴{0}".format(str(ship.upkeep)),
-                                          True, util.colors.yellow)  # 142, 136
-        cargo_cap_stamp = header_font.render("{0} / {1}".format(str(ship.cargo_cap),
-                                                                str(ship.cargo_cap)),
-                                             True, util.colors.yellow)  # 46, 182
+        hull_class_stamp = header_font.render(
+            "{0}".format(ship.hull_class),
+            True,
+            util.colors.yellow)  # 14, 32
+        speed_stamp = header_font.render(
+            "{0}".format(ship.speed),
+            True,
+            util.colors.yellow)  # 12, 82
+        attack_stamp = header_font.render(
+            "{0}".format(ship.attack),
+            True,
+            util.colors.yellow)  # 82, 82
+        defense_stamp = header_font.render(
+            "{0}".format(str(ship.defense)),
+            True,
+            util.colors.yellow)  # 152, 82
+        crew_stamp = header_font.render(
+            "{0} / {1}".format(str(ship.crew_cap), str(ship.crew_cap)),
+            True,
+            util.colors.yellow)  # 12, 138
+        upkeep_stamp = header_font.render(
+            "₴{0}".format(str(ship.upkeep)),
+            True,
+            util.colors.yellow)  # 142, 136
+        cargo_cap_stamp = header_font.render(
+            "{0} / {1}".format(str(ship.cargo_cap), str(ship.cargo_cap)),
+            True,
+            util.colors.yellow)  # 46, 182
         self.cached_image.blit(hull_class_stamp, [14, 32])
         self.cached_image.blit(speed_stamp, [12, 82])
         self.cached_image.blit(attack_stamp, [82, 82])
@@ -386,25 +416,28 @@ class ContextMenu(Menu):
             enter_city_r_img,
             enter_city_h_img,
             enter_city_click,
-            5,
+            80,
             25)
 
-        tile_info_button = Button(tile_info_r_img,
-                                  tile_info_h_img,
-                                  tile_info_click,
-                                  100,
-                                  25)
+        tile_info_button = Button(
+            tile_info_r_img,
+            tile_info_h_img,
+            tile_info_click,
+            170,
+            25)
 
         cancel_button = Button(
             cancel_r_img,
             cancel_h_img,
             cancel_click,
-            180,
+            240,
             25)
         self.buttons = [move_button, tile_info_button, cancel_button]
         player_tile = self.game_state.active_map.game_tile_rows[game_state.player.ship.row][game_state.player.ship.column]
-        if self.tile.city and self.tile == player_tile:
-            self.buttons = [enter_city_button, tile_info_button, cancel_button]
+        if (self.tile.city and
+            (self.tile in
+             util.get_adjacent_movement_tiles(player_tile, game_state.active_map))):
+            self.buttons.append(enter_city_button)
 
     def render_decals(self, pos):
         header_font = pygame.font.SysFont('Calibri', 18, True, False)
@@ -421,8 +454,12 @@ class ImpassablePopup(Menu):
         self.background_pane = pygame.sprite.Sprite()
         self.background_pane.image = impassable_popup_pane
         self.background_pane.rect = self.background_pane.image.get_rect()
-        self.background_pane.rect.x = (self.game_state.screen.get_width() / 2) - (self.background_pane.image.get_width() / 2)
-        self.background_pane.rect.y = (self.game_state.screen.get_height() / 2) - (self.background_pane.image.get_height() / 2)
+        self.background_pane.rect.x = (
+            (self.game_state.screen.get_width() / 2) -
+            (self.background_pane.image.get_width() / 2))
+        self.background_pane.rect.y = (
+            (self.game_state.screen.get_height() / 2) -
+            (self.background_pane.image.get_height() / 2))
 
         def ok_click():
             self.open = False
@@ -430,20 +467,24 @@ class ImpassablePopup(Menu):
         def dragbar_click():
             self.dragging = True
 
-        ok_button = Button(ok_r_img,
-                           ok_h_img,
-                           ok_click,
-                           self.background_pane.image.get_width() / 2 - 28,
-                           56)
+        ok_button = Button(
+            ok_r_img,
+            ok_h_img,
+            ok_click,
+            self.background_pane.image.get_width() / 2 - 28,
+            56)
 
-        dragbar_r_img = pygame.Surface([self.background_pane.image.get_width() - 2, 9])
+        dragbar_r_img = pygame.Surface(
+            [self.background_pane.image.get_width() - 2,
+             9])
         dragbar_r_img.fill(util.colors.dragbar)
 
-        dragbar = Button(dragbar_r_img,
-                         dragbar_r_img,
-                         dragbar_click,
-                         1,
-                         1)
+        dragbar = Button(
+            dragbar_r_img,
+            dragbar_r_img,
+            dragbar_click,
+            1,
+            1)
 
         self.buttons = [ok_button, dragbar]
 
@@ -464,20 +505,24 @@ class TileInfoPane(Menu):
         def dragbar_click():
             self.dragging = True
 
-        ok_button = Button(ok_r_img,
-                           ok_h_img,
-                           ok_click,
-                           10,
-                           270)
+        ok_button = Button(
+            ok_r_img,
+            ok_h_img,
+            ok_click,
+            10,
+            270)
 
-        dragbar_r_img = pygame.Surface([self.background_pane.image.get_width() - 2, 9])
+        dragbar_r_img = pygame.Surface(
+            [self.background_pane.image.get_width() - 2,
+             9])
         dragbar_r_img.fill(util.colors.dragbar)
 
-        dragbar = Button(dragbar_r_img,
-                         dragbar_r_img,
-                         dragbar_click,
-                         1,
-                         1)
+        dragbar = Button(
+            dragbar_r_img,
+            dragbar_r_img,
+            dragbar_click,
+            1,
+            1)
 
         self.buttons = [ok_button, dragbar]
 
@@ -497,16 +542,21 @@ class TileInfoPane(Menu):
         terrain_stamp = header_font.render(terrain_text, True, util.colors.white)
         resource_stamp = header_font.render(resource_text, True, util.colors.white)
         city_stamp = header_font.render(city_text, True, util.colors.white)
-        water_flux_stamp = header_font.render("{0}, {1}, {2}".format(self.tile.water_source[0], self.tile.water_source[1], self.tile.water_flux[2]),
-                                              True,
-                                              util.colors.white)
+        water_flux_stamp = header_font.render(
+            "{0}, {1}, {2}".format(self.tile.water_source[0],
+                                   self.tile.water_source[1],
+                                   self.tile.water_flux[2]),
+            True,
+            util.colors.white)
 
         self.cached_image.blit(coordinates_stamp, [8, 73])
         self.cached_image.blit(biome_stamp, [8, 115])
         self.cached_image.blit(water_flux_stamp, [100, 115])
         self.cached_image.blit(terrain_stamp, [8, 156])
         if self.tile.resource:
-            self.cached_image.blit(art.resource_images[self.tile.resource][0], [5 + resource_stamp.get_width(), 200 - 20])
+            self.cached_image.blit(
+                art.resource_images[self.tile.resource][0],
+                [5 + resource_stamp.get_width(), 200 - 20])
         self.cached_image.blit(resource_stamp, [8, 200])
         self.cached_image.blit(city_stamp, [8, 245])
 
@@ -516,9 +566,14 @@ class CityMenu(Menu):
         super().__init__(game_state)
         self.background_pane = pygame.sprite.Sprite()
         self.background_pane.image = city_menu_pane
+        self.background_pane.image.blit(city.portrait_img, [5, 14])
         self.background_pane.rect = self.background_pane.image.get_rect()
-        self.background_pane.rect.x = (self.game_state.screen.get_width() / 2) - (self.background_pane.image.get_width() / 2)
-        self.background_pane.rect.y = (self.game_state.screen.get_height() / 2) - (self.background_pane.image.get_height() / 2)
+        self.background_pane.rect.x = (
+            (self.game_state.screen.get_width() / 2) -
+            (self.background_pane.image.get_width() / 2))
+        self.background_pane.rect.y = (
+            (self.game_state.screen.get_height() / 2) -
+            (self.background_pane.image.get_height() / 2))
         self.city = city
 
         def leave_click():
@@ -533,26 +588,31 @@ class CityMenu(Menu):
         def dragbar_click():
             self.dragging = True
 
-        dragbar_r_img = pygame.Surface([self.background_pane.image.get_width() - 2, 9])
+        dragbar_r_img = pygame.Surface(
+            [self.background_pane.image.get_width() - 2,
+             9])
         dragbar_r_img.fill(util.colors.dragbar)
 
-        dragbar = Button(dragbar_r_img,
-                         dragbar_r_img,
-                         dragbar_click,
-                         1,
-                         1)
+        dragbar = Button(
+            dragbar_r_img,
+            dragbar_r_img,
+            dragbar_click,
+            1,
+            1)
 
-        market_button = Button(market_r_img,
-                               market_h_img,
-                               market_click,
-                               5,
-                               35)
+        market_button = Button(
+            market_r_img,
+            market_h_img,
+            market_click,
+            5,
+            140)
 
-        leave_button = Button(leave_r_img,
-                              leave_h_img,
-                              leave_click,
-                              5,
-                              65)
+        leave_button = Button(
+            leave_r_img,
+            leave_h_img,
+            leave_click,
+            5,
+            175)
 
         self.buttons = [leave_button, market_button,
                         dragbar]
@@ -561,8 +621,9 @@ class CityMenu(Menu):
         header_font = pygame.font.SysFont('Calibri', 18, True, False)
         city_name_text = "{0}".format(self.city.name)
         city_name_stamp = header_font.render(city_name_text, True, util.colors.white)
-        self.cached_image.blit(city_name_stamp, [self.background_pane.image.get_width() / 2 - city_name_stamp.get_width() / 2,
-                                                 15])
+        self.cached_image.blit(
+            city_name_stamp,
+            [self.background_pane.image.get_width() / 2, 15])
 
 
 class MarketMenu(Menu):
@@ -603,14 +664,24 @@ class MarketMenu(Menu):
 
         def sell_click():
             artikel_name = self.display_cache["cargo visible items"][self.display_cache["cargo selected"]]
-            sell_quantity_popup = QuantityMenu(self.game_state, self.player, self.city, artikel_name, "sale")
+            sell_quantity_popup = QuantityMenu(
+                self.game_state,
+                self.player,
+                self.city,
+                artikel_name,
+                "sale")
             game_state.active_menus = [sell_quantity_popup] + game_state.active_menus
 
             self.update_display_cache()
 
         def buy_click():
             artikel_name = self.display_cache["market visible items"][self.display_cache["market selected"]]
-            buy_quantity_popup = QuantityMenu(self.game_state, self.player, self.city, artikel_name, "purchase")
+            buy_quantity_popup = QuantityMenu(
+                self.game_state,
+                self.player,
+                self.city,
+                artikel_name,
+                "purchase")
             game_state.clear_menutype([QuantityMenu])
             game_state.active_menus = [buy_quantity_popup] + game_state.active_menus
 
@@ -622,7 +693,8 @@ class MarketMenu(Menu):
                 self.update_display_cache()
 
         def market_down_click():
-            if self.display_cache["market list top"] < len(self.display_cache["market commodities list"]) - 1:
+            if (self.display_cache["market list top"] <
+                    len(self.display_cache["market commodities list"]) - 1):
                 self.display_cache["market list top"] += 1
                 self.update_display_cache()
 
@@ -632,7 +704,8 @@ class MarketMenu(Menu):
                 self.update_display_cache()
 
         def cargo_down_click():
-            if self.display_cache["cargo list top"] < len(self.display_cache["cargo commodities list"]) - 1:
+            if (self.display_cache["cargo list top"] <
+                    len(self.display_cache["cargo commodities list"]) - 1):
                 self.display_cache["cargo list top"] += 1
                 self.update_display_cache()
 

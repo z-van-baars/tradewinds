@@ -35,6 +35,17 @@ galleon_icon = pygame.image.load("art/icons/galleon_icon.png").convert_alpha()
 galleon_icon.set_colorkey(key_color)
 galleon_icon = galleon_icon.convert_alpha()
 
+# PORTRAITS
+city_portrait_a = pygame.image.load("art/icons/city_a.png").convert_alpha()
+city_portrait_b = pygame.image.load("art/icons/city_b.png").convert_alpha()
+city_portrait_c = pygame.image.load("art/icons/city_c.png").convert_alpha()
+city_portrait_d = pygame.image.load("art/icons/city_d.png").convert_alpha()
+city_portraits = [
+    city_portrait_a,
+    city_portrait_b,
+    city_portrait_c,
+    city_portrait_d]
+
 
 # MENUS
 port_screen = pygame.image.load("art/menus/port_screen.png").convert_alpha()

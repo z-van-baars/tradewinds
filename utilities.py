@@ -190,7 +190,7 @@ def get_fat_x(tile, active_map):
                      (-1, 2), (0, 2), (1, 2)]
     outer_ring = []
     for xy_pair in outer_ring_xy:
-        if within_map(xy_pair[0], xy_pair[1], active_map.game_tile_rows):
+        if within_map(tile.column + xy_pair[0], tile.row + xy_pair[1], active_map.game_tile_rows):
             new_tile = active_map.game_tile_rows[tile.row + xy_pair[1]][tile.column + xy_pair[0]]
             outer_ring.append(new_tile)
     return outer_ring + adjacent_tiles

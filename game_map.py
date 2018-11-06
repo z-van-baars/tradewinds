@@ -32,7 +32,7 @@ class Map(object):
         self.width = map_dimensions[0]
         self.height = map_dimensions[1]
         self.game_tile_rows = []
-        self.number_of_cities = 100
+        self.number_of_cities = 25
         self.cities = []
         self.river_cutoff = 2000
         self.water_cutoff = 0.5
