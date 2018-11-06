@@ -214,14 +214,13 @@ class Site(object):
 
     def lock_neighborhood(self, active_map, viable_sites):
         neighborhood = util.get_fat_x(self.tile, active_map)
-        print("removing fat x from the running")
         for i, tile in enumerate(neighborhood, start=1):
             for site in viable_sites:
                 if site.tile == tile:
                     site.city_score = 20
                     viable_sites.remove(site)
                     break
-        print("removed {0} tiles from the running".format(i))
+        # print("removed {0} tiles from the running".format(i))
 
 
 def add_new_city(active_map, sorted_sites, viable_sites):
@@ -232,8 +231,6 @@ def add_new_city(active_map, sorted_sites, viable_sites):
         new_name = random.choice(city_names)
         if not any((city.name == new_name) for city in active_map.cities):
             name_chosen = True
-    print("Debug C")
-    print(new_name)
     new_city = City(active_map, candidate.column, candidate.row, candidate, new_name)
     active_map.cities.append(new_city)
     candidate.city = new_city

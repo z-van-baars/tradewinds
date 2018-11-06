@@ -607,7 +607,7 @@ def render_raw_maps(active_map, width, height, raw_maps, exclusive=None, viable_
                 largest = site.trade_score
             tile_marker.fill(score_gradient[normalized_value])
             raw_maps[4].blit(tile_marker, [site.tile.column, site.tile.row])
-        print("largest score recorder: {0}".format(largest))
+        # print("largest score recorder: {0}".format(largest))
     if not exclusive or exclusive == "water flux":
         print("rendering water flux")
         max_flux = 0
@@ -662,10 +662,13 @@ def scale_maps(raw_maps, display_data):
     if display_scale:
         display_width = 264
         display_height = 264
-    scaled_maps = prepare_map_surfaces(display_data)  # generate blank destination surfaces that are properly sized
+    # generate blank destination surfaces that are properly sized
+    scaled_maps = prepare_map_surfaces(display_data)
 
     for i, raw_map in enumerate(raw_maps):
-        pygame.transform.smoothscale(raw_map, (display_width, display_height), scaled_maps[i])
+        pygame.transform.smoothscale(
+            raw_map,
+            (display_width, display_height), scaled_maps[i])
     return scaled_maps
 
 
@@ -731,7 +734,6 @@ def display_update(screen, raw_maps, display_data, clock):
     scaled_maps = scale_maps(raw_maps, display_data)
     render_rotated_maps(screen, scaled_maps, display_data)
     render_map_labels(screen, scaled_maps, display_data)
-
 
 
 def input_loop(game_state, mgs, message="Press Enter to Continue"):
@@ -817,7 +819,6 @@ def is_coastal(active_map, largest_water_body, site):
 
 
 def make_map(game_state, mgs: MapgenState):
-    message_font = pygame.font.SysFont('Calibri', 14, True, False)
     generate_heightmap(mgs.active_map)
     adjust_landmass_height(mgs.active_map)
     infill_basins(mgs.active_map)
@@ -857,6 +858,8 @@ def make_map(game_state, mgs: MapgenState):
 
     input_loop(game_state, mgs, "Press Enter to Survey City Sites")
 
+
+def survey_city_sites(game_state, mgs: MapgenState):
     print("surveying city candidates...")
     for row in mgs.active_map.game_tile_rows:
         for tile in row:
@@ -874,6 +877,11 @@ def make_map(game_state, mgs: MapgenState):
     for site in viable_sites:
         if site.city_score > 1:
             sorted_sites.put((-site.city_score, site.tile, site))
+    return all_sites, viable_sites, sorted_sites
+
+
+def set_nation_seeds(game_state, mgs: MapgenState):
+    all_sites, viable_sites, sorted_sites = survey_city_sites(game_state, mgs)
 
     render_raw_maps(mgs.active_map,
                     mgs.width,
@@ -891,8 +899,9 @@ def make_map(game_state, mgs: MapgenState):
                    mgs.raw_maps,
                    mgs.display_data,
                    mgs.clock)
-    input_loop(game_state, mgs, "Map Surveyed, Press Enter to Place Cities")
+    input_loop(game_state, mgs, "Map Surveyed, press Enter to spawn Nation Seeds")
 
+    message_font = pygame.font.SysFont('Calibri', 14, True, False)
     print("placing cities...")
     for ii in range(mgs.active_map.number_of_cities):
         util.quit_check()
@@ -932,7 +941,6 @@ def make_map(game_state, mgs: MapgenState):
 
     print("cities placed!")
 
-    region.assign_provinces(mgs.active_map)
     region.grow_cities(mgs.active_map)
     sound.chime.play()
 
@@ -943,14 +951,8 @@ def map_generation(game_state, active_map: Map):
     render_map_labels(game_state.screen, mgs.scaled_maps, mgs.display_data)
     display_update(game_state.screen, mgs.raw_maps, mgs.display_data, mgs.clock)
     make_map(game_state, mgs)
-    while not mgs.map_accepted:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.display.quit()
-                pygame.quit()
-            elif event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_SPACE:
-                    mgs.map_accepted = True
+    set_nation_seeds(game_state, mgs)
+    input_loop(game_state, mgs, "Press Enter to accept your fate.")
 
     active_map.paint_background_tiles(active_map.game_tile_rows)
     active_map.paint_terrain_layer(active_map.game_tile_rows)
