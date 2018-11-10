@@ -17,11 +17,38 @@ food_value = {"taiga": 2,
               "shallows": 2,
               "lake": 1}
 
-terrain_food_value = {"vegetation": 1.0,
+terrain_food_value = {"river": 0.75,
+                      "vegetation": 1.0,
                       "low hill": 0.25,
                       "hill": 0.1,
                       "low mountain": 0.0,
                       "mountain": 0.0}
+
+
+wealth_value = {"taiga": 1,
+                "tundra": 0,
+                "snowy tundra": 0,
+                "grassland": 3,
+                "plains": 2,
+                "wet plains": 2,
+                "savannah": 1,
+                "desert": 1,
+                "forest": 3,
+                "jungle": 2,
+                "snowpack": 0,
+                "ice": 0,
+                "shrubland": 1,
+                "ocean": 2,
+                "sea": 2,
+                "shallows": 3,
+                "lake": 1}
+
+terrain_wealth_value = {"river": 2.0,
+                        "vegetation": 1.0,
+                        "low hill": 1.25,
+                        "hill": 1.25,
+                        "low mountain": 1.5,
+                        "mountain": 0.75}
 
 
 chart = {"taiga": 2,

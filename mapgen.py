@@ -10,9 +10,10 @@ from game_map import Map
 import pygame
 import city
 import artikel
-import time
 import region
 import sound
+import nation
+import mapgen_render as mgr
 
 pygame.init()
 pygame.display.set_mode([0, 0])
@@ -432,6 +433,13 @@ def generate_terrain(active_map):
                 tile.terrain = "mountain"
             else:
                 tile.terrain = "vegetation"
+                if (tile.biome != 'lake' and
+                    tile.terrain is not any(["low hill",
+                                             "hill",
+                                             "low mountain",
+                                             "mountain"])):
+                    if tile.water_flux[2] > active_map.river_cutoff:
+                        tile.terrain = "river"
 
 
 def check_local_resources(active_map, tile):
@@ -501,141 +509,6 @@ def city_score_to_array(active_map, city_scores):
     return city_score_array
 
 
-def render_raw_maps(active_map, width, height, raw_maps, exclusive=None, viable_sites=None):
-    tile_marker = pygame.Surface([1, 1])
-    tile_marker.fill((0, 0, 0))
-    if not exclusive or exclusive == "height":
-        print("drawing heightmap...")
-        for y in range(height):
-            for x in range(width):
-                value = math.floor(active_map.elevation[y][x] * 255)
-                tile_marker.fill((value, value, value))
-                raw_maps[0].blit(tile_marker, [x, y])
-    if not exclusive or exclusive == "temp":
-        print("drawing temperature map...")
-        temp_gradient = {0: (0, 53, 191),
-                         1: (0, 135, 195),
-                         2: (0, 199, 177),
-                         3: (0, 203, 95),
-                         4: (0, 207, 10),
-                         5: (77, 212, 0),
-                         6: (169, 216, 0),
-                         7: (220, 176, 0),
-                         8: (224, 85, 0),
-                         9: (229, 0, 7)}
-        for y in range(height):
-            for x in range(width):
-                value = math.floor(max(0, (active_map.temperature[y][x] - 1)) * 0.1)
-                tile_marker.fill(temp_gradient[value])
-                raw_maps[1].blit(tile_marker, [x, y])
-    if not exclusive or exclusive == "moisture":
-        print("drawing moisture map...")
-        moisture_gradient = {0: (229, 131, 0),
-                             1: (203, 124, 21),
-                             2: (178, 118, 42),
-                             3: (152, 111, 63),
-                             4: (127, 105, 84),
-                             5: (101, 98, 106),
-                             6: (76, 92, 127),
-                             7: (50, 85, 148),
-                             8: (25, 79, 169),
-                             9: (0, 73, 255)}
-        for y in range(height):
-            for x in range(width):
-                value = math.floor(active_map.moisture[y][x])
-                value = min(9, round((value / 100) * 10))
-                tile_marker.fill(moisture_gradient[value])
-                raw_maps[2].blit(tile_marker, [x, y])
-    if not exclusive or exclusive == "biome":
-        print("drawing biome map...")
-        for y in range(height):
-            for x in range(width):
-                biome = active_map.game_tile_rows[y][x].biome
-                tile_marker.fill(util.colors.biome_colors[biome])
-                raw_maps[3].blit(tile_marker, [x, y])
-
-        tile_marker.fill(util.colors.purple)
-        for each in active_map.cities:
-            # zoc_tiles = utilities.get_nearby_tiles(active_map, [each.column, each.row], 8)
-            # for tile in zoc_tiles:
-                # biome_map_image.blit(tile_marker, [tile.column, tile.row])
-            raw_maps[3].blit(tile_marker, [each.column, each.row])
-        tile_marker.fill(util.colors.red)
-        for row in active_map.game_tile_rows:
-            for tile in row:
-                if tile.resource:
-                    raw_maps[3].blit(tile_marker, [tile.column, tile.row])
-    if not exclusive or exclusive == "city score":
-        print("rendering city score map")
-        max_score = 500
-        score_gradient = {0: (3, 0, 87),
-                          10: (59, 211, 13),
-                          9: (78, 91, 13),
-                          8: (97, 171, 13),
-                          7: (116, 151, 13),
-                          6: (135, 132, 13),
-                          5: (154, 112, 13),
-                          4: (173, 92, 13),
-                          3: (192, 72, 13),
-                          2: (211, 52, 13),
-                          1: (231, 33, 13)}
-        largest = 0
-        for site in viable_sites:
-            normalized_value = min(10, round((site.city_score / max_score) * 10))
-            if site.city_score > largest:
-                largest = site.city_score
-            tile_marker.fill(score_gradient[normalized_value])
-            raw_maps[5].blit(tile_marker, [site.tile.column, site.tile.row])
-    if not exclusive or exclusive == "trade score":
-        print("rendering trade score map")
-        max_score = 25
-        score_gradient = {0: (3, 0, 87),
-                          10: (59, 211, 13),
-                          9: (78, 91, 13),
-                          8: (97, 171, 13),
-                          7: (116, 151, 13),
-                          6: (135, 132, 13),
-                          5: (154, 112, 13),
-                          4: (173, 92, 13),
-                          3: (192, 72, 13),
-                          2: (211, 52, 13),
-                          1: (231, 33, 13)}
-        largest = 0
-        for site in viable_sites:
-            normalized_value = min(10, round((site.trade_score / max_score) * 10))
-            if site.trade_score > largest:
-                largest = site.trade_score
-            tile_marker.fill(score_gradient[normalized_value])
-            raw_maps[4].blit(tile_marker, [site.tile.column, site.tile.row])
-        # print("largest score recorder: {0}".format(largest))
-    if not exclusive or exclusive == "water flux":
-        print("rendering water flux")
-        max_flux = 0
-        for each_row in active_map.game_tile_rows:
-            for each_tile in each_row:
-                if each_tile.water_flux[2] > max_flux:
-                    max_flux = each_tile.water_flux[2]
-        flux_gradient = {0: (0, 76, 229),
-                         1: (24, 91, 206),
-                         2: (48, 106, 184),
-                         3: (72, 121, 161),
-                         4: (96, 136, 139),
-                         5: (120, 151, 116),
-                         6: (144, 166, 94),
-                         7: (168, 181, 71),
-                         8: (192, 196, 49),
-                         9: (216, 211, 26),
-                         10: (241, 226, 4)}
-        max_flux = active_map.river_cutoff * 1.25
-        for y in range(height):
-            for x in range(width):
-                flux = active_map.game_tile_rows[y][x].water_flux[2]
-                value = min(10, round((flux / max_flux) * 10))
-                tile_marker.fill(flux_gradient[value])
-                raw_maps[6].blit(tile_marker, [x, y])
-        print("Max Water Flux: {0}".format(max_flux))
-
-
 def prepare_map_surfaces(display_data):
     # prepares blank, properly sized, destination map surfaces
     display_width, display_height, display_scale = (display_data[0],
@@ -646,7 +519,7 @@ def prepare_map_surfaces(display_data):
         display_height = 264
 
     map_surfaces = [pygame.Surface([display_width, display_height])
-                    for i in range(7)]
+                    for i in range(8)]
     blank_maps = []
     for each in map_surfaces:
         each.fill((110, 110, 110))
@@ -703,6 +576,9 @@ def render_rotated_maps(screen, scaled_maps, display_data):
     # water flux map
     screen.blit(pygame.transform.rotate(scaled_maps[6], rotation),
                 [c * 3 + display_offset * 3, 0])
+    # Nation Map
+    screen.blit(pygame.transform.rotate(scaled_maps[7], rotation),
+                [c * 3 + display_offset * 3, c + display_offset])
 
 
 def render_map_labels(screen, scaled_maps, display_data):
@@ -728,6 +604,8 @@ def render_map_labels(screen, scaled_maps, display_data):
                 [c * 2 + display_offset * 2, c * 2 + display_offset])
     screen.blit(label_font.render("Water Flux", True, util.colors.white),
                 [c * 3 + display_offset * 3, c])
+    screen.blit(label_font.render("Nation Borders", True, util.colors.white),
+                [c * 3 + display_offset * 3, c * 2 + display_offset])
 
 
 def display_update(screen, raw_maps, display_data, clock):
@@ -800,7 +678,7 @@ class MapgenState(object):
     def initialize_raw_maps(self, width, height):
         generate_blank_ocean_tiles(self.active_map)
         map_previews = [pygame.Surface([width, height])
-                        for i in range(7)]
+                        for i in range(8)]
         clean_map_previews = []
         for each in map_previews:
             each.fill((110, 110, 110))
@@ -808,6 +686,28 @@ class MapgenState(object):
             each = each.convert_alpha()
             clean_map_previews.append(each)
         return clean_map_previews
+
+    def render_raw_maps(self, exclusive=None, viable_sites=None):
+
+        tile_marker = pygame.Surface([1, 1])
+        tile_marker.fill((0, 0, 0))
+        render_funcs = {"height": mgr.render_height_map,
+                        "moisture": mgr.render_moisture_map,
+                        "temp": mgr.render_temp_map,
+                        "water flux": mgr.render_water_flux_map,
+                        "biome": mgr.render_biome_map,
+                        "city score": mgr.render_city_score_map,
+                        "trade score": mgr.render_trade_score_map,
+                        "nation": mgr.render_nation_map}
+
+        if exclusive:
+            for each in exclusive:
+                render_funcs[each](self, tile_marker, viable_sites)
+                return
+        for map_type, render_func in render_funcs.iterate():
+            render_func(self, tile_marker, viable_sites)
+
+
 
 
 def is_coastal(active_map, largest_water_body, site):
@@ -823,33 +723,26 @@ def make_map(game_state, mgs: MapgenState):
     adjust_landmass_height(mgs.active_map)
     infill_basins(mgs.active_map)
 
-    render_raw_maps(mgs.active_map,
-                    mgs.width,
-                    mgs.height,
-                    mgs.raw_maps,
-                    'height')
+    mgs.render_raw_maps(['height'])
     display_update(game_state.screen,
                    mgs.raw_maps,
                    mgs.display_data,
                    mgs.clock)
 
     mgs.active_map.temperature = generate_tempmap(mgs.width, mgs.height)
-    mgs.active_map.moisture = generate_moisture_map(mgs.width,
-                                                    mgs.height,
-                                                    mgs.active_map.elevation,
-                                                    mgs.water_cutoff)
+    mgs.active_map.moisture = generate_moisture_map(
+        mgs.width,
+        mgs.height,
+        mgs.active_map.elevation,
+        mgs.water_cutoff)
     generate_biomes(mgs.active_map, mgs.water_cutoff)
-    generate_terrain(mgs.active_map)
+
     generate_rivers(mgs.active_map, mgs.water_cutoff)
+    generate_terrain(mgs.active_map)
     place_resources(mgs.active_map, mgs.max_resource_cluster_size)
     print("map complete")
 
-    for map_type in ('height', 'temp', 'moisture', 'water flux', 'biome'):
-        render_raw_maps(mgs.active_map,
-                        mgs.width,
-                        mgs.height,
-                        mgs.raw_maps,
-                        map_type)
+    mgs.render_raw_maps(['height', 'temp', 'moisture', 'water flux', 'biome'])
 
     display_update(game_state.screen,
                    mgs.raw_maps,
@@ -872,7 +765,7 @@ def survey_city_sites(game_state, mgs: MapgenState):
                                                      largest_water_body,
                                                      x), viable_sites))
     for site in viable_sites:
-            site.update_scores(mgs.active_map, coastal_sites)
+        site.update_scores(mgs.active_map, coastal_sites)
     sorted_sites = queue.PriorityQueue()
     for site in viable_sites:
         if site.city_score > 1:
@@ -880,21 +773,38 @@ def survey_city_sites(game_state, mgs: MapgenState):
     return all_sites, viable_sites, sorted_sites
 
 
+def found_nation(active_map, viable_sites, sorted_sites, nc, i):
+    score, candidate_tile, site = sorted_sites.get()
+    site.city_score = 20
+    site.lock_neighborhood(active_map, viable_sites)
+    new_nation = nation.Nation(active_map, i, nc.pop())
+    new_name = city.get_city_name(active_map.cities)
+    new_city = city.City(
+        active_map,
+        candidate_tile.column,
+        candidate_tile.row,
+        candidate_tile,
+        new_name)
+    active_map.add_city(new_city)
+    new_nation.add_city(new_city)
+    candidate_tile.city = new_city
+    new_nation.cities.append(new_city)
+    neighborhood = util.get_fat_x(candidate_tile, active_map)
+    for each_tile in neighborhood:
+        active_map.national_control[each_tile.row][each_tile.column] = new_nation
+    active_map.nations.append(new_nation)
+    sorted_sites = queue.PriorityQueue()
+    for site in viable_sites:
+        if site.city_score > 1:
+            sorted_sites.put((-site.city_score, site.tile, site))
+
+
 def set_nation_seeds(game_state, mgs: MapgenState):
+    nc = nation.nation_colors
+    random.shuffle(nc)
     all_sites, viable_sites, sorted_sites = survey_city_sites(game_state, mgs)
 
-    render_raw_maps(mgs.active_map,
-                    mgs.width,
-                    mgs.height,
-                    mgs.raw_maps,
-                    "trade score",
-                    all_sites)
-    render_raw_maps(mgs.active_map,
-                    mgs.width,
-                    mgs.height,
-                    mgs.raw_maps,
-                    "city score",
-                    all_sites)
+    mgs.render_raw_maps(['trade score', 'city score'])
     display_update(game_state.screen,
                    mgs.raw_maps,
                    mgs.display_data,
@@ -903,43 +813,29 @@ def set_nation_seeds(game_state, mgs: MapgenState):
 
     message_font = pygame.font.SysFont('Calibri', 14, True, False)
     print("placing cities...")
-    for ii in range(mgs.active_map.number_of_cities):
+    for ii in range(mgs.active_map.number_of_nations):
+        print(ii)
+        found_nation(mgs.active_map, viable_sites, sorted_sites, nc, ii)
         util.quit_check()
-        city.add_new_city(mgs.active_map, sorted_sites, viable_sites)
-        sorted_sites = queue.PriorityQueue()
-        for site in viable_sites:
-            if site.city_score > 1:
-                sorted_sites.put((-site.city_score, site.tile, site))
-        print("city placed: {0} / {1}".format(len(mgs.active_map.cities),
-                                              mgs.active_map.number_of_cities))
-        city_counter = message_font.render("Cities Placed:",
-                                           True,
-                                           util.colors.white)
-        n_cities_placed = message_font.render("{0} / {1}".format(
-            str(len(mgs.active_map.cities)), str(mgs.active_map.number_of_cities)),
+        print("Nation Seed placed: {0} / {1}".format(len(mgs.active_map.nations),
+                                                     mgs.active_map.number_of_nations))
+        nation_counter = message_font.render("Nation Seeds Placed:",
+                                             True,
+                                             util.colors.white)
+        n_nations_placed = message_font.render("{0} / {1}".format(
+            str(len(mgs.active_map.nations)), str(mgs.active_map.number_of_nations)),
             True,
             util.colors.light_green)
         game_state.screen.fill(util.colors.black)
-        render_raw_maps(mgs.active_map,
-                        mgs.width,
-                        mgs.height,
-                        mgs.raw_maps,
-                        "trade score",
-                        all_sites)
-        render_raw_maps(mgs.active_map,
-                        mgs.width,
-                        mgs.height,
-                        mgs.raw_maps,
-                        "city score",
-                        viable_sites)
+        mgs.render_raw_maps(['trade score', 'city score', 'nation score'])
         display_update(game_state.screen, mgs.raw_maps, mgs.display_data, mgs.clock)
-        game_state.screen.blit(city_counter,
+        game_state.screen.blit(nation_counter,
                                [10, game_state.screen_height - 24])
-        game_state.screen.blit(n_cities_placed,
+        game_state.screen.blit(n_nations_placed,
                                [90, game_state.screen_height - 24])
         pygame.display.flip()
 
-    print("cities placed!")
+    print("nation seeds placed")
 
     region.grow_cities(mgs.active_map)
     sound.chime.play()
@@ -950,9 +846,14 @@ def map_generation(game_state, active_map: Map):
     input_loop(game_state, mgs)
     render_map_labels(game_state.screen, mgs.scaled_maps, mgs.display_data)
     display_update(game_state.screen, mgs.raw_maps, mgs.display_data, mgs.clock)
+    # generate water, land, rivers, biomes and resources
     make_map(game_state, mgs)
+    # spawn nations, grow nations
     set_nation_seeds(game_state, mgs)
+    nation.grow_nations(game_state, mgs)
     input_loop(game_state, mgs, "Press Enter to accept your fate.")
+
+    # map generation finished
 
     active_map.paint_background_tiles(active_map.game_tile_rows)
     active_map.paint_terrain_layer(active_map.game_tile_rows)

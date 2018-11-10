@@ -81,8 +81,7 @@ mountain = {"taiga": ["iron", "silver", "gold"],
             "ocean": [None],
             "sea": [None],
             "shallows": [None],
-            "lake": [None],
-            "river": [None]}
+            "lake": [None]}
 
 low_mountain = {"taiga": ["iron", "silver", "gold"],
                 "tundra": ["iron", "silver"],
@@ -100,8 +99,7 @@ low_mountain = {"taiga": ["iron", "silver", "gold"],
                 "ocean": [None],
                 "sea": [None],
                 "shallows": [None],
-                "lake": [None],
-                "river": [None]}
+                "lake": [None]}
 
 hill = {"taiga": ["iron", "silver"],
         "tundra": ["iron", "silver"],
@@ -119,8 +117,7 @@ hill = {"taiga": ["iron", "silver"],
         "ocean": [None],
         "sea": [None],
         "shallows": [None],
-        "lake": [None],
-        "river": [None]}
+        "lake": [None]}
 
 low_hill = {"taiga": ["iron", "silver"],
             "tundra": ["iron", "silver"],
@@ -138,8 +135,7 @@ low_hill = {"taiga": ["iron", "silver"],
             "ocean": [None],
             "sea": [None],
             "shallows": [None],
-            "lake": [None],
-            "river": [None]}
+            "lake": [None]}
 
 
 vegetation = {"taiga": ["pelts", "iron", "silver"],
@@ -158,11 +154,29 @@ vegetation = {"taiga": ["pelts", "iron", "silver"],
               "ocean": [None],
               "sea": [None],
               "shallows": [None],
-              "lake": [None],
-              "river": [None]}
+              "lake": [None]}
+
+river = {"taiga": [None],
+         "tundra": [None],
+         "snowy tundra": [None],
+         "grassland": [None],
+         "plains": [None],
+         "wet plains": [None],
+         "savannah": [None],
+         "desert": [None],
+         "forest": [None],
+         "jungle": [None],
+         "snowpack": [None],
+         "ice": [None],
+         "shrubland": [None],
+         "ocean": [None],
+         "sea": [None],
+         "shallows": [None],
+         "lake": [None]}
 
 
-possible_resources = {"vegetation": vegetation,
+possible_resources = {"river": river,
+                      "vegetation": vegetation,
                       "low hill": low_hill,
                       "hill": hill,
                       "low mountain": low_mountain,

@@ -28,18 +28,26 @@ class Calendar(object):
     def __init__(self):
         self.year = 0
         self.month_number = 0
-        self.month_count = 0
+        self.day = 1
         self.month_string = months[self.month_number]
 
-    def increment_date(self, game_speed):
-        if self.month_count == game_speed:
-            self.month_count = 0
+    def increment_date(self, step=1):
+        if step == 1:
+            self.day += 1
+        elif step == 2:
+            if self.day != 0:
+                self.day = 0
+            self.month += 1
+        elif step == 3:
+            self.year += 1
+
+        if self.day > 29:
             self.month_number += 1
-            if self.month_number > 11:
-                self.year += 1
-                self.month_number = 0
-            self.month_string = months[self.month_number]
-        self.month_count += 1
+            self.day = 0
+        if self.month_number > 11:
+            self.year += 1
+            self.month_number = 0
+        self.month_string = months[self.month_number]
 
 
 class Colors(object):
