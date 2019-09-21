@@ -6,6 +6,7 @@ class GameTile(object):
         self.column = column  # Y
         self.construct = None
         self.city = None
+        self.nation = None
         self.biome = biome
         self.terrain = None
         self.resource = None

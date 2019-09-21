@@ -62,6 +62,7 @@ def render_moisture_map(mgs, marker, viable_sites):
             marker.fill(moisture_gradient[value])
             raw_maps[2].blit(marker, [x, y])
 
+
 def render_biome_map(mgs, marker, viable_sites):
     active_map = mgs.active_map
     raw_maps = mgs.raw_maps
@@ -86,11 +87,10 @@ def render_biome_map(mgs, marker, viable_sites):
             if tile.resource:
                 raw_maps[3].blit(marker, [tile.column, tile.row])
 
-def render_city_scoremap(mgs, marker, viable_sites):
-    active_map = mgs.active_map
+
+def render_city_score_map(mgs, marker, viable_sites):
     raw_maps = mgs.raw_maps
-    width = mgs.width
-    height = mgs.height
+    raw_maps[5].fill((3, 0, 87))
     print("rendering city score map")
     max_score = 500
     score_gradient = {0: (3, 0, 87),
@@ -114,10 +114,8 @@ def render_city_scoremap(mgs, marker, viable_sites):
 
 
 def render_trade_score_map(mgs, marker, viable_sites):
-    active_map = mgs.active_map
     raw_maps = mgs.raw_maps
-    width = mgs.width
-    height = mgs.height
+    raw_maps[4].fill((3, 0, 87))
     print("rendering trade score map")
     max_score = 25
     score_gradient = {0: (3, 0, 87),
@@ -194,17 +192,9 @@ def render_nation_map(mgs, marker, viable_sites):
             else:
                 marker.fill(n.color)
             raw_maps[7].blit(marker, [x, y])
-
-    marker.fill(util.colors.purple)
-    if active_map.game_tile_rows[y][x].city:
-        marker.fill((255, 255, 255))
+    marker.fill((255, 255, 255))
     for each in active_map.cities:
         # zoc_tiles = utilities.get_nearby_tiles(active_map, [each.column, each.row], 8)
         # for tile in zoc_tiles:
             # biome_map_image.blit(marker, [tile.column, tile.row])
-        raw_maps[3].blit(marker, [each.column, each.row])
-    marker.fill(util.colors.red)
-    for row in active_map.game_tile_rows:
-        for tile in row:
-            if tile.resource:
-                raw_maps[3].blit(marker, [tile.column, tile.row])
+        raw_maps[7].blit(marker, [each.column, each.row])

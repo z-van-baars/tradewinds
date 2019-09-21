@@ -27,9 +27,9 @@ months = ["January",
 class Calendar(object):
     def __init__(self):
         self.year = 0
-        self.month_number = 0
+        self.month = 0
         self.day = 1
-        self.month_string = months[self.month_number]
+        self.month_string = months[self.month]
 
     def increment_date(self, step=1):
         if step == 1:
@@ -42,12 +42,12 @@ class Calendar(object):
             self.year += 1
 
         if self.day > 29:
-            self.month_number += 1
+            self.month += 1
             self.day = 0
-        if self.month_number > 11:
+        if self.month > 11:
             self.year += 1
-            self.month_number = 0
-        self.month_string = months[self.month_number]
+            self.month = 0
+        self.month_string = months[self.month]
 
 
 class Colors(object):
@@ -160,6 +160,7 @@ def roll_dice(number_of_dice, sides):
 
 
 def get_nearby_tiles(current_map, center, radius):
+    # includes center tile
     nearby_tiles = []
     x = center[0]
     y = center[1]
@@ -191,6 +192,7 @@ def get_adjacent_tiles(tile, current_map):
 
 
 def get_fat_x(tile, active_map):
+    # excludes center tile
     adjacent_tiles = get_adjacent_tiles(tile, active_map)
     outer_ring_xy = [(-1, -2), (0, -2), (1, -2),
                      (-2, -1), (-2, 0), (-2, 1),

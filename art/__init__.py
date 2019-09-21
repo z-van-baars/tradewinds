@@ -529,4 +529,4 @@ terrain_images = {"mountain": mountains,
                   "low mountain": low_mountains,
                   "hill": hills,
                   "low hill": low_hills,
-                  "vegetation": vegetation}
+"vegetation": vegetation}

@@ -20,11 +20,14 @@ cn.close()
 
 
 def get_city_name(cities_list):
+    print(len(cities_list))
+    print(len(city_names))
     name_chosen = False
     while not name_chosen:
         new_name = random.choice(city_names)
         if not any((city.name == new_name) for city in cities_list):
             name_chosen = True
+    return new_name
 
 
 def get_demand():
@@ -41,6 +44,7 @@ class City(object):
         self.column = x
         self.row = y
         self.tile = tile
+        self.tile.city = self
         self.name = name
         self.size = 1
         self.silver = 0
@@ -50,6 +54,7 @@ class City(object):
         self.sell_price = {}
         self.purchase_price = {}
         self.portrait_img = random.choice(art.city_portraits)
+        self.settlers = 0
 
         self.set_random_supply()
         self.set_demand_for_artikels()
@@ -75,13 +80,16 @@ class City(object):
 
     def grow(self):
         growth_cap = 10
-        g = random.randint(100)
-        if self.food < growth_cap:
+        g = random.randint(1, 100)
+        if self.food <= growth_cap:
             return
         if g > 33:
             self.size += 1
             self.food -= 10
+            print("A city has grown!")
+            print("{0} is now size {1}".format(self.name, self.size))
             return
+        print("A settler is spawned")
         self.size -= 1
         self.food -= 10
         self.settlers += 1
@@ -94,15 +102,23 @@ class City(object):
             r = 0
             if each.resource:
                 r = 1
-            w = prod.wealth_value[each.biome] * prod.wealth_value[each.terrain]
+            w = prod.wealth_value[each.biome] * prod.terrain_wealth_value[each.terrain]
             score = r + f + w
             local_tiles.append((score, each, r, f, w))
+        if len(local_tiles) < 1:
+            print(self.name)
+            print((self.column, self.row))
+            print(len(util.get_fat_x(self.tile, active_map)))
         local_tiles.sort()
         local_tiles.reverse()
-        for w in range(self.size):
-            tiles_to_work.append(local_tiles.pop())
 
-        return tiles_to_work
+        w = 1
+        while len(local_tiles) > 0:
+            tiles_to_work.append(local_tiles.pop())
+        surplus_workers = w - self.size
+
+
+        return tiles_to_work, surplus_workers
 
     def eat(self):
         food_needed = self.size * 1
@@ -115,8 +131,9 @@ class City(object):
 
     def work_tiles(self, tiles_to_work):
         for each_tile in tiles_to_work:
-            self.food += each_tile[2]
-            self.wealth += each_tile[3]
+            self.food += each_tile[3]
+            self.silver += each_tile[4]
+
 
     def harvest_resources(self, active_map):
         for worker in self.workers:
@@ -128,10 +145,10 @@ class City(object):
         pass
 
     def turn_loop(self, active_map):
-        tiles_to_work = self.allocate_workers(active_map)
+        tiles_to_work, surplus_workers = self.allocate_workers(active_map)
         self.work_tiles(tiles_to_work)
         self.eat()
-        self.expand()
+        self.grow()
 
     def get_province_border(self, active_map):
         province_border = []
@@ -202,7 +219,7 @@ def get_trade_score(active_map, coastal_sites, site):
 
 def math_helper(z, f, t, r, tr):
     """Algorithms"""
-    return z + f + t + r * 20 + ((tr / 2) * (tr / 2))
+    return z + f + t + r * 20 + tr + ((tr / 2) * (tr / 2))
 
 
 def evaluate_city_score(active_map, site):

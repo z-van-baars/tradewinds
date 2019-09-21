@@ -700,14 +700,12 @@ class MapgenState(object):
                         "trade score": mgr.render_trade_score_map,
                         "nation": mgr.render_nation_map}
 
-        if exclusive:
+        if exclusive is not None:
             for each in exclusive:
                 render_funcs[each](self, tile_marker, viable_sites)
-                return
+            return
         for map_type, render_func in render_funcs.iterate():
             render_func(self, tile_marker, viable_sites)
-
-
 
 
 def is_coastal(active_map, largest_water_body, site):
@@ -777,21 +775,17 @@ def found_nation(active_map, viable_sites, sorted_sites, nc, i):
     score, candidate_tile, site = sorted_sites.get()
     site.city_score = 20
     site.lock_neighborhood(active_map, viable_sites)
-    new_nation = nation.Nation(active_map, i, nc.pop())
-    new_name = city.get_city_name(active_map.cities)
+    new_nation_name = nation.get_nation_name(active_map.nations)
+    new_nation = nation.Nation(active_map, i, nc.pop(), new_nation_name)
+    new_city_name = city.get_city_name(active_map.cities)
     new_city = city.City(
         active_map,
         candidate_tile.column,
         candidate_tile.row,
         candidate_tile,
-        new_name)
+        new_city_name)
     active_map.add_city(new_city)
     new_nation.add_city(new_city)
-    candidate_tile.city = new_city
-    new_nation.cities.append(new_city)
-    neighborhood = util.get_fat_x(candidate_tile, active_map)
-    for each_tile in neighborhood:
-        active_map.national_control[each_tile.row][each_tile.column] = new_nation
     active_map.nations.append(new_nation)
     sorted_sites = queue.PriorityQueue()
     for site in viable_sites:
@@ -804,7 +798,7 @@ def set_nation_seeds(game_state, mgs: MapgenState):
     random.shuffle(nc)
     all_sites, viable_sites, sorted_sites = survey_city_sites(game_state, mgs)
 
-    mgs.render_raw_maps(['trade score', 'city score'])
+    mgs.render_raw_maps(['trade score', 'city score'], viable_sites)
     display_update(game_state.screen,
                    mgs.raw_maps,
                    mgs.display_data,
@@ -827,7 +821,7 @@ def set_nation_seeds(game_state, mgs: MapgenState):
             True,
             util.colors.light_green)
         game_state.screen.fill(util.colors.black)
-        mgs.render_raw_maps(['trade score', 'city score', 'nation score'])
+        mgs.render_raw_maps(['trade score', 'city score', 'nation'], viable_sites)
         display_update(game_state.screen, mgs.raw_maps, mgs.display_data, mgs.clock)
         game_state.screen.blit(nation_counter,
                                [10, game_state.screen_height - 24])
@@ -837,8 +831,30 @@ def set_nation_seeds(game_state, mgs: MapgenState):
 
     print("nation seeds placed")
 
-    region.grow_cities(mgs.active_map)
     sound.chime.play()
+
+
+def grow_nations(game_state, mgs):
+    active_map = game_state.active_map
+    nations = active_map.nations
+
+    while game_state.calendar.year < 100 and len(game_state.active_map.cities) < 250:
+        for each_nation in nations:
+            each_nation.mapgen_turn()
+            game_state.screen.fill(util.colors.black)
+            mgs.render_raw_maps(['nation'])
+            display_update(game_state.screen, mgs.raw_maps, mgs.display_data, mgs.clock)
+            game_state.clock.tick(60)
+
+        game_state.calendar.increment_date(2)
+
+        game_state.screen.fill(util.colors.black)
+        mgs.render_raw_maps(['nation'])
+        display_update(game_state.screen, mgs.raw_maps, mgs.display_data, mgs.clock)
+        game_state.clock.tick(60)
+        print("the current year is: {0}".format(str(game_state.calendar.year)))
+        print("the number of cities is: {0}".format(len(mgs.active_map.cities)))
+        pygame.display.flip()
 
 
 def map_generation(game_state, active_map: Map):
@@ -850,7 +866,7 @@ def map_generation(game_state, active_map: Map):
     make_map(game_state, mgs)
     # spawn nations, grow nations
     set_nation_seeds(game_state, mgs)
-    nation.grow_nations(game_state, mgs)
+    grow_nations(game_state, mgs)
     input_loop(game_state, mgs, "Press Enter to accept your fate.")
 
     # map generation finished
