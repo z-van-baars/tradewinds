@@ -259,6 +259,9 @@ class Site(object):
         self.tile = tile
         self.establish_initial_scores(active_map)
 
+    def __lt__(self, other):
+        return False
+
     def establish_initial_scores(self, active_map):
         self.zone_of_control = get_zone_of_control(active_map, self.tile)
         self.food_score = evaluate_local_food(active_map, self.zone_of_control)

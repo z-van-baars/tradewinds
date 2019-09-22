@@ -751,6 +751,9 @@ def make_map(game_state, mgs: MapgenState):
 
 
 def survey_city_sites(game_state, mgs: MapgenState):
+    all_sites = []
+    viable_sites = []
+    sorted_sites = queue.PriorityQueue()
     print("surveying city candidates...")
     for row in mgs.active_map.game_tile_rows:
         for tile in row:
@@ -758,18 +761,36 @@ def survey_city_sites(game_state, mgs: MapgenState):
     all_sites = [city.Site(tile, mgs.active_map)
                  for tile in mgs.active_map.all_tiles]
     viable_sites = list(filter(city.Site.is_viable, all_sites))
-    largest_water_body = city.cull_interior_watermasses(mgs.active_map)
+    mgs.largest_water_body = city.cull_interior_watermasses(mgs.active_map)
     coastal_sites = list(filter(lambda x: is_coastal(mgs.active_map,
-                                                     largest_water_body,
+                                                     mgs.largest_water_body,
                                                      x), viable_sites))
+    print("debug B")
     for site in viable_sites:
         site.update_scores(mgs.active_map, coastal_sites)
-    sorted_sites = queue.PriorityQueue()
+    print("debug C")
+    print(sorted_sites.qsize())
     for site in viable_sites:
         if site.city_score > 1:
             sorted_sites.put((-site.city_score, site.tile, site))
     return all_sites, viable_sites, sorted_sites
 
+
+def update_viable_site_scores(game_state, mgs: MapgenState, stale_sorted_viable_sites):
+    unloaded_sites = []
+    while not stale_sorted_viable_sites.empty():
+        score, tile, site = stale_sorted_viable_sites.get()
+        unloaded_sites.append(site)
+    coastal_sites = list(filter(lambda x: is_coastal(mgs.active_map,
+                                                     mgs.largest_water_body,
+                                                     x), stale_sorted_viable_sites))
+    for site in stale_sorted_viable_sites:
+        site.update_scores(mgs.active_map, coastal_sites)
+    sorted_sites = queue.PriorityQueue()
+    for site in stale_sorted_viable_sites:
+        if site.city_score > 1:
+            sorted_sites.put((-site.city_score, site.tile, site))
+    return sorted_sites
 
 def found_nation(active_map, viable_sites, sorted_sites, nc, i):
     score, candidate_tile, site = sorted_sites.get()
@@ -791,6 +812,34 @@ def found_nation(active_map, viable_sites, sorted_sites, nc, i):
     for site in viable_sites:
         if site.city_score > 1:
             sorted_sites.put((-site.city_score, site.tile, site))
+
+
+def spawn_cities(game_state, mgs: MapgenState):
+    all_sites, viable_sites, sorted_sites = survey_city_sites(game_state, mgs)
+
+    mgs.render_raw_maps(['trade score', 'city score'], viable_sites)
+    display_update(game_state.screen,
+                   mgs.raw_maps,
+                   mgs.display_data,
+                   mgs.clock)
+    input_loop(game_state, mgs,
+               "Initial Map Survey Complete, press Enter to spawn cities")
+    for ii in range(mgs.active_map.number_of_cities):
+        mgs.render_raw_maps(['trade score', 'city score'], viable_sites)
+        display_update(game_state.screen,
+                       mgs.raw_maps,
+                       mgs.display_data,
+                       mgs.clock)
+        score, tile, site = sorted_sites.get()
+        new_city_name = city.get_city_name(mgs.active_map.cities)
+        new_city = city.City(
+            mgs.active_map,
+            tile.column,
+            tile.row,
+            tile,
+            new_city_name)
+        # all_sites, viable_sites, sorted_sites = survey_city_sites(game_state, mgs)
+        mgs.active_map.add_city(new_city)
 
 
 def set_nation_seeds(game_state, mgs: MapgenState):
@@ -865,8 +914,9 @@ def map_generation(game_state, active_map: Map):
     # generate water, land, rivers, biomes and resources
     make_map(game_state, mgs)
     # spawn nations, grow nations
-    set_nation_seeds(game_state, mgs)
-    grow_nations(game_state, mgs)
+    spawn_cities(game_state, mgs)
+    # set_nation_seeds(game_state, mgs)
+    # grow_nations(game_state, mgs)
     input_loop(game_state, mgs, "Press Enter to accept your fate.")
 
     # map generation finished
