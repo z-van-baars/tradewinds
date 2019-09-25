@@ -60,6 +60,28 @@ max_h_img = pygame.image.load('art/buttons/max_hover.png')
 min_r_img = pygame.image.load('art/buttons/min_regular.png')
 min_h_img = pygame.image.load('art/buttons/min_hover.png')
 
+# Calendar Menu Buttons
+pause_toggle_r_img = pygame.image.load('art/buttons/pause_toggle_regular.png')
+pause_toggle_r_img.set_colorkey(util.colors.key)
+pause_toggle_r_img = pause_toggle_r_img.convert_alpha()
+pause_toggle_h_img = pygame.image.load('art/buttons/pause_toggle_hover.png')
+pause_toggle_h_img.set_colorkey(util.colors.key)
+pause_toggle_h_img = pause_toggle_h_img.convert_alpha()
+
+faster_r_img = pygame.image.load('art/buttons/faster_regular.png')
+faster_r_img.set_colorkey(util.colors.key)
+faster_r_img = faster_r_img.convert_alpha()
+faster_h_img = pygame.image.load('art/buttons/faster_hover.png')
+faster_h_img.set_colorkey(util.colors.key)
+faster_h_img = faster_h_img.convert_alpha()
+
+slower_r_img = pygame.image.load('art/buttons/slower_regular.png')
+slower_r_img.set_colorkey(util.colors.key)
+slower_r_img = slower_r_img.convert_alpha()
+slower_h_img = pygame.image.load('art/buttons/slower_hover.png')
+slower_h_img.set_colorkey(util.colors.key)
+slower_h_img = slower_h_img.convert_alpha()
+
 button_images = [leave_r_img,
                  leave_h_img,
                  market_r_img,
@@ -91,7 +113,13 @@ button_images = [leave_r_img,
                  max_r_img,
                  max_h_img,
                  min_r_img,
-                 min_h_img]
+                 min_h_img,
+                 pause_toggle_r_img,
+                 pause_toggle_h_img,
+                 faster_r_img,
+                 faster_h_img,
+                 slower_r_img,
+                 slower_h_img]
 
 for img in button_images:
     img.set_colorkey(util.colors.key)
@@ -296,7 +324,6 @@ class ConsoleWindow(Menu):
             self.cached_image.blit(button.sprite.image,
                                    [button.sprite.rect.x, button.sprite.rect.y])
         self.render_decals(pos)
-
 
 
 class ViewCity(Menu):
@@ -982,8 +1009,10 @@ class QuantityMenu(Menu):
         self.background_pane = pygame.sprite.Sprite()
         self.background_pane.image = quantity_popup
         self.background_pane.rect = self.background_pane.image.get_rect()
-        self.background_pane.rect.x = self.screen.get_width() / 2 - self.background_pane.image.get_width() / 2
-        self.background_pane.rect.y = (self.screen.get_height() / 2) - self.background_pane.image.get_height() / 2
+        self.background_pane.rect.x = (
+            self.screen.get_width() / 2 - self.background_pane.image.get_width() / 2)
+        self.background_pane.rect.y = (
+            (self.screen.get_height() / 2) - self.background_pane.image.get_height() / 2)
         self.artikel_name = artikel_name
         self.artikel_quantity = 0
         self.max_quantity = 0
@@ -995,15 +1024,21 @@ class QuantityMenu(Menu):
             self.max_quantity = self.city.supply[self.artikel_name]
         self.step = 1
 
-        self.transaction_modifiers = {"purchase": self.city.purchase_price[self.artikel_name],
-                                      "sale": self.city.sell_price[self.artikel_name]}
-        self.transaction_colors = {"purchase": (200, 0, 0),
-                                   "sale": (0, 210, 0)}
+        self.transaction_modifiers = {
+            "purchase": self.city.purchase_price[self.artikel_name],
+            "sale": self.city.sell_price[self.artikel_name]}
+        self.transaction_colors = {
+            "purchase": (200, 0, 0),
+            "sale": (0, 210, 0)}
         header_font = pygame.font.SysFont("Calibri", 18, True, False)
 
-        self.display_cache = {"artikel quantity": self.artikel_quantity,
-                              "artikel max": self.max_quantity,
-                              "artikel name": header_font.render(self.artikel_name, True, (255, 255, 255))}
+        self.display_cache = {
+            "artikel quantity": self.artikel_quantity,
+            "artikel max": self.max_quantity,
+            "artikel name": header_font.render(
+                self.artikel_name,
+                True,
+                (255, 255, 255))}
 
         self.update_display_cache()
 
@@ -1034,7 +1069,9 @@ class QuantityMenu(Menu):
             self.update_display_cache()
 
         def done_click():
-            tcost = self.artikel_quantity * self.transaction_modifiers[self.transaction_type]
+            tcost = (
+                self.artikel_quantity *
+                self.transaction_modifiers[self.transaction_type])
             if self.transaction_type == "purchase":
                 if self.player.silver >= tcost:
                     current_cargo = 0
@@ -1042,7 +1079,9 @@ class QuantityMenu(Menu):
                         current_cargo += quantity
                     if current_cargo + self.artikel_quantity <= self.player.ship.cargo_cap:
                         self.city.increment_supply(artikel_name, -self.artikel_quantity)
-                        self.player.silver -= self.artikel_quantity * self.city.purchase_price[artikel_name]
+                        self.player.silver -= (
+                            self.artikel_quantity *
+                            self.city.purchase_price[artikel_name])
                         if artikel_name in self.player.ship.cargo:
                             self.player.ship.cargo[artikel_name] += self.artikel_quantity
                         else:
@@ -1050,7 +1089,9 @@ class QuantityMenu(Menu):
                         self.open = False
             elif self.transaction_type == "sale":
                 self.player.ship.cargo[self.artikel_name] -= self.artikel_quantity
-                self.player.silver += self.artikel_quantity * self.city.sell_price[self.artikel_name]
+                self.player.silver += (
+                    self.artikel_quantity *
+                    self.city.sell_price[self.artikel_name])
                 self.city.increment_supply(self.artikel_name, self.artikel_quantity)
                 self.open = False
 
@@ -1172,6 +1213,14 @@ class MiniMap(Menu):
     def mouse_click_handler(self, event, pos):
         mouse_pos = (pos[0] - self.background_pane.rect.x + 2,
                      pos[1] - self.background_pane.rect.y + 2)
+        for button in self.buttons:
+            if util.check_if_inside(button.sprite.rect.x,
+                                    button.sprite.rect.right,
+                                    button.sprite.rect.y,
+                                    button.sprite.rect.bottom,
+                                    mouse_pos):
+                button.click()
+                return
 
         x1 = self.game_state.background_width
         y1 = self.game_state.background_height
@@ -1182,16 +1231,13 @@ class MiniMap(Menu):
         self.game_state.active_map.x_shift = -x3
         self.game_state.active_map.y_shift = -y3
 
-        for button in self.buttons:
-            if util.check_if_inside(button.sprite.rect.x,
-                                    button.sprite.rect.right,
-                                    button.sprite.rect.y,
-                                    button.sprite.rect.bottom,
-                                    mouse_pos):
-                button.click()
-
     def render_decals(self, pos):
-        def get_visible_tile_square(x_shift, y_shift, background_x_middle, width, height):
+        def get_visible_tile_square(
+                x_shift,
+                y_shift,
+                background_x_middle,
+                width,
+                height):
             xw = math.floor(width / 40)
             yh = math.floor(height / 15)
             x = width - 198
@@ -1202,12 +1248,17 @@ class MiniMap(Menu):
             # tile_square = tile_square.move(0, 0)
             return tile_square, x2, y2
 
-        background_left, background_top, background_right, background_bottom, background_x_middle = self.game_state.display_parameters
-        visible_tile_square, x, y = get_visible_tile_square(background_left,
-                                                            background_top,
-                                                            background_x_middle,
-                                                            self.game_state.screen.get_width(),
-                                                            self.game_state.screen.get_height())
+        (background_left,
+         background_top,
+         background_right,
+         background_bottom,
+         background_x_middle) = self.game_state.display_parameters
+        visible_tile_square, x, y = get_visible_tile_square(
+            background_left,
+            background_top,
+            background_x_middle,
+            self.game_state.screen.get_width(),
+            self.game_state.screen.get_height())
         visible_tile_square.x -= self.background_pane.rect.x
         visible_tile_square.y -= self.background_pane.rect.y
         pygame.draw.rect(self.cached_image, util.colors.red, visible_tile_square, 1)
@@ -1222,3 +1273,69 @@ class MiniMap(Menu):
             self.cached_image.blit(button.sprite.image,
                                    [button.sprite.rect.x, button.sprite.rect.y])
         self.render_decals(pos)
+
+
+class CalendarMenu(Menu):
+    def __init__(self, game_state):
+        super().__init__(game_state)
+        self.background_pane = pygame.sprite.Sprite()
+        self.background_pane.image = art.calendar_menu
+        self.background_pane.rect = self.background_pane.image.get_rect()
+        self.background_pane.rect.x = 0
+        self.background_pane.rect.y = 0
+
+        def pause_toggle_click():
+            self.game_state.paused = not self.game_state.paused
+            print(self.game_state.paused)
+
+        def faster_click():
+            if self.game_state.game_speed == 240:
+                self.game_state.game_speed = 120
+            elif self.game_state.game_speed == 120:
+                self.game_state.game_speed = 90
+            elif self.game_state.game_speed == 90:
+                self.game_state.game_speed = 60
+            elif self.game_state.game_speed == 60:
+                self.game_state.game_speed = 30
+            print(self.game_state.game_speed)
+
+        def slower_click():
+            if self.game_state.game_speed == 30:
+                self.game_state.game_speed = 60
+            elif self.game_state.game_speed == 60:
+                self.game_state.game_speed = 90
+            elif self.game_state.game_speed == 90:
+                self.game_state.game_speed = 120
+            elif self.game_state.game_speed == 120:
+                self.game_state.game_speed = 240
+            print(self.game_state.game_speed)
+
+        pause_toggle = Button(
+            pause_toggle_r_img,
+            pause_toggle_h_img,
+            pause_toggle_click,
+            26,
+            2)
+
+        faster = Button(
+            faster_r_img,
+            faster_h_img,
+            faster_click,
+            49,
+            2)
+        slower = Button(
+            slower_r_img,
+            slower_h_img,
+            slower_click,
+            3,
+            2)
+
+        self.buttons = [pause_toggle,
+                        faster,
+                        slower]
+
+    def render_decals(self, pos):
+        header_font = pygame.font.SysFont('Calibri', 18, True, False)
+        date_string = self.game_state.calendar.get_date_string()
+        date_stamp = header_font.render(date_string, True, util.colors.white)
+        self.cached_image.blit(date_stamp, [49 + 23, 2])

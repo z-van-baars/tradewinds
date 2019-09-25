@@ -10,8 +10,9 @@ class GameState(object):
         self.clock = pygame.time.Clock()
         self.console_log = []
         self.calendar = utilities.Calendar()
-        self.game_speed = 10
+        self.game_speed = 60
         self.time = 0
+        self.paused = False
         self.timer = 0
 
         self.draw_routes = True

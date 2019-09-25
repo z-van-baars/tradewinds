@@ -54,6 +54,7 @@ ship_status_screen = pygame.image.load("art/menus/ship_status.png").convert_alph
 quantity_popup = pygame.image.load("art/menus/quantity_popup.png").convert_alpha()
 
 mini_map_preview = pygame.image.load("art/menus/mini_map_bg.png").convert_alpha()
+calendar_menu = pygame.image.load("art/menus/calendar.png")
 
 # RESOURCES
 saffron = pygame.image.load("art/resources/saffron_1.png").convert_alpha()
@@ -164,9 +165,10 @@ tundra_tile = pygame.image.load("art/tiles/tundra_1.png").convert_alpha()
 tundra_tile.set_colorkey(utilities.colors.key)
 tundra_tile = tundra_tile.convert_alpha()
 
-snowy_tundra_tiles_raw = [pygame.image.load("art/tiles/snowy_tundra_1.png").convert_alpha(),
-                          pygame.image.load("art/tiles/snowy_tundra_2.png").convert_alpha(),
-                          pygame.image.load("art/tiles/snowy_tundra_3.png").convert_alpha()]
+snowy_tundra_tiles_raw = [
+    pygame.image.load("art/tiles/snowy_tundra_1.png").convert_alpha(),
+    pygame.image.load("art/tiles/snowy_tundra_2.png").convert_alpha(),
+    pygame.image.load("art/tiles/snowy_tundra_3.png").convert_alpha()]
 snowy_tundra_tiles = []
 for each in snowy_tundra_tiles_raw:
     each.set_colorkey(utilities.colors.key)
@@ -185,9 +187,9 @@ jungle_tile = pygame.image.load("art/tiles/jungle_1.png").convert_alpha()
 jungle_tile.set_colorkey(utilities.colors.key)
 jungle_tile = jungle_tile.convert_alpha()
 
-forest_tile = pygame.image.load("art/tiles/forest_1.png").convert_alpha()
-forest_tile.set_colorkey(utilities.colors.key)
-forest_tile = forest_tile.convert_alpha()
+forest_tile_1 = pygame.image.load("art/tiles/forest_1.png").convert_alpha()
+forest_tile_1.set_colorkey(utilities.colors.key)
+forest_tile_1 = forest_tile_1.convert_alpha()
 
 grassland_tile = pygame.image.load("art/tiles/grassland_1.png").convert_alpha()
 grassland_tile.set_colorkey(utilities.colors.key)
@@ -267,6 +269,9 @@ tree_1 = pygame.image.load("art/constructs/terrain/tree_1.png").convert_alpha()
 forest_1 = pygame.image.load("art/terrain/forest_1.png").convert_alpha()
 forest_1.set_colorkey(utilities.colors.key)
 forest_1 = forest_1.convert_alpha()
+forest_2 = pygame.image.load("art/terrain/forest_2.png").convert_alpha()
+forest_2.set_colorkey(utilities.colors.key)
+forest_2 = forest_2.convert_alpha()
 
 grassland_mountains_raw = [pygame.image.load("art/terrain/mountains/grassland_1.png").convert_alpha(),
                            pygame.image.load("art/terrain/mountains/grassland_2.png").convert_alpha(),
@@ -414,7 +419,7 @@ biome_images = {"grass": [grass_tile],
                 "plains": [plains_tile],
                 "wet plains": [plains_tile],
                 "desert": desert_images,
-                "forest": [forest_tile],
+                "forest": [forest_tile_1],
                 "jungle": [jungle_tile],
                 "tundra": [tundra_tile],
                 "snowy tundra": snowy_tundra_tiles,
@@ -514,7 +519,7 @@ vegetation = {"taiga": taiga_trees,
               "wet plains": wet_plains_trees,
               "savannah": None,
               "desert": None,
-              "forest": [forest_1],
+              "forest": [forest_1, forest_2],
               "jungle": jungle_trees,
               "snowpack": None,
               "ice": None,

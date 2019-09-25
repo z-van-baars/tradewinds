@@ -23,31 +23,40 @@ months = ["January",
           "November",
           "December"]
 
+month_days = {"January": 31,
+              "February": 28,
+              "March": 31,
+              "April": 30,
+              "May": 31,
+              "June": 30,
+              "July": 31,
+              "August": 31,
+              "September": 30,
+              "October": 31,
+              "November": 30,
+              "December": 31}
+
 
 class Calendar(object):
     def __init__(self):
-        self.year = 0
+        self.year = 1
         self.month = 0
         self.day = 1
         self.month_string = months[self.month]
 
-    def increment_date(self, step=1):
-        if step == 1:
-            self.day += 1
-        elif step == 2:
-            if self.day != 0:
-                self.day = 0
-            self.month += 1
-        elif step == 3:
-            self.year += 1
+    def increment_date(self):
+        self.day += 1
 
-        if self.day > 29:
+        if self.day > month_days[self.month_string]:
             self.month += 1
-            self.day = 0
+            self.day = 1
         if self.month > 11:
             self.year += 1
             self.month = 0
         self.month_string = months[self.month]
+
+    def get_date_string(self):
+        return "{0} {1}, {2}".format(self.month_string, self.day, self.year)
 
 
 class Colors(object):

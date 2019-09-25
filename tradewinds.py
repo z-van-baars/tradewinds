@@ -135,7 +135,7 @@ def input_processing(game_state, selected_tile, display_parameters, mouse_pos, m
             left_click(game_state, mouse_pos, map_xy, button_states, event)
         elif event.type == pygame.KEYDOWN:
             print(game_state.active_menus)
-            if len(game_state.active_menus) > 1:
+            if len(game_state.active_menus) > 2:
                 game_state.active_menus[0].event_handler(event, mouse_pos)
                 return
             key_functions.get(event.key, do_nothing)(game_state)
@@ -169,9 +169,10 @@ def main(game_state):
                           (game_state.background_width / 2))
     active_map.y_shift = (game_state.screen_height / 2 -
                           (game_state.background_height / 2))
-    game_state.year = 1000
     mini_map = ui.MiniMap(game_state)
+    calendar_menu = ui.CalendarMenu(game_state)
     game_state.active_menus.append(mini_map)
+    game_state.active_menus.append(calendar_menu)
 
     while not done:
         mouse_pos = pygame.mouse.get_pos()
@@ -212,7 +213,8 @@ def main(game_state):
                 game_state.active_menus.append(menu)
 
         # game_state.clock.tick(60)
-        game_state.time += 1
+        if not game_state.paused:
+            game_state.time += 1
 
 
 screen_width = 1200
@@ -229,6 +231,15 @@ game_state.player = player.Player(game_state.active_map)
 game_state.player.silver = 100
 game_state.player.ship.cargo['wool'] = 10
 game_state.ships.add(game_state.player.ship)
+list_of_cities = []
+for city in game_state.active_map.cities:
+    list_of_cities.append(city)
+random.shuffle(list_of_cities)
+start_city = list_of_cities[0]
+game_state.player.ship.column = start_city.column
+game_state.player.ship.row = start_city.row
+game_state.player.ship.x = start_city.column
+game_state.player.ship.y = start_city.row
 main(game_state)
 
 

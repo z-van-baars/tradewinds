@@ -41,6 +41,15 @@ def update_display(game_state, selected_tile, display_parameters, mouse_pos, map
                                                           background_top])
     screen.blit(active_map.building_display_layer.image, [background_left,
                                                           background_top])
+
+    if game_state.player.ship.path and game_state.draw_routes:
+        shifted_pts_list = []
+        for point in game_state.player.ship.path_pts:
+            shifted_pts_list.append(
+                (point[0] + background_x_middle + (tile_width / 2),
+                 point[1] + background_top + 7))  # half tile height
+        pygame.draw.aalines(screen, util.colors.red, False, shifted_pts_list)
+
     # converts the player's x, y tile to pixel coordinates
     player_pixel_coordinates = util.get_screen_coords(game_state.player.ship.column,
                                                       game_state.player.ship.row)
@@ -52,13 +61,6 @@ def update_display(game_state, selected_tile, display_parameters, mouse_pos, map
     so that the player's ship image is centered on the tile"""
     screen.blit(game_state.player.ship.image, [player_screen_coordinates[0] - 20,
                                                player_screen_coordinates[1] - 25])
-    if game_state.player.ship.path and game_state.draw_routes:
-        shifted_pts_list = []
-        for point in game_state.player.ship.path_pts:
-            shifted_pts_list.append(
-                (point[0] + background_x_middle + (tile_width / 2),
-                 point[1] + background_top + 7))  # half tile height
-        pygame.draw.aalines(screen, util.colors.red, False, shifted_pts_list)
     for menu in reversed(game_state.active_menus):
         game_state.screen.blit(
             menu.cached_image,
