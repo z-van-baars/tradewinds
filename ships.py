@@ -3,6 +3,7 @@ import art
 import utilities as util
 import pygame
 import crew
+import math
 
 
 class Ship(object):
@@ -24,7 +25,8 @@ class Ship(object):
     attack : int
         Attack Power (cannons, small arms, etc).  Think Warhammer.
     wounds : int
-        for combat purposes.  Multiple wounds means you can fail more than one defense roll during
+        for combat purposes.
+        Multiple wounds means you can fail more than one defense roll during
         combat before losing the ship.  Again, think Warhammer.
     purchase_cost : int
         Self Explanatory.
@@ -51,13 +53,17 @@ class Ship(object):
         self.tile = None
         """path object.  Should be None if there is no target"""
         self.path = None
-        """Target Tile ID (for now this will always be chained to the target port / port ID)"""
+        """Target Tile ID
+        (for now this will always be chained to the target port / port ID)"""
         self.target_tile = None
         self.target_port = None
         self.move_timer = 0
+        self.move_timer_max = round((5.0 / speed) * 10)
+        # laden_speed = base_speed * (0.5 * (1.0 - cargo_cap / current_cargo))
         """
         CARGO Dictionary
-        Keys are plaintext names of commodities or spices, e.g. 'Nutmeg' and the value is a quantity in Int form"""
+        Keys are plaintext names of commodities or spices
+        e.g. 'Nutmeg' and the value is a quantity in Int form"""
         self.cargo = {}
 
     def clear_target(self):
@@ -86,6 +92,7 @@ class Ship(object):
     def move(self, x, y):
         self.column = x
         self.row = y
+        self.move_timer = self.move_timer_max
 
     def old_move(self, nav_mesh):
         if self.target_tile:
@@ -129,7 +136,7 @@ class Cog(Ship):
             active_map,
             column,
             row,
-            speed=10,
+            speed=5,
             cargo_cap=50,
             crew_cap=10,
             defense=10,
@@ -146,7 +153,7 @@ class Cog(Ship):
 
 class Carrack(Ship):
     def __init__(self, active_map, column, row):
-        super().__init__(active_map, column, row, 12, 150, 20, 11, 15, 2, 2000)
+        super().__init__(active_map, column, row, 3, 150, 20, 11, 15, 2, 2000)
         self.image = pygame.Surface([40, 40])
         self.image.fill(util.colors.key)
         self.image.blit(art.carrack_icon, [0, 0])
@@ -157,7 +164,7 @@ class Carrack(Ship):
 
 class Argosy(Ship):
     def __init__(self, active_map, column, row):
-        super().__init__(active_map, column, row, 12, 200, 25, 11, 12, 2, 2500)
+        super().__init__(active_map, column, row, 3, 200, 25, 11, 12, 2, 2500)
         self.image = pygame.Surface([40, 40])
         self.image.fill(util.colors.key)
         self.image.blit(art.argosy_icon, [0, 0])
@@ -168,7 +175,7 @@ class Argosy(Ship):
 
 class Caravel(Ship):
     def __init__(self, active_map, column, row):
-        super().__init__(active_map, column, row, 15, 300, 30, 15, 15, 2, 5000)
+        super().__init__(active_map, column, row, 3, 300, 30, 15, 15, 2, 5000)
         self.image = pygame.Surface([40, 40])
         self.image.fill(util.colors.key)
         self.image.blit(art.caravel_icon, [0, 0])
@@ -179,7 +186,7 @@ class Caravel(Ship):
 
 class Galleon(Ship):
     def __init__(self, active_map, column, row):
-        super().__init__(active_map, column, row, 12, 500, 50, 25, 25, 3, 10000)
+        super().__init__(active_map, column, row, 3.2, 500, 50, 25, 25, 3, 10000)
         self.image = pygame.Surface([40, 40])
         self.image.fill(util.colors.key)
         self.image.blit(art.galleon_icon, [0, 0])
@@ -190,7 +197,7 @@ class Galleon(Ship):
 
 class Fluyt(Ship):
     def __init__(self, active_map, column, row):
-        super().__init__(active_map, column, row, 15, 750, 25, 12, 10, 2, 10000)
+        super().__init__(active_map, column, row, 3, 750, 25, 12, 10, 2, 10000)
         self.image = pygame.Surface([40, 40])
         self.image.fill(util.colors.key)
         self.image.blit(art.fluyt_icon, [0, 0])
@@ -201,7 +208,7 @@ class Fluyt(Ship):
 
 class Corvette(Ship):
     def __init__(self, active_map, column, row):
-        super().__init__(active_map, column, row, 15, 250, 50, 25, 40, 3, 12000)
+        super().__init__(active_map, column, row, 3, 250, 50, 25, 40, 3, 12000)
         self.image = pygame.Surface([40, 40])
         self.image.fill(util.colors.key)
         self.image.blit(art.corvette_icon, [0, 0])

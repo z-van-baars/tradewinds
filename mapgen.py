@@ -66,17 +66,23 @@ def generate_tempmap(width, height):
         return gen.noise2d(nx, ny) / 2.0 + 0.5
 
     def get_temperature(equator_hotness, pole_coldness, noise_strength, noisiness):
+        """modified perlin noise generator
+        resulting values are normalized into "temperature" """
         nx = x / width - 0.5
         ny = y / height - 0.5
         new = (1.0 * noise(noisiness * nx, noisiness * ny))
         new = new / (noise_strength)
         max_distance = math.sqrt(width * height)
         distance_modifier = (pole_distances[y][x] / max_distance)
-        # distance_modifier = distance_modifier ** distance_modifier
-        # distance_modifier = distance_modifier / 50
-        # print("{0} / {1} : {2}%".format(distance_modifier, max_distance, math.floor(distance_modifier / max_distance * 100)))
-        temp = 1.0 + distance_modifier * equator_hotness - distance_modifier * pole_coldness
-        new_temperature = min(math.floor(max((temp + (temp * new) * noise_strength) * abs(1.0 - noise_strength), 0) * 100), 100)
+        temp = (1.0 +
+                distance_modifier *
+                equator_hotness -
+                distance_modifier *
+                pole_coldness)
+        new_temperature = min(
+            math.floor(
+                max((temp + (temp * new) * noise_strength) *
+                    abs(1.0 - noise_strength), 0) * 100), 100)
         return new_temperature
 
     def set_pole_distances():
@@ -297,25 +303,36 @@ def generate_rivers(active_map, water_cutoff):
                     for neighbor in new_neighbors:
                         if (active_map.elevation[neighbor.row][neighbor.column], neighbor) not in frontier:
                             if neighbor not in tiles_filled:
-                                frontier.append((active_map.elevation[neighbor.row][neighbor.column], neighbor))
+                                frontier.append(
+                                    (active_map.elevation[neighbor.row][neighbor.column],
+                                     neighbor))
                                 frontier = sorted(frontier)
-                # frontier[0][1].water_flux = (frontier[0][1].water_flux[0] + water_in, 0, frontier[0][1].water_flux[2] + total_flux)
-                # frontier[0][1].water_source = (frontier[0][1].water_source[0] + [util.get_neighbor_position(frontier[0][1], last_addition)], 0)
                 frontier[0][1].water_flux = (water_in, 0, 0)
-                frontier[0][1].water_source = ([util.get_neighbor_position(frontier[0][1], last_addition)], 0)
+                frontier[0][1].water_source = (
+                    [util.get_neighbor_position(frontier[0][1], last_addition)],
+                    0)
 
         # if we have >1 lower tile, add our collected water flux to it's water flux in
         else:
             lowest_neighbor = sorted(flowable_neighbors)[0][1]
 
             water_in, water_out, total_flux = tile.water_flux
-
-            water_out = water_in + active_map.moisture[tile.row][tile.column]  # add incoming water flux to local moisture and send it out
+            # add incoming water flux to local moisture and send it out
+            water_out = water_in + active_map.moisture[tile.row][tile.column]
             total_flux = water_in + water_out
-            tile.water_source = (tile.water_source[0], util.get_neighbor_position(tile, lowest_neighbor))
-            lowest_neighbor.water_flux = (water_out + lowest_neighbor.water_flux[0], 0, 0)
+            tile.water_source = (
+                tile.water_source[0],
+                util.get_neighbor_position(tile, lowest_neighbor))
+            lowest_neighbor.water_flux = (
+                water_out + lowest_neighbor.water_flux[0],
+                0,
+                0)
             if total_flux > river_cutoff:
-                lowest_neighbor.water_source = (lowest_neighbor.water_source[0] + [util.get_neighbor_position(lowest_neighbor, tile)], 0)
+                lowest_neighbor.water_source = (
+                    lowest_neighbor.water_source[0] + [util.get_neighbor_position(
+                        lowest_neighbor,
+                        tile)],
+                    0)
 
             tile.water_flux = (water_in, water_out, total_flux)
 
@@ -496,7 +513,7 @@ def place_resources(active_map, max_cluster_size):
 
 
 def city_score_to_array(active_map, city_scores):
-    # turns an input dict - city scores - into an output array - city score array
+    # turns an input dict 'city scores' into an output array 'city score array'
     city_score_array = []
 
     for y in range(active_map.height):
@@ -658,6 +675,7 @@ class MapgenState(object):
         self.raw_maps = self.initialize_raw_maps(self.width, self.height)
         self.map_accepted = False
         self.scaled_maps = scale_maps(self.raw_maps, self.display_data)
+        self.largest_water_body = None
 
     @property
     def width(self):
@@ -761,14 +779,13 @@ def survey_city_sites(game_state, mgs: MapgenState):
     all_sites = [city.Site(tile, mgs.active_map)
                  for tile in mgs.active_map.all_tiles]
     viable_sites = list(filter(city.Site.is_viable, all_sites))
-    mgs.largest_water_body = city.cull_interior_watermasses(mgs.active_map)
+    if mgs.largest_water_body is None:
+        mgs.largest_water_body = city.cull_interior_watermasses(mgs.active_map)
     coastal_sites = list(filter(lambda x: is_coastal(mgs.active_map,
                                                      mgs.largest_water_body,
                                                      x), viable_sites))
-    print("debug B")
     for site in viable_sites:
         site.update_scores(mgs.active_map, coastal_sites)
-    print("debug C")
     print(sorted_sites.qsize())
     for site in viable_sites:
         if site.city_score > 1:
@@ -792,7 +809,8 @@ def update_viable_site_scores(game_state, mgs: MapgenState, stale_sorted_viable_
             sorted_sites.put((-site.city_score, site.tile, site))
     return sorted_sites
 
-def found_nation(active_map, viable_sites, sorted_sites, nc, i):
+
+def set_nation_spawn(active_map, viable_sites, sorted_sites, nc, i):
     score, candidate_tile, site = sorted_sites.get()
     site.city_score = 20
     site.lock_neighborhood(active_map, viable_sites)
@@ -816,7 +834,15 @@ def found_nation(active_map, viable_sites, sorted_sites, nc, i):
 
 def spawn_cities(game_state, mgs: MapgenState):
     all_sites, viable_sites, sorted_sites = survey_city_sites(game_state, mgs)
+    coastal_sites = list(filter(lambda x: is_coastal(mgs.active_map,
+                                                     mgs.largest_water_body,
+                                                     x), viable_sites))
+    map_size_f = math.sqrt(
+        math.sqrt(
+            game_state.active_map.width *
+            game_state.active_map.height))
 
+    map_size = math.floor(map_size_f)
     mgs.render_raw_maps(['trade score', 'city score'], viable_sites)
     display_update(game_state.screen,
                    mgs.raw_maps,
@@ -826,10 +852,13 @@ def spawn_cities(game_state, mgs: MapgenState):
                "Initial Map Survey Complete, press Enter to spawn cities")
     for ii in range(mgs.active_map.number_of_cities):
         mgs.render_raw_maps(['trade score', 'city score'], viable_sites)
+        game_state.screen.fill(util.colors.black)
         display_update(game_state.screen,
                        mgs.raw_maps,
                        mgs.display_data,
                        mgs.clock)
+
+        pygame.display.flip()
         score, tile, site = sorted_sites.get()
         new_city_name = city.get_city_name(mgs.active_map.cities)
         new_city = city.City(
@@ -840,6 +869,33 @@ def spawn_cities(game_state, mgs: MapgenState):
             new_city_name)
         # all_sites, viable_sites, sorted_sites = survey_city_sites(game_state, mgs)
         mgs.active_map.add_city(new_city)
+        affected_tiles = util.get_nearby_tiles(game_state.active_map,
+                                               (tile.column, tile.row),
+                                               map_size + 1)
+        for each_site in viable_sites:
+            for each_tile in affected_tiles:
+                if each_site.tile == each_tile:
+                    each_site.update_scores(
+                        game_state.active_map,
+                        coastal_sites)
+        print("Cities Placed: {0} / {1}".format(
+            len(game_state.active_map.cities),
+            game_state.active_map.number_of_cities))
+
+
+def set_city_properties(game_state, mgs):
+    """Code Goes Here"""
+    pass
+
+
+def set_capitals(game_state, mgs):
+    """Code Goes Here"""
+    pass
+
+
+def group_cities(game_state, mgs):
+    """Code Goes Here"""
+    pass
 
 
 def set_nation_seeds(game_state, mgs: MapgenState):
@@ -858,7 +914,7 @@ def set_nation_seeds(game_state, mgs: MapgenState):
     print("placing cities...")
     for ii in range(mgs.active_map.number_of_nations):
         print(ii)
-        found_nation(mgs.active_map, viable_sites, sorted_sites, nc, ii)
+        set_nation_spawn(mgs.active_map, viable_sites, sorted_sites, nc, ii)
         util.quit_check()
         print("Nation Seed placed: {0} / {1}".format(len(mgs.active_map.nations),
                                                      mgs.active_map.number_of_nations))
@@ -915,6 +971,9 @@ def map_generation(game_state, active_map: Map):
     make_map(game_state, mgs)
     # spawn nations, grow nations
     spawn_cities(game_state, mgs)
+    set_city_properties(game_state, mgs)
+    set_capitals(game_state, mgs)
+    group_cities(game_state, mgs)
     # set_nation_seeds(game_state, mgs)
     # grow_nations(game_state, mgs)
     input_loop(game_state, mgs, "Press Enter to accept your fate.")

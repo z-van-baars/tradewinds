@@ -8,10 +8,14 @@ class GameState(object):
         self.screen_width = screen_width
         self.screen_height = screen_height
         self.clock = pygame.time.Clock()
+        self.console_log = []
         self.calendar = utilities.Calendar()
-        self.game_speed = 60
+        self.game_speed = 10
         self.time = 0
         self.timer = 0
+
+        self.draw_routes = True
+        self.infinite_speed = False
 
         self.active_map = None
         self.ships = set()
@@ -20,7 +24,9 @@ class GameState(object):
         self.reset_surfaces()
 
     def reset_surfaces(self):
-        self.screen = pygame.display.set_mode([self.screen_width, self.screen_height], pygame.RESIZABLE)
+        self.screen = pygame.display.set_mode(
+            [self.screen_width, self.screen_height],
+            pygame.RESIZABLE)
 
     def clear_menutype(self, typematch):
         offending_menus = []
@@ -60,4 +66,9 @@ class GameState(object):
 
     @property
     def display_parameters(self):
-        return (self.background_left, self.background_top, self.background_right, self.background_bottom, self.background_x_middle)
+        return (self.background_left,
+                self.background_top,
+                self.background_right,
+                self.background_bottom,
+                self.background_x_middle)
+

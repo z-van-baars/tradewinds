@@ -117,7 +117,6 @@ class City(object):
             tiles_to_work.append(local_tiles.pop())
         surplus_workers = w - self.size
 
-
         return tiles_to_work, surplus_workers
 
     def eat(self):
@@ -133,7 +132,6 @@ class City(object):
         for each_tile in tiles_to_work:
             self.food += each_tile[3]
             self.silver += each_tile[4]
-
 
     def harvest_resources(self, active_map):
         for worker in self.workers:
@@ -217,9 +215,26 @@ def get_trade_score(active_map, coastal_sites, site):
     return trade_score
 
 
-def math_helper(z, f, t, r, tr):
+def get_distance_score(active_map, site):
+    "Penalize city sites by their proximity to other cities squared"
+    map_size = math.sqrt(
+        math.sqrt(active_map.width *
+                  active_map.height))
+    d = 0
+    for each_city in active_map.cities:
+        dist = util.distance(site.tile.column,
+                             site.tile.row,
+                             each_city.column,
+                             each_city.row)
+        d += max(0,
+                 (-map_size + (max(0, (map_size - dist)) ** 2)))
+        d *= 2
+    return d
+
+
+def math_helper(z, f, t, r, tr, d):
     """Algorithms"""
-    return z + f + t + r * 20 + tr + ((tr / 2) * (tr / 2))
+    return -d + z + f + t + r * 20 + tr + ((tr / 2) * (tr / 2))
 
 
 def evaluate_city_score(active_map, site):
@@ -229,8 +244,9 @@ def evaluate_city_score(active_map, site):
     t = site.temperature_score
     tr = site.trade_score
     r = site.resource_score
+    d = site.distance_score
 
-    return max(50, math_helper(z, f, t, r, tr))
+    return max(50, math_helper(z, f, t, r, tr, d))
 
 
 def cull_interior_watermasses(active_map):
@@ -268,10 +284,12 @@ class Site(object):
         self.temperature_score = math.floor(
             active_map.temperature[self.tile.row][self.tile.column] / 3)
         self.resource_score = evaluate_local_resources(active_map, self.zone_of_control)
+        self.distance_score = get_distance_score(active_map, self)
         self.trade_score = 0
         self.city_score = 0
 
     def update_scores(self, active_map, coastal_sites):
+        self.distance_score = get_distance_score(active_map, self)
         self.trade_score = get_trade_score(active_map, coastal_sites, self)
         self.city_score = evaluate_city_score(active_map, self)
 

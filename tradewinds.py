@@ -49,7 +49,16 @@ def s_key(game_state):
     if any(menu_type == ui.ShipStatus for menu_type in game_state.active_menus):
         return
     new_ship_status_menu = ui.ShipStatus(game_state)
-    game_state.active_menus.append(new_ship_status_menu)
+    game_state.clear_menutype([ui.ShipStatus])
+    game_state.active_menus.insert(0, new_ship_status_menu)
+
+
+def F1_key(game_state):
+    if any(menu_type == ui.ConsoleWindow for menu_type in game_state.active_menus):
+        return
+    new_console_window = ui.ConsoleWindow(game_state)
+    game_state.clear_menutype([ui.ConsoleWindow])
+    game_state.active_menus.insert(0, new_console_window)
 
 
 def left_click(game_state, mouse_pos, map_xy, button_states, event):
@@ -66,7 +75,7 @@ def left_click(game_state, mouse_pos, map_xy, button_states, event):
         if c is None:
             return
         new_city_menu = ui.ViewCity(game_state, c)
-        game_state.active_menus.append(new_city_menu)
+        game_state.active_menus.insert(0, new_city_menu)
         menu = new_city_menu
     top_menu = menu
     game_state.active_menus.remove(menu)
@@ -89,7 +98,8 @@ def right_click(game_state, mouse_pos, map_xy, button_states, event):
     game_state.active_menus = [new_context_menu] + game_state.active_menus
 
 
-key_functions = {pygame.K_UP: up_key,
+key_functions = {pygame.K_F1: F1_key,
+                 pygame.K_UP: up_key,
                  pygame.K_DOWN: down_key,
                  pygame.K_LEFT: left_key,
                  pygame.K_RIGHT: right_key,
@@ -124,6 +134,10 @@ def input_processing(game_state, selected_tile, display_parameters, mouse_pos, m
             button_states = (button_1, button_2, button_3)
             left_click(game_state, mouse_pos, map_xy, button_states, event)
         elif event.type == pygame.KEYDOWN:
+            print(game_state.active_menus)
+            if len(game_state.active_menus) > 1:
+                game_state.active_menus[0].event_handler(event, mouse_pos)
+                return
             key_functions.get(event.key, do_nothing)(game_state)
         elif event.type == pygame.KEYUP:
             if event.key == pygame.K_LCTRL:
@@ -137,10 +151,14 @@ def input_processing(game_state, selected_tile, display_parameters, mouse_pos, m
 
 def game_tick(game_state):
     for ship in game_state.ships:
-        if ship.path:
+        if ship.path and ship.check_move_timer():
             step = ship.path.get_step()
             ship.move(step.column, step.row)
             ship.check_path()
+        elif ship.path and not ship.check_move_timer():
+            ship.move_timer -= 1
+            if ship == game_state.player.ship and game_state.infinite_speed:
+                ship.move_timer = 0
 
 
 def main(game_state):
@@ -156,7 +174,6 @@ def main(game_state):
     game_state.active_menus.append(mini_map)
 
     while not done:
-        game_state.time += 1
         mouse_pos = pygame.mouse.get_pos()
         map_xy = util.get_map_coords(mouse_pos,
                                      game_state.active_map.x_shift,
@@ -175,8 +192,9 @@ def main(game_state):
                          mouse_pos,
                          map_xy)
 
-        game_state.calendar.increment_date(game_state.game_speed)
-        game_tick(game_state)
+        if game_state.time % game_state.game_speed == 0:
+            game_state.calendar.increment_date()
+            game_tick(game_state)
 
         display.update_display(game_state,
                                selected_tile,

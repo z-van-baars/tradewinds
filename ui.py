@@ -98,6 +98,10 @@ for img in button_images:
     img = img.convert_alpha()
 
 
+def do_nothing(args):
+    pass
+
+
 class Button(object):
     def __init__(self, regular_image, hover_image, on_click, x=0, y=0):
 
@@ -153,10 +157,10 @@ class Menu(object):
     def update_last_pos(self):
         pass
 
-    def keydown_handler(self, key):
+    def keydown_handler(self, event, key):
         pass
 
-    def keyup_handler(self, key):
+    def keyup_handler(self, event, key):
         pass
 
     def render_decals(self, pos):
@@ -197,9 +201,9 @@ class Menu(object):
         elif event.type == pygame.MOUSEBUTTONUP:
             self.mouse_release_handler(event, pos)
         elif event.type == pygame.KEYDOWN:
-            self.keydown_handler(event.key)
+            self.keydown_handler(event, event.key)
         elif event.type == pygame.KEYUP:
-            self.keyup_handler(event.key)
+            self.keyup_handler(event, event.key)
 
     def render_onscreen_cache(self, pos):
         self.cached_image = pygame.Surface(
@@ -211,6 +215,88 @@ class Menu(object):
             self.cached_image.blit(button.sprite.image,
                                    [button.sprite.rect.x, button.sprite.rect.y])
         self.render_decals(pos)
+
+
+class ConsoleWindow(Menu):
+    def __init__(self, game_state):
+        super().__init__(game_state)
+        self.background_pane = pygame.sprite.Sprite()
+        self.background_pane.image = pygame.Surface([400, 400])
+        self.background_pane.image.fill(util.colors.black)
+        self.background_pane.image.set_alpha(75)
+        self.background_pane.rect = self.background_pane.image.get_rect()
+        self.background_pane.rect.x = game_state.screen_width / 2 - 200
+        self.background_pane.rect.y = game_state.screen_height / 2 - 200
+
+        self.current_line = ""
+
+        def set_route_drawing(args):
+            print("debug A")
+            print(args[0])
+            print(args[0].lower())
+            if args[0].lower() == "true" or args[0].lower() == "false":
+                self.game_state.draw_routes = (args[0].lower() == "true")
+                self.game_state.console_log.append(
+                    'Draw Routes set to {0}'.format(args[0].lower()))
+
+        def set_infinite_speed(args):
+            if args[0].lower() == "true" or args[0].lower() == "false":
+                self.game_state.infinite_speed = (args[0].lower() == "true")
+                self.game_state.console_log.append(
+                    'Infinite Speed set to {0}'.format(args[0].lower()))
+
+        self.console_functions = {"draw_routes": set_route_drawing,
+                                  "infinite_speed": set_infinite_speed}
+        self.buttons = []
+
+    def keydown_handler(self, event, key):
+        if key is pygame.K_RETURN:
+            self.game_state.console_log.append(self.current_line)
+            console_args = self.current_line.split()
+            command = console_args[0]
+            self.console_functions.get(command, do_nothing)(console_args[1:])
+            self.current_line = ''
+        elif key == pygame.K_F1:
+            self.open = False
+        elif key is pygame.K_BACKSPACE:
+            self.current_line = self.current_line[:-1]
+        else:
+            self.current_line = self.current_line + event.unicode
+        print(self.current_line)
+
+    def render_decals(self, pos):
+        header_font = pygame.font.SysFont('Calibri', 18, True, False)
+        current_line_stamp = header_font.render(
+            self.current_line,
+            True,
+            util.colors.white)
+        self.cached_image.blit(
+            current_line_stamp,
+            [2, self.background_pane.rect.height - 20])
+        for n in range(min(len(self.game_state.console_log), 9)):
+            console_log_line = self.game_state.console_log[-(n + 1)]
+            console_log_line_stamp = header_font.render(
+                console_log_line,
+                True,
+                util.colors.light_gray)
+            self.cached_image.blit(
+                console_log_line_stamp,
+                [2, self.background_pane.rect.height - (20 + (n + 1) * 20)])
+
+    def render_onscreen_cache(self, pos):
+        self.cached_image = pygame.Surface(
+            [self.background_pane.image.get_width(),
+             self.background_pane.image.get_height()])
+        self.render_buttons(pos)
+        self.cached_image.fill(util.colors.key)
+        self.cached_image.set_colorkey(util.colors.key)
+        self.cached_image = self.cached_image.convert_alpha()
+        self.cached_image.blit(self.background_pane.image, [0, 0])
+        for button in self.buttons:
+            self.cached_image.blit(button.sprite.image,
+                                   [button.sprite.rect.x, button.sprite.rect.y])
+        self.render_decals(pos)
+
 
 
 class ViewCity(Menu):
