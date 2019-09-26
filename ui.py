@@ -1338,4 +1338,4 @@ class CalendarMenu(Menu):
         header_font = pygame.font.SysFont('Calibri', 18, True, False)
         date_string = self.game_state.calendar.get_date_string()
         date_stamp = header_font.render(date_string, True, util.colors.white)
-        self.cached_image.blit(date_stamp, [49 + 23, 2])
+        self.cached_image.blit(date_stamp, [80, 4])

@@ -134,7 +134,7 @@ def input_processing(game_state, selected_tile, display_parameters, mouse_pos, m
             button_states = (button_1, button_2, button_3)
             left_click(game_state, mouse_pos, map_xy, button_states, event)
         elif event.type == pygame.KEYDOWN:
-            print(game_state.active_menus)
+            print(game_state.active_map.x_shift, game_state.active_map.y_shift)
             if len(game_state.active_menus) > 2:
                 game_state.active_menus[0].event_handler(event, mouse_pos)
                 return
@@ -165,10 +165,7 @@ def main(game_state):
     active_map = game_state.active_map
 
     done = False
-    active_map.x_shift = (game_state.screen_width / 2 -
-                          (game_state.background_width / 2))
-    active_map.y_shift = (game_state.screen_height / 2 -
-                          (game_state.background_height / 2))
+
     mini_map = ui.MiniMap(game_state)
     calendar_menu = ui.CalendarMenu(game_state)
     game_state.active_menus.append(mini_map)
@@ -231,6 +228,8 @@ game_state.player = player.Player(game_state.active_map)
 game_state.player.silver = 100
 game_state.player.ship.cargo['wool'] = 10
 game_state.ships.add(game_state.player.ship)
+
+"""Randomize Start Location"""
 list_of_cities = []
 for city in game_state.active_map.cities:
     list_of_cities.append(city)
@@ -240,6 +239,13 @@ game_state.player.ship.column = start_city.column
 game_state.player.ship.row = start_city.row
 game_state.player.ship.x = start_city.column
 game_state.player.ship.y = start_city.row
+
+"""Center Camera on Start"""
+x1, y1 = util.get_screen_coords(
+    game_state.player.ship.column,
+    game_state.player.ship.row)
+game_state.active_map.x_shift = -x1 - 40 - game_state.background_width / 2 + game_state.screen_width / 2
+game_state.active_map.y_shift = -y1 - 40 + game_state.screen_height / 2
 main(game_state)
 
 
