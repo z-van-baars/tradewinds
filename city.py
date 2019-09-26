@@ -46,6 +46,7 @@ class City(object):
         self.tile = tile
         self.tile.city = self
         self.name = name
+        self.color = (255, 255, 255)
         self.size = 1
         self.silver = 0
         self.food = 0

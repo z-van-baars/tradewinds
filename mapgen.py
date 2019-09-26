@@ -14,6 +14,7 @@ import region
 import sound
 import nation
 import mapgen_render as mgr
+import claim_nav
 
 pygame.init()
 pygame.display.set_mode([0, 0])
@@ -850,6 +851,7 @@ def spawn_cities(game_state, mgs: MapgenState):
                    mgs.clock)
     input_loop(game_state, mgs,
                "Initial Map Survey Complete, press Enter to spawn cities")
+
     for ii in range(mgs.active_map.number_of_cities):
         mgs.render_raw_maps(['trade score', 'city score'], viable_sites)
         game_state.screen.fill(util.colors.black)
@@ -881,6 +883,63 @@ def spawn_cities(game_state, mgs: MapgenState):
         print("Cities Placed: {0} / {1}".format(
             len(game_state.active_map.cities),
             game_state.active_map.number_of_cities))
+
+
+def find_closest_city(game_state, mgs, each_tile):
+    closest = (999999, None)
+    for each_city in game_state.active_map.cities:
+        if each_city.tile == each_tile:
+            closest = (0, each_city)
+            break
+        path = claim_nav.get_path(
+            [each_tile.row, each_tile.column],
+            game_state.active_map,
+            [each_city.row, each_city.column])
+        if len(path.steps) < closest[0]:
+            closest = (len(path.steps), each_city)
+
+    assert closest[1] is not None
+    return closest
+
+
+def set_tile_ownership(game_state, mgs):
+    tiles_mapped = 0
+    for each_tile in game_state.active_map.all_tiles:
+        if each_tile.city is None and each_tile.biome not in (
+            ["ocean",
+             "sea",
+             "shallows",
+             "lake"]):
+                closest = find_closest_city(game_state, mgs, each_tile)
+
+                each_tile.city = closest[1]
+                x1 = each_tile.column
+                y1 = each_tile.row
+                game_state.active_map.city_control[y1][x1] = closest[1]
+                neighbors = util.get_nearby_tiles(game_state.active_map, [x1, y1], 10)
+                for neighbor_tile in neighbors:
+                    if neighbor_tile.city is None and neighbor_tile.biome not in (
+                        ["ocean",
+                         "sea",
+                         "shallows",
+                         "lake"]):
+                        neighbor_tile.city = closest[1]
+                        x2 = neighbor_tile.column
+                        y2 = neighbor_tile.row
+                        game_state.active_map.city_control[y2][x2] = closest[1]
+                        tiles_mapped += 1
+        tiles_mapped += 1
+        print('tiles mapped {0} / {1}'.format(
+            tiles_mapped,
+            len(game_state.active_map.all_tiles)))
+    mgs.render_raw_maps(['nation'])
+    game_state.screen.fill(util.colors.black)
+    display_update(game_state.screen,
+                   mgs.raw_maps,
+                   mgs.display_data,
+                   mgs.clock)
+
+    pygame.display.flip()
 
 
 def set_city_properties(game_state, mgs):
@@ -971,6 +1030,8 @@ def map_generation(game_state, active_map: Map):
     make_map(game_state, mgs)
     # spawn nations, grow nations
     spawn_cities(game_state, mgs)
+    input_loop(game_state, mgs, "Press Enter to Manifest Destiny.")
+    set_tile_ownership(game_state, mgs)
     set_city_properties(game_state, mgs)
     set_capitals(game_state, mgs)
     group_cities(game_state, mgs)

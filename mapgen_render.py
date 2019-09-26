@@ -175,10 +175,10 @@ def render_nation_map(mgs, marker, viable_sites):
     raw_maps = mgs.raw_maps
     width = mgs.width
     height = mgs.height
-    print("drawing nation map...")
+    print("drawing city territory map...")
     for y in range(height):
         for x in range(width):
-            n = active_map.national_control[y][x]
+            n = active_map.city_control[y][x]
             if not n:
                 biome = active_map.game_tile_rows[y][x].biome
                 if any([biome == "ocean",

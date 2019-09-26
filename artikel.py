@@ -24,11 +24,31 @@ Rice = ["grassland", "jungle", "low hills", "hills"]
 
 Wheat = ["grassland", "plains"]
 
-Iron = ["grassland", "taiga", "plains", "low hills", "hills", "low mountains", "mountains"]
+Iron = [
+    "grassland",
+    "taiga",
+    "plains",
+    "low hills",
+    "hills",
+    "low mountains",
+    "mountains"]
 
-Gold = ["plains", "shrubland", "savannah", "low hills", "hills", "low mountains", "mountains"]
+Gold = [
+    "plains",
+    "shrubland",
+    "savannah",
+    "low hills",
+    "hills",
+    "low mountains",
+    "mountains"]
 
-Silver = ["grassland", "taiga", "low hills", "hills", "low mountains", "mountains"]
+Silver = [
+    "grassland",
+    "taiga",
+    "low hills",
+    "hills",
+    "low mountains",
+    "mountains"]
 
 
 all_resources = ["saffron",

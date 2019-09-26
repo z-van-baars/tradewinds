@@ -11,11 +11,20 @@ city_menu_pane = pygame.image.load('art/menus/city_menu_pane.png')
 market_menu_pane = pygame.image.load('art/menus/market_screen.png')
 quantity_popup = pygame.image.load('art/menus/quantity_popup.png')
 
+
+# City Menu Buttons
 leave_r_img = pygame.image.load('art/buttons/leave_regular.png')
 leave_h_img = pygame.image.load('art/buttons/leave_hover.png')
 
 market_r_img = pygame.image.load('art/buttons/market_regular.png')
 market_h_img = pygame.image.load('art/buttons/market_hover.png')
+
+tavern_r_img = pygame.image.load('art/buttons/tavern_regular.png')
+tavern_h_img = pygame.image.load('art/buttons/tavern_hover.png')
+shipyard_r_img = pygame.image.load('art/buttons/shipyard_regular.png')
+shipyard_h_img = pygame.image.load('art/buttons/shipyard_hover.png')
+
+# Context Menu Buttons
 
 cancel_r_img = pygame.image.load('art/buttons/cancel_regular.png')
 cancel_h_img = pygame.image.load('art/buttons/cancel_hover.png')
@@ -60,27 +69,29 @@ max_h_img = pygame.image.load('art/buttons/max_hover.png')
 min_r_img = pygame.image.load('art/buttons/min_regular.png')
 min_h_img = pygame.image.load('art/buttons/min_hover.png')
 
+# Shipyard Menu Buttons
+buy_cog_r_img = pygame.image.load('art/buttons/buy_cog_regular.png')
+buy_cog_h_img = pygame.image.load('art/buttons/buy_cog_hover.png')
+buy_carrack_r_img = pygame.image.load('art/buttons/buy_carrack_regular.png')
+buy_carrack_h_img = pygame.image.load('art/buttons/buy_carrack_hover.png')
+buy_blockade_runner_r_img = pygame.image.load(
+    'art/buttons/buy_blockade_runner_regular.png')
+buy_blockade_runner_h_img = pygame.image.load(
+    'art/buttons/buy_blockade_runner_hover.png')
+
 # Calendar Menu Buttons
 pause_toggle_r_img = pygame.image.load('art/buttons/pause_toggle_regular.png')
-pause_toggle_r_img.set_colorkey(util.colors.key)
-pause_toggle_r_img = pause_toggle_r_img.convert_alpha()
 pause_toggle_h_img = pygame.image.load('art/buttons/pause_toggle_hover.png')
-pause_toggle_h_img.set_colorkey(util.colors.key)
-pause_toggle_h_img = pause_toggle_h_img.convert_alpha()
 
 faster_r_img = pygame.image.load('art/buttons/faster_regular.png')
-faster_r_img.set_colorkey(util.colors.key)
-faster_r_img = faster_r_img.convert_alpha()
 faster_h_img = pygame.image.load('art/buttons/faster_hover.png')
-faster_h_img.set_colorkey(util.colors.key)
-faster_h_img = faster_h_img.convert_alpha()
 
 slower_r_img = pygame.image.load('art/buttons/slower_regular.png')
-slower_r_img.set_colorkey(util.colors.key)
-slower_r_img = slower_r_img.convert_alpha()
 slower_h_img = pygame.image.load('art/buttons/slower_hover.png')
-slower_h_img.set_colorkey(util.colors.key)
-slower_h_img = slower_h_img.convert_alpha()
+
+# MiniMap Buttons
+recenter_r_img = pygame.image.load('art/buttons/recenter_regular.png')
+recenter_h_img = pygame.image.load('art/buttons/recenter_hover.png')
 
 button_images = [leave_r_img,
                  leave_h_img,
@@ -119,7 +130,9 @@ button_images = [leave_r_img,
                  faster_r_img,
                  faster_h_img,
                  slower_r_img,
-                 slower_h_img]
+                 slower_h_img,
+                 recenter_r_img,
+                 recenter_h_img]
 
 for img in button_images:
     img.set_colorkey(util.colors.key)
@@ -698,8 +711,45 @@ class CityMenu(Menu):
             game_state.active_menus = [new_market_menu] + game_state.active_menus
             self.open = False
 
+        def tavern_click():
+            pass
+
+        def shipyard_click():
+            new_shipyard_menu = ShipyardMenu(game_state, city)
+            game_state.clear_menutype([ShipyardMenu])
+            game_state.active_menus = [new_shipyard_menu] + game_state.active_menus
+            self.open = False
+
         def dragbar_click():
             self.dragging = True
+
+        leave_button = Button(
+            leave_r_img,
+            leave_h_img,
+            leave_click,
+            5,
+            175)
+
+        market_button = Button(
+            market_r_img,
+            market_h_img,
+            market_click,
+            5,
+            140)
+
+        tavern_button = Button(
+            tavern_r_img,
+            tavern_h_img,
+            tavern_click,
+            280,
+            140)
+
+        shipyard_button = Button(
+            shipyard_r_img,
+            shipyard_h_img,
+            shipyard_click,
+            280,
+            175)
 
         dragbar_r_img = pygame.Surface(
             [self.background_pane.image.get_width() - 2,
@@ -713,21 +763,10 @@ class CityMenu(Menu):
             1,
             1)
 
-        market_button = Button(
-            market_r_img,
-            market_h_img,
-            market_click,
-            5,
-            140)
-
-        leave_button = Button(
-            leave_r_img,
-            leave_h_img,
-            leave_click,
-            5,
-            175)
-
-        self.buttons = [leave_button, market_button,
+        self.buttons = [leave_button,
+                        market_button,
+                        tavern_button,
+                        shipyard_button,
                         dragbar]
 
     def render_decals(self, pos):
@@ -1003,6 +1042,93 @@ class MarketMenu(Menu):
         self.draw_selection_boxes()
 
 
+class ShipyardMenu(Menu):
+    def __init__(self, game_state, city):
+        super().__init__(game_state)
+        self.background_pane = pygame.sprite.Sprite()
+        self.background_pane.image = art.shipyard_menu
+        self.background_pane.image.blit(art.shipyard_portrait_img, [5, 14])
+        self.background_pane.rect = self.background_pane.image.get_rect()
+        x_origin = (self.screen.get_width() / 2 -
+                    self.background_pane.image.get_width() / 2)
+        y_origin = (self.screen.get_height() / 2 -
+                    self.background_pane.image.get_height() / 2)
+        self.background_pane.rect.x = x_origin
+        self.background_pane.rect.y = y_origin
+        self.city = city
+
+        def dragbar_click():
+            self.dragging = True
+
+        def x_click():
+            self.open = False
+
+        def buy_cog_click():
+            pass
+
+        def buy_carrack_click():
+            pass
+
+        def buy_blockade_runner_click():
+            pass
+
+        dragbar_r_img = pygame.Surface([self.background_pane.image.get_width() - 2, 9])
+        dragbar_r_img.fill(util.colors.dragbar)
+
+        dragbar = Button(
+            dragbar_r_img,
+            dragbar_r_img,
+            dragbar_click,
+            1,
+            1)
+
+        x_button = Button(
+            x_button_r_img,
+            x_button_h_img,
+            x_click,
+            self.background_pane.image.get_width() - 22,
+            10)
+
+        buy_cog = Button(
+            buy_cog_r_img,
+            buy_cog_h_img,
+            buy_cog_click,
+            4,
+            160)
+
+        buy_carrack = Button(
+            buy_carrack_r_img,
+            buy_carrack_h_img,
+            buy_cog_click,
+            4,
+            200)
+
+        buy_blockade_runner = Button(
+            buy_blockade_runner_r_img,
+            buy_blockade_runner_h_img,
+            buy_blockade_runner_click,
+            4,
+            240)
+
+        self.buttons = [
+            dragbar,
+            x_button,
+            buy_cog,
+            buy_carrack,
+            buy_blockade_runner]
+
+    def render_decals(self, pos):
+        header_font = pygame.font.SysFont('Calibri', 18, True, False)
+        city_name_text = "{0} Shipyard".format(self.city.name)
+        city_name_stamp = header_font.render(city_name_text, True, util.colors.white)
+        self.cached_image.blit(
+            city_name_stamp,
+            [self.background_pane.image.get_width() / 2, 15])
+        self.cached_image.blit(art.cog_icon, [185, 145])
+        self.cached_image.blit(art.carrack_icon, [185, 185])
+        self.cached_image.blit(art.blockade_runner_icon, [185, 225])
+
+
 class QuantityMenu(Menu):
     def __init__(self, game_state, player, city, artikel_name, transaction_type):
         super().__init__(game_state)
@@ -1174,7 +1300,9 @@ class QuantityMenu(Menu):
 
     def render_decals(self, pos):
         small_font = pygame.font.SysFont("Calibri", 14, True, False)
-        left_margin = (self.background_pane.image.get_width() / 2) - (self.display_cache["artikel name"].get_width() / 2)
+        left_margin = (
+            (self.background_pane.image.get_width() / 2) -
+            (self.display_cache["artikel name"].get_width() / 2))
         self.cached_image.blit(self.display_cache["artikel name"], [left_margin, 13])
         self.cached_image.blit(small_font.render("0",
                                                  True,
@@ -1189,9 +1317,16 @@ class QuantityMenu(Menu):
                                            True,
                                            (255, 255, 255))
         cost_string = self.display_cache["transaction cost"]
-        cost_stamp = small_font.render("$ {0} ".format(str(cost_string)), True, self.transaction_colors[self.transaction_type])
-        quantity_margin = (self.background_pane.image.get_width() / 2) - (quantity_stamp.get_width() / 2)
-        cost_margin = (self.background_pane.image.get_width() / 2) - (cost_stamp.get_width() / 2)
+        cost_stamp = small_font.render(
+            "₴ {0} ".format(str(cost_string)),
+            True,
+            self.transaction_colors[self.transaction_type])
+        quantity_margin = (
+            (self.background_pane.image.get_width() / 2) -
+            (quantity_stamp.get_width() / 2))
+        cost_margin = (
+            (self.background_pane.image.get_width() / 2) -
+            (cost_stamp.get_width() / 2))
         self.cached_image.blit(quantity_stamp, [quantity_margin, 80])
         self.cached_image.blit(cost_stamp, [cost_margin, 60])
 
@@ -1208,7 +1343,24 @@ class MiniMap(Menu):
         self.background_pane.rect.x = game_state.screen_width - 200
         self.background_pane.rect.y = 0
 
-        self.buttons = []
+        def recenter_click():
+            x1, y1 = util.get_screen_coords(
+                self.game_state.player.ship.column,
+                self.game_state.player.ship.row)
+            self.game_state.active_map.x_shift = (
+                -x1 - 40 - self.game_state.background_width / 2 +
+                self.game_state.screen_width / 2)
+            self.game_state.active_map.y_shift = (
+                -y1 - 40 + self.game_state.screen_height / 2)
+
+        recenter = Button(
+            recenter_r_img,
+            recenter_h_img,
+            recenter_click,
+            0,
+            self.background_pane.image.get_height() - 56)
+
+        self.buttons = [recenter]
 
     def mouse_click_handler(self, event, pos):
         mouse_pos = (pos[0] - self.background_pane.rect.x + 2,

@@ -15,6 +15,10 @@ key_color = utilities.colors.key
 
 
 # ICONS
+blockade_runner_icon = pygame.image.load(
+    "art/icons/blockade_runner_icon.png").convert_alpha()
+blockade_runner_icon.set_colorkey(utilities.colors.key)
+blockade_runner_icon = blockade_runner_icon.convert_alpha()
 galleon_icon = pygame.image.load("art/icons/galleon_icon.png").convert_alpha()
 cog_icon = pygame.image.load("art/icons/cog_icon.png").convert_alpha()
 cog_icon.set_colorkey(key_color)
@@ -46,6 +50,8 @@ city_portraits = [
     city_portrait_c,
     city_portrait_d]
 
+shipyard_portrait_img = pygame.image.load("art/icons/shipyard_a.png").convert_alpha()
+
 
 # MENUS
 port_screen = pygame.image.load("art/menus/port_screen.png").convert_alpha()
@@ -55,6 +61,8 @@ quantity_popup = pygame.image.load("art/menus/quantity_popup.png").convert_alpha
 
 mini_map_preview = pygame.image.load("art/menus/mini_map_bg.png").convert_alpha()
 calendar_menu = pygame.image.load("art/menus/calendar.png")
+
+shipyard_menu = pygame.image.load("art/menus/shipyard_screen.png")
 
 # RESOURCES
 saffron = pygame.image.load("art/resources/saffron_1.png").convert_alpha()

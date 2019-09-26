@@ -42,9 +42,15 @@ class Map(object):
             for column in range(map_dimensions[0]):
                 row.append(False)
             self.national_control.append(row)
+        self.city_control = []
+        for row in range(map_dimensions[1]):
+            row = []
+            for column in range(map_dimensions[0]):
+                row.append(False)
+            self.city_control.append(row)
         map_size = math.sqrt(math.sqrt(map_dimensions[0] * map_dimensions[1]))
         self.number_of_cities = math.floor(map_size * 3)
-        self.number_of_cities = 1
+        self.number_of_cities = 12
         self.number_of_nations = 1 + random.randint(
             math.ceil(map_size / 2),
             math.floor(map_size))
@@ -62,6 +68,9 @@ class Map(object):
         self.all_tiles = []
 
     def add_city(self, new_city):
+        city_color = random.choice(utilities.city_colors)
+
+        new_city.color = city_color
         self.cities.append(new_city)
 
     def paint_background_tiles(self, game_tile_rows):
