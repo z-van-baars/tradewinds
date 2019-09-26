@@ -49,14 +49,14 @@ class Map(object):
                 row.append(False)
             self.city_control.append(row)
         map_size = math.sqrt(math.sqrt(map_dimensions[0] * map_dimensions[1]))
-        self.number_of_cities = math.floor(map_size * 3)
+        self.number_of_cities = math.floor(map_size * 5)
         """City Override"""
-        # self.number_of_cities = 12
-        self.number_of_nations = 1 + random.randint(
+        self.number_of_cities = 30
+        self.number_of_nations = random.randint(
             math.ceil(map_size / 2),
             math.floor(map_size))
         """Nation Override"""
-        # self.number_of_nations = 3
+        self.number_of_nations = 4
         self.cities = []
         self.nations = []
         self.river_cutoff = 2000

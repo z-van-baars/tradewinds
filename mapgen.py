@@ -897,9 +897,11 @@ def spawn_cities(game_state, mgs: MapgenState):
         pygame.display.flip()
 
 
-def find_closest_city(game_state, mgs, each_tile):
+def find_closest_city(game_state, mgs, each_tile, subset=None):
     closest = (999999, None)
-    for each_city in game_state.active_map.cities:
+    if subset is None:
+        subset = game_state.active_map.cities
+    for each_city in subset:
         if each_city.tile == each_tile:
             closest = (0, each_city)
             break
@@ -920,34 +922,30 @@ def set_city_territory(game_state, mgs):
         x1 = tile.column
         y1 = tile.row
         game_state.active_map.city_control[y1][x1] = owner
-        owner.tiles.append(tile)
+        if owner is not None:
+            owner.tiles.append(tile)
     start = time.time()
-    tiles_evaluated = 0
-    for each_tile in game_state.active_map.all_tiles:
-        tiles_evaluated += 1
-        if each_tile.owner is None and each_tile.biome not in (
-            ["ocean",
-             "sea",
-             "shallows",
-             "lake"]):
-                closest = find_closest_city(game_state, mgs, each_tile)
-
-                set_tile_owner(game_state, each_tile, closest[1])
-                neighbors = util.get_nearby_tiles(
-                    game_state.active_map,
-                    [each_tile.column, each_tile.row],
-                    10)
-                for neighbor_tile in neighbors:
-                    if neighbor_tile.owner is None and neighbor_tile.biome not in (
-                        ["ocean",
-                         "sea",
-                         "shallows",
-                         "lake"]):
-                        set_tile_owner(game_state, neighbor_tile, closest[1])
-                        if neighbor_tile != each_tile:
-                            tiles_evaluated += 1
-        print("Evaluated: {0} / {1} Tiles".format(
-            tiles_evaluated, len(game_state.active_map.all_tiles)))
+    city_claims = {}
+    for every_tile in game_state.active_map.all_tiles:
+        city_claims[every_tile] = []
+    for each_city in game_state.active_map.cities:
+        radius_tiles = util.get_nearby_tiles(
+            game_state.active_map,
+            [each_city.column, each_city.row],
+            15)
+        for radius_tile in radius_tiles:
+            if radius_tile.biome not in ("lake",
+                                         "shallows",
+                                         "sea",
+                                         "ocean"):
+                city_claims[radius_tile].append(each_city)
+    for each_tile, claimants in city_claims.items():
+        closest = (99999, None)
+        if len(claimants) == 1:
+            closest = (0, claimants[0])
+        elif len(claimants) > 1:
+            closest = find_closest_city(game_state, mgs, each_tile, claimants)
+        set_tile_owner(game_state, each_tile, closest[1])
 
     end = time.time()
     print("time_elapsed {0}s".format(end - start))
