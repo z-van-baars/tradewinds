@@ -43,12 +43,21 @@ def get_nation_name(nations_list):
     return new_name
 
 
+def get_nation_color(nations_list):
+    color_chosen = False
+    while not color_chosen:
+        new_color = random.choice(util.colors.nation_colors)
+        if not any((each_nation.color == new_color) for each_nation in nations_list):
+            color_chosen = True
+    return new_color
+
+
 class Nation(object):
-    def __init__(self, active_map, number, color, name):
-        self.name = name
-        self.color = color
+    def __init__(self, active_map):
         self.active_map = active_map
-        self.number = number
+        self.name = get_nation_name(active_map.nations)
+        self.color = get_nation_color(active_map.nations)
+        self.capital = None
         self.cities = []
         self.tiles = []
 

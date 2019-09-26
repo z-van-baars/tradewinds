@@ -149,22 +149,27 @@ def render_water_flux_map(mgs, marker, viable_sites):
         for each_tile in each_row:
             if each_tile.water_flux[2] > max_flux:
                 max_flux = each_tile.water_flux[2]
-    flux_gradient = {0: (0, 76, 229),
-                     1: (24, 91, 206),
-                     2: (48, 106, 184),
-                     3: (72, 121, 161),
-                     4: (96, 136, 139),
-                     5: (120, 151, 116),
-                     6: (144, 166, 94),
-                     7: (168, 181, 71),
-                     8: (192, 196, 49),
-                     9: (216, 211, 26),
-                     10: (241, 226, 4)}
+    flux_gradient = {0: (32, 5, 132),
+                     1: (69, 43, 158),
+                     2: (85, 60, 154),
+                     3: (101, 78, 149),
+                     4: (118, 96, 145),
+                     5: (135, 114, 141),
+                     6: (151, 132, 137),
+                     7: (167, 149, 133),
+                     8: (200, 185, 125),
+                     9: (234, 220, 116),
+                     10: (250, 238, 112)}
     max_flux = active_map.river_cutoff * 1.25
     for y in range(height):
         for x in range(width):
             flux = active_map.game_tile_rows[y][x].water_flux[2]
             value = min(10, round((flux / max_flux) * 10))
+            if active_map.game_tile_rows[y][x].biome in ("ocean",
+                                                         "lake",
+                                                         "shallows",
+                                                         "sea"):
+                value = 0
             marker.fill(flux_gradient[value])
             raw_maps[6].blit(marker, [x, y])
     print("Max Water Flux: {0}".format(max_flux))
@@ -175,10 +180,10 @@ def render_nation_map(mgs, marker, viable_sites):
     raw_maps = mgs.raw_maps
     width = mgs.width
     height = mgs.height
-    print("drawing city territory map...")
+    print("drawing nation territory map...")
     for y in range(height):
         for x in range(width):
-            n = active_map.city_control[y][x]
+            n = active_map.nation_control[y][x]
             if not n:
                 biome = active_map.game_tile_rows[y][x].biome
                 if any([biome == "ocean",

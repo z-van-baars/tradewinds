@@ -6,6 +6,7 @@ class GameTile(object):
         self.column = column  # Y
         self.construct = None
         self.city = None
+        self.owner = None
         self.nation = None
         self.biome = biome
         self.terrain = None
@@ -17,6 +18,4 @@ class GameTile(object):
         return False
 
     def is_occupied(self):
-        if not self.construct:
-            return False
-        return True
+        return self.construct

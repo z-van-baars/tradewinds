@@ -15,6 +15,7 @@ import sound
 import nation
 import mapgen_render as mgr
 import claim_nav
+import time
 
 pygame.init()
 pygame.display.set_mode([0, 0])
@@ -632,7 +633,10 @@ def display_update(screen, raw_maps, display_data, clock):
     render_map_labels(screen, scaled_maps, display_data)
 
 
-def input_loop(game_state, mgs, message="Press Enter to Continue"):
+def input_loop(game_state,
+               mgs,
+               message="Press Enter to Continue",
+               wait_message="Please Wait..."):
     message_font = pygame.font.SysFont('Calibri', 14, True, False)
     enter_message = message_font.render(message,
                                         True,
@@ -647,7 +651,7 @@ def input_loop(game_state, mgs, message="Press Enter to Continue"):
             elif event.type == pygame.KEYDOWN and event.key == pygame.K_RETURN:
                 sound.click.play()
                 enter_key = True
-                enter_message = message_font.render("Please Wait...",
+                enter_message = message_font.render(wait_message,
                                                     True,
                                                     util.colors.white)
             elif event.type == pygame.VIDEORESIZE:
@@ -787,7 +791,6 @@ def survey_city_sites(game_state, mgs: MapgenState):
                                                      x), viable_sites))
     for site in viable_sites:
         site.update_scores(mgs.active_map, coastal_sites)
-    print(sorted_sites.qsize())
     for site in viable_sites:
         if site.city_score > 1:
             sorted_sites.put((-site.city_score, site.tile, site))
@@ -834,6 +837,8 @@ def set_nation_spawn(active_map, viable_sites, sorted_sites, nc, i):
 
 
 def spawn_cities(game_state, mgs: MapgenState):
+    message_font = pygame.font.SysFont('Calibri', 14, True, False)
+
     all_sites, viable_sites, sorted_sites = survey_city_sites(game_state, mgs)
     coastal_sites = list(filter(lambda x: is_coastal(mgs.active_map,
                                                      mgs.largest_water_body,
@@ -849,18 +854,12 @@ def spawn_cities(game_state, mgs: MapgenState):
                    mgs.raw_maps,
                    mgs.display_data,
                    mgs.clock)
-    input_loop(game_state, mgs,
+    input_loop(game_state,
+               mgs,
                "Initial Map Survey Complete, press Enter to spawn cities")
 
     for ii in range(mgs.active_map.number_of_cities):
-        mgs.render_raw_maps(['trade score', 'city score'], viable_sites)
-        game_state.screen.fill(util.colors.black)
-        display_update(game_state.screen,
-                       mgs.raw_maps,
-                       mgs.display_data,
-                       mgs.clock)
 
-        pygame.display.flip()
         score, tile, site = sorted_sites.get()
         new_city_name = city.get_city_name(mgs.active_map.cities)
         new_city = city.City(
@@ -880,9 +879,22 @@ def spawn_cities(game_state, mgs: MapgenState):
                     each_site.update_scores(
                         game_state.active_map,
                         coastal_sites)
-        print("Cities Placed: {0} / {1}".format(
-            len(game_state.active_map.cities),
-            game_state.active_map.number_of_cities))
+        mgs.render_raw_maps(['city score'], viable_sites)
+        game_state.screen.fill(util.colors.black)
+        display_update(game_state.screen,
+                       mgs.raw_maps,
+                       mgs.display_data,
+                       mgs.clock)
+        update_text = message_font.render(
+            "Cities Placed: ...... {0} / {1}".format(
+                len(game_state.active_map.cities),
+                game_state.active_map.number_of_cities),
+            True,
+            util.colors.white)
+        game_state.screen.blit(update_text,
+                               [10, game_state.screen_height - 24])
+
+        pygame.display.flip()
 
 
 def find_closest_city(game_state, mgs, each_tile):
@@ -902,36 +914,79 @@ def find_closest_city(game_state, mgs, each_tile):
     return closest
 
 
-def set_tile_ownership(game_state, mgs):
-    tiles_mapped = 0
+def set_city_territory(game_state, mgs):
+    def set_tile_owner(game_state, tile, owner):
+        tile.owner = owner
+        x1 = tile.column
+        y1 = tile.row
+        game_state.active_map.city_control[y1][x1] = owner
+        owner.tiles.append(tile)
+    start = time.time()
+    tiles_evaluated = 0
     for each_tile in game_state.active_map.all_tiles:
-        if each_tile.city is None and each_tile.biome not in (
+        tiles_evaluated += 1
+        if each_tile.owner is None and each_tile.biome not in (
             ["ocean",
              "sea",
              "shallows",
              "lake"]):
                 closest = find_closest_city(game_state, mgs, each_tile)
 
-                each_tile.city = closest[1]
-                x1 = each_tile.column
-                y1 = each_tile.row
-                game_state.active_map.city_control[y1][x1] = closest[1]
-                neighbors = util.get_nearby_tiles(game_state.active_map, [x1, y1], 10)
+                set_tile_owner(game_state, each_tile, closest[1])
+                neighbors = util.get_nearby_tiles(
+                    game_state.active_map,
+                    [each_tile.column, each_tile.row],
+                    10)
                 for neighbor_tile in neighbors:
-                    if neighbor_tile.city is None and neighbor_tile.biome not in (
+                    if neighbor_tile.owner is None and neighbor_tile.biome not in (
                         ["ocean",
                          "sea",
                          "shallows",
                          "lake"]):
-                        neighbor_tile.city = closest[1]
-                        x2 = neighbor_tile.column
-                        y2 = neighbor_tile.row
-                        game_state.active_map.city_control[y2][x2] = closest[1]
-                        tiles_mapped += 1
-        tiles_mapped += 1
-        print('tiles mapped {0} / {1}'.format(
-            tiles_mapped,
-            len(game_state.active_map.all_tiles)))
+                        set_tile_owner(game_state, neighbor_tile, closest[1])
+                        if neighbor_tile != each_tile:
+                            tiles_evaluated += 1
+        print("Evaluated: {0} / {1} Tiles".format(
+            tiles_evaluated, len(game_state.active_map.all_tiles)))
+
+    end = time.time()
+    print("time_elapsed {0}s".format(end - start))
+
+
+def accrete_city_territory(game_state, mgs, claims):
+    print(len(game_state.active_map.nations))
+    for each_nation in game_state.active_map.nations:
+        for each_tile in claims[each_nation]:
+            if each_tile.city is not None:
+                # assert game_state.active_map.nation_control[each_tile.row][each_tile.column] is None
+                each_nation.tiles.append(each_tile.city.tiles)
+                for new_tile in each_tile.city.tiles:
+                    game_state.active_map.nation_control[new_tile.row][new_tile.column] = each_nation
+
+
+def set_nation_territory(game_state, mgs):
+    claims = {}
+    for each_nation in game_state.active_map.nations:
+        claims[each_nation] = []
+    for each_tile in game_state.active_map.all_tiles:
+        if each_tile.biome not in ("ocean",
+                                   "sea",
+                                   "shallows",
+                                   "lake"):
+            closest = (999999, None)
+            for each_nation in game_state.active_map.nations:
+                cap = each_nation.capital
+                d = util.distance(
+                    each_tile.column,
+                    each_tile.row,
+                    cap.column,
+                    cap.row)
+                if d < closest[0]:
+                    closest = (d, each_nation)
+            assert closest[1] is not None
+            claims[closest[1]].append(each_tile)
+
+    accrete_city_territory(game_state, mgs, claims)
     mgs.render_raw_maps(['nation'])
     game_state.screen.fill(util.colors.black)
     display_update(game_state.screen,
@@ -947,78 +1002,20 @@ def set_city_properties(game_state, mgs):
     pass
 
 
-def set_capitals(game_state, mgs):
-    """Code Goes Here"""
-    pass
+def get_capital_cities(game_state, mgs):
+    capital_cities = []
+    for n in range(game_state.active_map.number_of_nations):
+        capital_cities.append(game_state.active_map.cities[n])
+    return capital_cities
 
 
-def group_cities(game_state, mgs):
-    """Code Goes Here"""
-    pass
+def create_nations(game_state, mgs):
+    capital_cities = get_capital_cities(game_state, mgs)
 
-
-def set_nation_seeds(game_state, mgs: MapgenState):
-    nc = nation.nation_colors
-    random.shuffle(nc)
-    all_sites, viable_sites, sorted_sites = survey_city_sites(game_state, mgs)
-
-    mgs.render_raw_maps(['trade score', 'city score'], viable_sites)
-    display_update(game_state.screen,
-                   mgs.raw_maps,
-                   mgs.display_data,
-                   mgs.clock)
-    input_loop(game_state, mgs, "Map Surveyed, press Enter to spawn Nation Seeds")
-
-    message_font = pygame.font.SysFont('Calibri', 14, True, False)
-    print("placing cities...")
-    for ii in range(mgs.active_map.number_of_nations):
-        print(ii)
-        set_nation_spawn(mgs.active_map, viable_sites, sorted_sites, nc, ii)
-        util.quit_check()
-        print("Nation Seed placed: {0} / {1}".format(len(mgs.active_map.nations),
-                                                     mgs.active_map.number_of_nations))
-        nation_counter = message_font.render("Nation Seeds Placed:",
-                                             True,
-                                             util.colors.white)
-        n_nations_placed = message_font.render("{0} / {1}".format(
-            str(len(mgs.active_map.nations)), str(mgs.active_map.number_of_nations)),
-            True,
-            util.colors.light_green)
-        game_state.screen.fill(util.colors.black)
-        mgs.render_raw_maps(['trade score', 'city score', 'nation'], viable_sites)
-        display_update(game_state.screen, mgs.raw_maps, mgs.display_data, mgs.clock)
-        game_state.screen.blit(nation_counter,
-                               [10, game_state.screen_height - 24])
-        game_state.screen.blit(n_nations_placed,
-                               [90, game_state.screen_height - 24])
-        pygame.display.flip()
-
-    print("nation seeds placed")
-
-    sound.chime.play()
-
-
-def grow_nations(game_state, mgs):
-    active_map = game_state.active_map
-    nations = active_map.nations
-
-    while game_state.calendar.year < 100 and len(game_state.active_map.cities) < 250:
-        for each_nation in nations:
-            each_nation.mapgen_turn()
-            game_state.screen.fill(util.colors.black)
-            mgs.render_raw_maps(['nation'])
-            display_update(game_state.screen, mgs.raw_maps, mgs.display_data, mgs.clock)
-            game_state.clock.tick(60)
-
-        game_state.calendar.increment_date(2)
-
-        game_state.screen.fill(util.colors.black)
-        mgs.render_raw_maps(['nation'])
-        display_update(game_state.screen, mgs.raw_maps, mgs.display_data, mgs.clock)
-        game_state.clock.tick(60)
-        print("the current year is: {0}".format(str(game_state.calendar.year)))
-        print("the number of cities is: {0}".format(len(mgs.active_map.cities)))
-        pygame.display.flip()
+    for capital in capital_cities:
+        new_nation = nation.Nation(game_state.active_map)
+        new_nation.capital = capital
+        game_state.active_map.nations.append(new_nation)
 
 
 def map_generation(game_state, active_map: Map):
@@ -1026,17 +1023,22 @@ def map_generation(game_state, active_map: Map):
     input_loop(game_state, mgs)
     render_map_labels(game_state.screen, mgs.scaled_maps, mgs.display_data)
     display_update(game_state.screen, mgs.raw_maps, mgs.display_data, mgs.clock)
-    # generate water, land, rivers, biomes and resources
+    # generate water, land, rivers, temperature, biomes and resources
     make_map(game_state, mgs)
-    # spawn nations, grow nations
+    #
     spawn_cities(game_state, mgs)
-    input_loop(game_state, mgs, "Press Enter to Manifest Destiny.")
-    set_tile_ownership(game_state, mgs)
+    input_loop(game_state,
+               mgs,
+               "Press Enter to Manifest Destiny.",
+               "Setting Territory for {0} Cities... Please Wait...".format(game_state.active_map.number_of_cities))
+    set_city_territory(game_state, mgs)
+    input_loop(game_state,
+               mgs,
+               "Press Enter to Create Nations.",
+               "Setting Territory for {0} Nations... Please Wait...".format(game_state.active_map.number_of_nations))
+    create_nations(game_state, mgs)
+    set_nation_territory(game_state, mgs)
     set_city_properties(game_state, mgs)
-    set_capitals(game_state, mgs)
-    group_cities(game_state, mgs)
-    # set_nation_seeds(game_state, mgs)
-    # grow_nations(game_state, mgs)
     input_loop(game_state, mgs, "Press Enter to accept your fate.")
 
     # map generation finished

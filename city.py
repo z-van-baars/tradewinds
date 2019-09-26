@@ -20,8 +20,6 @@ cn.close()
 
 
 def get_city_name(cities_list):
-    print(len(cities_list))
-    print(len(city_names))
     name_chosen = False
     while not name_chosen:
         new_name = random.choice(city_names)
@@ -45,6 +43,7 @@ class City(object):
         self.row = y
         self.tile = tile
         self.tile.city = self
+        self.tiles = []
         self.name = name
         self.color = (255, 255, 255)
         self.size = 1
@@ -258,7 +257,7 @@ def cull_interior_watermasses(active_map):
                 water_array[tile.column, tile.row] = 0
     s = generate_binary_structure(2, 2)
     labeled_array, num_features = label(water_array, structure=s)
-    print("water bodies: {0}".format(num_features))
+    print("Large Water Bodies: {0}".format(num_features))
 
     # filter the labeled array into layers. `==` does the filtering
     layers = [(labeled_array == i) for i in range(1, num_features + 1)]

@@ -5,29 +5,29 @@ import queue
 
 
 movement_cost = {"taiga": 1,
-                 "tundra": 4,
-                 "snowy tundra": 5,
+                 "tundra": 1,
+                 "snowy tundra": 1,
                  "grassland": 1,
                  "plains": 1,
-                 "wet plains": 2,
+                 "wet plains": 1,
                  "savannah": 1,
-                 "desert": 6,
-                 "forest": 2,
-                 "jungle": 4,
-                 "snowpack": 4,
-                 "ice": 4,
+                 "desert": 1,
+                 "forest": 1,
+                 "jungle": 1,
+                 "snowpack": 1,
+                 "ice": 1,
                  "shrubland": 1,
                  "ocean": 1,
-                 "sea": 0.5,
-                 "shallows": 0.5,
-                 "lake": 0.5}
+                 "sea": 1,
+                 "shallows": 1,
+                 "lake": 1}
 
 
-terrain_movement_cost = {"mountain": 2.0,
-                         "low mountain": 1.75,
-                         "hill": 1.5,
-                         "low hill": 1.25,
-                         "vegetation": 1.25,
+terrain_movement_cost = {"mountain": 1,
+                         "low mountain": 1,
+                         "hill": 1,
+                         "low hill": 1,
+                         "vegetation": 1,
                          "river": 1}
 
 
