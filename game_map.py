@@ -51,7 +51,7 @@ class Map(object):
         map_size = math.sqrt(math.sqrt(map_dimensions[0] * map_dimensions[1]))
         self.number_of_cities = math.floor(map_size * 5)
         """City Override"""
-        self.number_of_cities = 30
+        self.number_of_cities = 100
         self.number_of_nations = random.randint(
             math.ceil(map_size / 2),
             math.floor(map_size))

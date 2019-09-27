@@ -19,3 +19,9 @@ class GameTile(object):
 
     def is_occupied(self):
         return self.construct
+
+    def is_land(self):
+        return self.biome not in ('lake',
+                                  'shallows',
+                                  'sea',
+                                  'ocean')

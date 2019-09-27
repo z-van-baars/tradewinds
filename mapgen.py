@@ -840,15 +840,12 @@ def spawn_cities(game_state, mgs: MapgenState):
     message_font = pygame.font.SysFont('Calibri', 14, True, False)
 
     all_sites, viable_sites, sorted_sites = survey_city_sites(game_state, mgs)
-    coastal_sites = list(filter(lambda x: is_coastal(mgs.active_map,
-                                                     mgs.largest_water_body,
-                                                     x), viable_sites))
     map_size_f = math.sqrt(
-        math.sqrt(
+        math.sqrt(math.sqrt(
             game_state.active_map.width *
-            game_state.active_map.height))
+            game_state.active_map.height)))
 
-    map_size = math.floor(map_size_f)
+    map_size_f = math.floor(map_size_f)
     mgs.render_raw_maps(['trade score', 'city score'], viable_sites)
     display_update(game_state.screen,
                    mgs.raw_maps,
@@ -857,10 +854,19 @@ def spawn_cities(game_state, mgs: MapgenState):
     input_loop(game_state,
                mgs,
                "Initial Map Survey Complete, press Enter to spawn cities")
-
     for ii in range(mgs.active_map.number_of_cities):
-
-        score, tile, site = sorted_sites.get()
+        d = 0
+        while d < random.randint(1 + map_size_f, math.floor(map_size_f * 1.5)):
+            score, tile, site = sorted_sites.get()
+            d = 1000
+            for existing_city in game_state.active_map.cities:
+                d1 = util.distance(
+                    tile.column,
+                    tile.row,
+                    existing_city.column,
+                    existing_city.row)
+                if d1 < d:
+                    d = d1
         new_city_name = city.get_city_name(mgs.active_map.cities)
         new_city = city.City(
             mgs.active_map,
@@ -870,16 +876,8 @@ def spawn_cities(game_state, mgs: MapgenState):
             new_city_name)
         # all_sites, viable_sites, sorted_sites = survey_city_sites(game_state, mgs)
         mgs.active_map.add_city(new_city)
-        affected_tiles = util.get_nearby_tiles(game_state.active_map,
-                                               (tile.column, tile.row),
-                                               map_size + 1)
-        for each_site in viable_sites:
-            for each_tile in affected_tiles:
-                if each_site.tile == each_tile:
-                    each_site.update_scores(
-                        game_state.active_map,
-                        coastal_sites)
-        mgs.render_raw_maps(['city score'], viable_sites)
+
+        # mgs.render_raw_maps(['city score'], viable_sites)
         game_state.screen.fill(util.colors.black)
         display_update(game_state.screen,
                        mgs.raw_maps,
@@ -934,10 +932,7 @@ def set_city_territory(game_state, mgs):
             [each_city.column, each_city.row],
             15)
         for radius_tile in radius_tiles:
-            if radius_tile.biome not in ("lake",
-                                         "shallows",
-                                         "sea",
-                                         "ocean"):
+            if radius_tile.is_land():
                 city_claims[radius_tile].append(each_city)
     for each_tile, claimants in city_claims.items():
         closest = (99999, None)
@@ -951,26 +946,67 @@ def set_city_territory(game_state, mgs):
     print("time_elapsed {0}s".format(end - start))
 
 
-def accrete_city_territory(game_state, mgs, claims):
+def accrete_cities(game_state, mgs, claims):
     print(len(game_state.active_map.nations))
     for each_nation in game_state.active_map.nations:
         for each_tile in claims[each_nation]:
             if each_tile.city is not None:
-                # assert game_state.active_map.nation_control[each_tile.row][each_tile.column] is None
-                each_nation.tiles.append(each_tile.city.tiles)
-                for new_tile in each_tile.city.tiles:
-                    game_state.active_map.nation_control[new_tile.row][new_tile.column] = each_nation
+                each_nation.cities.append(each_tile.city)
+                each_tile.city.nation = each_nation
+
+
+def accrete_city_territory(game_state, mgs):
+    nc_array = game_state.active_map.nation_control
+    for each_nation in game_state.active_map.nations:
+        for new_city in each_nation.cities:
+            each_nation.tiles.append(new_city.tiles)
+            for new_tile in new_city.tiles:
+                nc_array[new_tile.row][new_tile.column] = each_nation
+                new_tile.nation = each_nation
+
+
+def survey_unclaimed_tiles(game_state, mgs):
+    unclaimed_tiles = []
+    for each_tile in game_state.active_map.all_tiles:
+        if each_tile.is_land() and each_tile.nation is None:
+            unclaimed_tiles.append(each_tile)
+    return unclaimed_tiles
+
+
+def award_unclaimed_tiles(game_state, mgs, unclaimed_tiles):
+    nc_array = game_state.active_map.nation_control
+    for unclaimed_tile in unclaimed_tiles:
+        nearby_claims = {}
+        for each_nation in game_state.active_map.nations:
+            nearby_claims[each_nation] = 0
+        best_claimant = (0, None)
+        search_radius = 15
+        while best_claimant[1] is None:
+            claim_neighborhood = util.get_nearby_tiles(
+                game_state.active_map,
+                [unclaimed_tile.column, unclaimed_tile.row],
+                search_radius)
+
+            for nearby_tile in claim_neighborhood:
+                if nearby_tile.nation is not None:
+                    nearby_claims[nearby_tile.nation] += 1
+            for claimant, claim_count in nearby_claims.items():
+                if claim_count > best_claimant[0]:
+                    best_claimant = (claim_count, claimant)
+            search_radius += 5
+        assert best_claimant[1] is not None
+        unclaimed_tile.nation = best_claimant[1]
+        best_claimant[1].tiles.append(unclaimed_tile)
+        nc_array[unclaimed_tile.row][unclaimed_tile.column] = best_claimant[1]
 
 
 def set_nation_territory(game_state, mgs):
+    print("Debug A")
     claims = {}
     for each_nation in game_state.active_map.nations:
         claims[each_nation] = []
     for each_tile in game_state.active_map.all_tiles:
-        if each_tile.biome not in ("ocean",
-                                   "sea",
-                                   "shallows",
-                                   "lake"):
+        if each_tile.is_land():
             closest = (999999, None)
             for each_nation in game_state.active_map.nations:
                 cap = each_nation.capital
@@ -983,8 +1019,22 @@ def set_nation_territory(game_state, mgs):
                     closest = (d, each_nation)
             assert closest[1] is not None
             claims[closest[1]].append(each_tile)
+    print("Debug B")
+    accrete_cities(game_state, mgs, claims)
+    accrete_city_territory(game_state, mgs)
+    mgs.render_raw_maps(['nation'])
+    game_state.screen.fill(util.colors.black)
+    display_update(game_state.screen,
+                   mgs.raw_maps,
+                   mgs.display_data,
+                   mgs.clock)
 
-    accrete_city_territory(game_state, mgs, claims)
+    pygame.display.flip()
+    input_loop(game_state, mgs, "Press Enter to Award Unclaimed Tiles.")
+    print("Debug C")
+    unclaimed_tiles = survey_unclaimed_tiles(game_state, mgs)
+    print("Debug D")
+    award_unclaimed_tiles(game_state, mgs, unclaimed_tiles)
     mgs.render_raw_maps(['nation'])
     game_state.screen.fill(util.colors.black)
     display_update(game_state.screen,
