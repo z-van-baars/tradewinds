@@ -160,7 +160,7 @@ def render_water_flux_map(mgs, marker, viable_sites):
                      8: (200, 185, 125),
                      9: (234, 220, 116),
                      10: (250, 238, 112)}
-    max_flux = active_map.river_cutoff * 1.25
+    max_flux = active_map.mgp.river_cutoff * 1.25
     for y in range(height):
         for x in range(width):
             flux = active_map.game_tile_rows[y][x].water_flux[2]

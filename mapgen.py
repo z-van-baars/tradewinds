@@ -10,12 +10,12 @@ from game_map import Map
 import pygame
 import city
 import artikel
-import region
 import sound
 import nation
 import mapgen_render as mgr
 import claim_nav
 import time
+import ships
 
 pygame.init()
 pygame.display.set_mode([0, 0])
@@ -157,7 +157,7 @@ def classify_masses(active_map):
     water_array = np.ones((active_map.width, active_map.height))
     for row in active_map.game_tile_rows:
         for tile in row:
-            if active_map.elevation[tile.row][tile.column] >= active_map.water_cutoff:
+            if active_map.elevation[tile.row][tile.column] >= active_map.mgp.water_cutoff:
                 water_array[tile.column, tile.row] = 0
     s = generate_binary_structure(2, 2)
     labeled_array, num_features = label(water_array, structure=s)
@@ -193,16 +193,16 @@ def adjust_landmass_height(active_map):
         raising = False
         for each_tile in tiles_to_raise:
             active_map.elevation[each_tile.row][each_tile.column] = min(
-                active_map.water_cutoff + 0.01, (
+                active_map.mgp.water_cutoff + 0.01, (
                     active_map.elevation[each_tile.row][each_tile.column] + 0.01))
             e = active_map.elevation[each_tile.row][each_tile.column]
-            if e < active_map.water_cutoff + 0.01:
+            if e < active_map.mgp.water_cutoff + 0.01:
                 raising = True
 
 
 def infill_basins(active_map):
     print("filling basins...")
-    water_cutoff = 0.5
+    water_cutoff = active_map.mgp.water_cutoff
 
     # builds a stack of layer tuples to iterate through
     z_layers = queue.PriorityQueue()
@@ -253,7 +253,7 @@ def infill_basins(active_map):
 
 def generate_rivers(active_map, water_cutoff):
     print("running rivers...")
-    river_cutoff = active_map.river_cutoff
+    river_cutoff = active_map.mgp.river_cutoff
 
     # builds a stack of layer tuples to iterate through
     moisture_layers = queue.PriorityQueue()
@@ -457,7 +457,7 @@ def generate_terrain(active_map):
                                              "hill",
                                              "low mountain",
                                              "mountain"])):
-                    if tile.water_flux[2] > active_map.river_cutoff:
+                    if tile.water_flux[2] > active_map.mgp.river_cutoff:
                         tile.terrain = "river"
 
 
@@ -692,11 +692,11 @@ class MapgenState(object):
 
     @property
     def water_cutoff(self):
-        return self.active_map.water_cutoff
+        return self.active_map.mgp.water_cutoff
 
     @property
     def max_resource_cluster_size(self):
-        return self.active_map.max_resource_cluster_size
+        return self.active_map.mgp.max_resource_cluster_size
 
     def initialize_raw_maps(self, width, height):
         generate_blank_ocean_tiles(self.active_map)
@@ -854,7 +854,7 @@ def spawn_cities(game_state, mgs: MapgenState):
     input_loop(game_state,
                mgs,
                "Initial Map Survey Complete, press Enter to spawn cities")
-    for ii in range(mgs.active_map.number_of_cities):
+    for ii in range(mgs.active_map.mgp.number_of_cities):
         d = 0
         while d < random.randint(1 + map_size_f, math.floor(map_size_f * 1.5)):
             score, tile, site = sorted_sites.get()
@@ -886,7 +886,7 @@ def spawn_cities(game_state, mgs: MapgenState):
         update_text = message_font.render(
             "Cities Placed: ...... {0} / {1}".format(
                 len(game_state.active_map.cities),
-                game_state.active_map.number_of_cities),
+                game_state.active_map.mgp.number_of_cities),
             True,
             util.colors.white)
         game_state.screen.blit(update_text,
@@ -1052,7 +1052,7 @@ def set_city_properties(game_state, mgs):
 
 def get_capital_cities(game_state, mgs):
     capital_cities = []
-    for n in range(game_state.active_map.number_of_nations):
+    for n in range(game_state.active_map.mgp.number_of_nations):
         capital_cities.append(game_state.active_map.cities[n])
     return capital_cities
 
@@ -1078,16 +1078,21 @@ def map_generation(game_state, active_map: Map):
     input_loop(game_state,
                mgs,
                "Press Enter to Manifest Destiny.",
-               "Setting Territory for {0} Cities... Please Wait...".format(game_state.active_map.number_of_cities))
+               "Setting Territory for {0} Cities... Please Wait...".format(game_state.active_map.mgp.number_of_cities))
     set_city_territory(game_state, mgs)
     input_loop(game_state,
                mgs,
                "Press Enter to Create Nations.",
-               "Setting Territory for {0} Nations... Please Wait...".format(game_state.active_map.number_of_nations))
+               "Setting Territory for {0} Nations... Please Wait...".format(game_state.active_map.mgp.number_of_nations))
     create_nations(game_state, mgs)
     set_nation_territory(game_state, mgs)
     set_city_properties(game_state, mgs)
     input_loop(game_state, mgs, "Press Enter to accept your fate.")
+
+    for each_city in game_state.active_map.cities:
+        for x in range(3):
+            ship_choice = random.choice(ships.ship_types)
+            each_city.ships_available.append(ship_choice)
 
     # map generation finished
 

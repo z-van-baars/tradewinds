@@ -12,6 +12,22 @@ tile_width = 40
 tile_height = 15
 
 
+class MapGenParameters(object):
+    def __init__(self, map_dimensions):
+        self.river_cutoff = 2000
+        self.water_cutoff = 0.5
+        self.max_resource_cluster_size = 5
+        map_size = math.sqrt(math.sqrt(map_dimensions[0] * map_dimensions[1]))
+        self.number_of_cities = math.floor(map_size * 5)
+        """City Override"""
+        self.number_of_cities = 45
+        self.number_of_nations = random.randint(
+            math.ceil(map_size / 2),
+            math.floor(map_size))
+        """Nation Override"""
+        self.number_of_nations = 4
+
+
 class DisplayLayer(pygame.sprite.Sprite):
     def __init__(self, width, height):
         super().__init__()
@@ -35,6 +51,7 @@ class Map(object):
         self.screen_dimensions = screen_dimensions
         self.width = map_dimensions[0]
         self.height = map_dimensions[1]
+        self.mgp = MapGenParameters(map_dimensions)
         self.game_tile_rows = []
         self.nation_control = []
         for row in range(map_dimensions[1]):
@@ -48,20 +65,10 @@ class Map(object):
             for column in range(map_dimensions[0]):
                 row.append(False)
             self.city_control.append(row)
-        map_size = math.sqrt(math.sqrt(map_dimensions[0] * map_dimensions[1]))
-        self.number_of_cities = math.floor(map_size * 5)
-        """City Override"""
-        self.number_of_cities = 100
-        self.number_of_nations = random.randint(
-            math.ceil(map_size / 2),
-            math.floor(map_size))
-        """Nation Override"""
-        self.number_of_nations = 4
+
         self.cities = []
         self.nations = []
-        self.river_cutoff = 2000
-        self.water_cutoff = 0.5
-        self.max_resource_cluster_size = 5
+
         self.displayshift_x = 0
         self.displayshift_y = 0
         self.temperature = []
@@ -69,6 +76,7 @@ class Map(object):
         self.elevation = []
         self.biome_map_preview = None
         self.all_tiles = []
+        self.agents = set()
 
     def add_city(self, new_city):
         self.cities.append(new_city)
@@ -88,7 +96,7 @@ class Map(object):
         self.tile_display_layer.image = self.tile_display_layer.image.convert_alpha()
 
     def paint_terrain_layer(self, game_tile_rows):
-        river_cutoff = self.river_cutoff
+        river_cutoff = self.mgp.river_cutoff
         tile_width = 40
         self.terrain_display_layer = DisplayLayer(self.width, self.height)
         background_x_middle = (self.tile_display_layer.image.get_width() / 2)

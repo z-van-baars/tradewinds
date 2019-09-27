@@ -42,9 +42,9 @@ def update_display(game_state, selected_tile, display_parameters, mouse_pos, map
     screen.blit(active_map.building_display_layer.image, [background_left,
                                                           background_top])
 
-    if game_state.player.ship.path and game_state.draw_routes:
+    if game_state.player.path is not None and game_state.draw_routes:
         shifted_pts_list = []
-        for point in game_state.player.ship.path_pts:
+        for point in game_state.player.path_pts:
             shifted_pts_list.append(
                 (point[0] + background_x_middle + (tile_width / 2),
                  point[1] + background_top + 7))  # half tile height

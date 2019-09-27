@@ -134,6 +134,14 @@ button_images = [leave_r_img,
                  recenter_r_img,
                  recenter_h_img]
 
+proc_button_left_edge_hover = pygame.image.load("art/buttons/button_left_edge_hover.png")
+proc_button_right_edge_hover = pygame.image.load("art/buttons/button_right_edge_hover.png")
+proc_button_center_hover = pygame.image.load("art/buttons/button_center_hover.png")
+
+proc_button_left_edge_regular = pygame.image.load("art/buttons/button_left_edge_regular.png")
+proc_button_right_edge_regular = pygame.image.load("art/buttons/button_right_edge_regular.png")
+proc_button_center_regular = pygame.image.load("art/buttons/button_center_regular.png")
+
 for img in button_images:
     img.set_colorkey(util.colors.key)
     img = img.convert_alpha()
@@ -154,6 +162,25 @@ class Button(object):
         self.click = on_click
         self.sprite.rect.x = x
         self.sprite.rect.y = y
+
+
+def generate_button_images(button_text):
+    button_font = pygame.font.SysFont('Calibri', 14, True, False)
+    button_stamp = button_font.render(button_text, True, util.colors.light_gray)
+    button_width = button_stamp.get_width() + 14
+    center_spacing = button_width - 18
+    regular_img = pygame.Surface([button_width, 30])
+    hover_img = pygame.Surface([button_width, 30])
+    regular_img.blit(proc_button_left_edge_regular, [0, 0])
+    regular_img.blit(proc_button_right_edge_regular, [button_width - 9, 0])
+    hover_img.blit(proc_button_left_edge_hover, [0, 0])
+    hover_img.blit(proc_button_right_edge_hover, [button_width - 9, 0])
+    for ii in range(center_spacing):
+        regular_img.blit(proc_button_center_regular, [9 + ii, 0])
+        hover_img.blit(proc_button_center_hover, [9 + ii, 0])
+    regular_img.blit(button_stamp, [7, 6])
+    hover_img.blit(button_stamp, [7, 6])
+    return regular_img, hover_img
 
 
 class Menu(object):
@@ -504,10 +531,10 @@ class ContextMenu(Menu):
                  "sea",
                  "shallows",
                  "lake"]) or tile.terrain == "river":
-                game_state.player.ship.target_tile = tile
-                new_path = game_state.player.ship.check_path_to_target()
+                game_state.player.target_tile = tile
+                new_path = game_state.player.check_path_to_target()
                 if new_path is not None:
-                    game_state.player.ship.set_path(new_path)
+                    game_state.player.set_path(new_path)
                 else:
                     cannot_move_popup = ImpassablePopup(game_state)
                     game_state.active_menus = (
@@ -542,21 +569,21 @@ class ContextMenu(Menu):
             enter_city_r_img,
             enter_city_h_img,
             enter_city_click,
-            80,
+            78,
             25)
 
         tile_info_button = Button(
             tile_info_r_img,
             tile_info_h_img,
             tile_info_click,
-            170,
+            151,
             25)
 
         cancel_button = Button(
             cancel_r_img,
             cancel_h_img,
             cancel_click,
-            240,
+            224,
             25)
         self.buttons = [move_button, tile_info_button, cancel_button]
         player_tile = self.game_state.active_map.game_tile_rows[game_state.player.ship.row][game_state.player.ship.column]
@@ -929,7 +956,8 @@ class MarketMenu(Menu):
         current_cargo = 0
         for artikel_name, artikel_quantity in self.player.ship.cargo.items():
             current_cargo += artikel_quantity
-        self.display_cache["cargo cap"] = "{0} / {1}".format(str(current_cargo), str(self.player.ship.cargo_cap))
+        self.display_cache["cargo cap"] = "{0} / {1}".format(
+            str(current_cargo), str(self.player.ship.cargo_cap))
         self.display_cache["market artikels list"] = []
         for artikel_name, artikel_quantity, in self.city.supply.items():
             if artikel_quantity > 0:
@@ -950,19 +978,24 @@ class MarketMenu(Menu):
         self.update_selection_boxes()
 
     def update_selection_boxes(self):
-        box_y = 58 + ((self.display_cache["market selected"] - self.display_cache["market list top"]) * 14)
+        box_y = 58 + ((
+            self.display_cache["market selected"] -
+            self.display_cache["market list top"]) * 14)
         self.display_cache["market selection box"].image = pygame.Rect(37,
                                                                        box_y,
                                                                        208,
                                                                        15)
-        box_y = 58 + ((self.display_cache["cargo selected"] - self.display_cache["cargo list top"]) * 14)
+        box_y = 58 + ((
+            self.display_cache["cargo selected"] -
+            self.display_cache["cargo list top"]) * 14)
         self.display_cache["cargo selection box"].image = pygame.Rect(252,
                                                                       box_y,
                                                                       208,
                                                                       15)
 
     def mouse_click_handler(self, event, pos):
-        mouse_pos = (pos[0] - self.background_pane.rect.x, pos[1] - self.background_pane.rect.y)
+        mouse_pos = (pos[0] - self.background_pane.rect.x,
+                     pos[1] - self.background_pane.rect.y)
         for button in self.buttons:
             if util.check_if_inside(button.sprite.rect.x,
                                     button.sprite.rect.right,
@@ -995,25 +1028,39 @@ class MarketMenu(Menu):
 
     def draw_selection_boxes(self):
         if self.display_cache["market list top"] <= self.display_cache["market selected"] <= self.display_cache["market list top"] + 21:
-            pygame.draw.rect(self.cached_image, (255, 198, 13), self.display_cache["market selection box"].image, 1)
+            pygame.draw.rect(
+                self.cached_image,
+                (255, 198, 13),
+                self.display_cache["market selection box"].image,
+                1)
         if self.display_cache["cargo list top"] <= self.display_cache["cargo selected"] <= self.display_cache["cargo list top"] + 21:
-            pygame.draw.rect(self.cached_image, (255, 198, 13), self.display_cache["cargo selection box"].image, 1)
+            pygame.draw.rect(
+                self.cached_image,
+                (255, 198, 13),
+                self.display_cache["cargo selection box"].image,
+                1)
 
     def render_decals(self, pos):
-        left_margin = (self.background_pane.image.get_width() / 2) - (self.name_stamp.get_width() / 2)
+        left_margin = (
+            (self.background_pane.image.get_width() / 2) -
+            (self.name_stamp.get_width() / 2))
         self.update_display_cache()
         self.cached_image.blit(self.name_stamp, [left_margin, 12])
         small_font = pygame.font.SysFont("Calibri", 14, True, False)
-        silver_stamp = small_font.render("Silver: {0}".format(str(self.display_cache["silver"])),
-                                         True,
-                                         (255, 255, 255))
+        silver_stamp = small_font.render(
+            "Silver: {0}".format(str(self.display_cache["silver"])),
+            True,
+            (255, 255, 255))
         self.cached_image.blit(silver_stamp, [3, 13])
         count = 0
         spacer = 14
         for artikel_name in self.display_cache["market visible items"]:
-            artikel_name_stamp = small_font.render(artikel_name, True, (255, 255, 255))
-            artikel_quantity_stamp = small_font.render(str(self.city.supply[artikel_name]), True, (255, 255, 255))
-            artikel_price_stamp = small_font.render(str(self.city.purchase_price[artikel_name]), True, (200, 0, 0))
+            artikel_name_stamp = small_font.render(
+                artikel_name, True, (255, 255, 255))
+            artikel_quantity_stamp = small_font.render(
+                str(self.city.supply[artikel_name]), True, (255, 255, 255))
+            artikel_price_stamp = small_font.render(
+                str(self.city.purchase_price[artikel_name]), True, (200, 0, 0))
 
             self.cached_image.blit(artikel_quantity_stamp, [37,
                                                             60 + count * spacer])
@@ -1027,9 +1074,12 @@ class MarketMenu(Menu):
         spacer = 14
         for artikel_name in self.display_cache["cargo visible items"]:
             if self.player.ship.cargo[artikel_name] > 0:
-                artikel_name_stamp = small_font.render(artikel_name, True, (255, 255, 255))
-                artikel_quantity_stamp = small_font.render(str(self.player.ship.cargo[artikel_name]), True, (255, 255, 255))
-                artikel_price_stamp = small_font.render(str(self.city.sell_price[artikel_name]), True, (0, 210, 0))
+                artikel_name_stamp = small_font.render(
+                    artikel_name, True, (255, 255, 255))
+                artikel_quantity_stamp = small_font.render(
+                    str(self.player.ship.cargo[artikel_name]), True, (255, 255, 255))
+                artikel_price_stamp = small_font.render(
+                    str(self.city.sell_price[artikel_name]), True, (0, 210, 0))
                 self.cached_image.blit(artikel_quantity_stamp, [252,
                                                                 60 + count * spacer])
                 self.cached_image.blit(artikel_name_stamp, [305,
@@ -1037,7 +1087,10 @@ class MarketMenu(Menu):
                 self.cached_image.blit(artikel_price_stamp, [440,
                                                              60 + count * spacer])
                 count += 1
-        cargo_stamp = small_font.render(self.display_cache["cargo cap"], True, (255, 255, 255))
+        cargo_stamp = small_font.render(
+            self.display_cache["cargo cap"],
+            True,
+            (255, 255, 255))
         self.cached_image.blit(cargo_stamp, [314, 448])
         self.draw_selection_boxes()
 
@@ -1063,16 +1116,8 @@ class ShipyardMenu(Menu):
         def x_click():
             self.open = False
 
-        def buy_cog_click():
-            pass
-
-        def buy_carrack_click():
-            pass
-
-        def buy_blockade_runner_click():
-            pass
-
-        dragbar_r_img = pygame.Surface([self.background_pane.image.get_width() - 2, 9])
+        dragbar_r_img = pygame.Surface(
+            [self.background_pane.image.get_width() - 2, 9])
         dragbar_r_img.fill(util.colors.dragbar)
 
         dragbar = Button(
@@ -1089,33 +1134,23 @@ class ShipyardMenu(Menu):
             self.background_pane.image.get_width() - 22,
             10)
 
-        buy_cog = Button(
-            buy_cog_r_img,
-            buy_cog_h_img,
-            buy_cog_click,
-            4,
-            160)
+        ship_purchase_buttons = []
+        for i, ship_type in enumerate(self.city.ships_available):
+            def procedural_button_click():
+                pass
+            ship_name = ship_type.hull_class
+            procedural_r_img, procedural_h_img = generate_button_images(
+                "Buy {0}".format(ship_name))
 
-        buy_carrack = Button(
-            buy_carrack_r_img,
-            buy_carrack_h_img,
-            buy_cog_click,
-            4,
-            200)
+            procedural_button = Button(
+                procedural_r_img,
+                procedural_h_img,
+                procedural_button_click,
+                6,
+                160 + ((1 + i) * 40))
+            ship_purchase_buttons.append(procedural_button)
 
-        buy_blockade_runner = Button(
-            buy_blockade_runner_r_img,
-            buy_blockade_runner_h_img,
-            buy_blockade_runner_click,
-            4,
-            240)
-
-        self.buttons = [
-            dragbar,
-            x_button,
-            buy_cog,
-            buy_carrack,
-            buy_blockade_runner]
+        self.buttons = [dragbar, x_button] + ship_purchase_buttons
 
     def render_decals(self, pos):
         header_font = pygame.font.SysFont('Calibri', 18, True, False)
@@ -1124,9 +1159,6 @@ class ShipyardMenu(Menu):
         self.cached_image.blit(
             city_name_stamp,
             [self.background_pane.image.get_width() / 2, 15])
-        self.cached_image.blit(art.cog_icon, [185, 145])
-        self.cached_image.blit(art.carrack_icon, [185, 185])
-        self.cached_image.blit(art.blockade_runner_icon, [185, 225])
 
 
 class QuantityMenu(Menu):
@@ -1281,13 +1313,13 @@ class QuantityMenu(Menu):
                         min_button,
                         dragbar]
 
-    def keydown_handler(self, key):
+    def keydown_handler(self, event, key):
         if key == pygame.K_LSHIFT or key == pygame.K_RSHIFT:
             self.step = 10
         elif key == pygame.K_LCTRL or key == pygame.K_RCTRL:
             self.step = 100
 
-    def keyup_handler(self, key):
+    def keyup_handler(self, event, key):
         if key == pygame.K_LSHIFT or key == pygame.K_RSHIFT:
             self.step = 1
         elif key == pygame.K_LCTRL or key == pygame.K_RCTRL:

@@ -150,15 +150,8 @@ def input_processing(game_state, selected_tile, display_parameters, mouse_pos, m
 
 
 def game_tick(game_state):
-    for ship in game_state.ships:
-        if ship.path and ship.check_move_timer():
-            step = ship.path.get_step()
-            ship.move(step.column, step.row)
-            ship.check_path()
-        elif ship.path and not ship.check_move_timer():
-            ship.move_timer -= 1
-            if ship == game_state.player.ship and game_state.infinite_speed:
-                ship.move_timer = 0
+    for agent in game_state.active_map.agents:
+        agent.tick()
 
 
 def main(game_state):
@@ -224,7 +217,7 @@ game_state.active_map = game_map.Map((200, 200), (screen_width, screen_height))
 mapgen.map_generation(game_state, game_state.active_map)
 start_location = random.choice(game_state.active_map.cities)
 # game_state.player = player.Player(start_location.column, start_location.row)
-game_state.player = player.Player(game_state.active_map)
+game_state.player = player.Player(game_state, game_state.active_map)
 game_state.player.silver = 100
 game_state.player.ship.cargo['wool'] = 10
 game_state.ships.add(game_state.player.ship)
@@ -235,17 +228,19 @@ for city in game_state.active_map.cities:
     list_of_cities.append(city)
 random.shuffle(list_of_cities)
 start_city = list_of_cities[0]
+game_state.player.column = start_city.column
+game_state.player.row = start_city.row
 game_state.player.ship.column = start_city.column
 game_state.player.ship.row = start_city.row
-game_state.player.ship.x = start_city.column
-game_state.player.ship.y = start_city.row
 
 """Center Camera on Start"""
 x1, y1 = util.get_screen_coords(
     game_state.player.ship.column,
     game_state.player.ship.row)
-game_state.active_map.x_shift = -x1 - 40 - game_state.background_width / 2 + game_state.screen_width / 2
+game_state.active_map.x_shift = (
+    -x1 - 40 - game_state.background_width / 2 + game_state.screen_width / 2)
 game_state.active_map.y_shift = -y1 - 40 + game_state.screen_height / 2
+game_state.active_map.agents.add(game_state.player)
 main(game_state)
 
 

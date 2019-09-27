@@ -11,7 +11,7 @@ class Ship(object):
     Attributes
     ----------
     speed
-        Gotta go fast.  For now this does nothing.
+        Gotta go fast.
     cargo_cap : int
         Max Loaded Cargo in Tons.  Less loaded cargo increases speed, but this has
         not been implemented.
@@ -46,19 +46,9 @@ class Ship(object):
         self.active_map = active_map
         self.column = column
         self.row = row
-        """x y pair for screen rendering"""
-        self.x = 0
-        self.y = 0
         """tile ID of current tile"""
         self.tile = None
-        """path object.  Should be None if there is no target"""
-        self.path = None
-        """Target Tile ID
-        (for now this will always be chained to the target port / port ID)"""
-        self.target_tile = None
-        self.target_port = None
-        self.move_timer = 0
-        self.move_timer_max = round((5.0 / speed) * 10)
+
         # laden_speed = base_speed * (0.5 * (1.0 - cargo_cap / current_cargo))
         """
         CARGO Dictionary
@@ -66,71 +56,19 @@ class Ship(object):
         e.g. 'Nutmeg' and the value is a quantity in Int form"""
         self.cargo = {}
 
-    def clear_target(self):
-        self.target_tile = None
-        self.target_port = None
-        self.path = None
-
     def set_display_coordinates(self, tile_x: int, tile_y: int) -> None:
         self.x = tile_x
         self.y = tile_y
-
-    def check_move_timer(self):
-        if self.move_timer <= 0:
-            return True
-        return False
 
     def get_upkeep_cost(self):
         u = self.purchase_cost * 0.025
         return u + sum(quantity * crew.wages[sailor_name]
                        for sailor_name, quantity in self.crew.items())
 
-    def check_path(self):
-        if len(self.path.steps) < 1:
-            self.path = None
-
-    def move(self, x, y):
-        self.column = x
-        self.row = y
-        self.move_timer = self.move_timer_max
-
-    def old_move(self, nav_mesh):
-        if self.target_tile:
-            if not self.path:
-                self.path = nav.get_path(self.tile, nav_mesh, self.target_tile)
-                self.move_timer = self.path.edges[0].cost
-            assert self.path
-            assert self.path.steps
-            ready_to_move = self.check_move_timer()
-            if ready_to_move:
-                assert len(self.path.edges) == len(self.path.steps)
-                self.node = (self.path.steps.pop(0)).id_tag
-                self.path.edges.pop(0)
-                if self.path.edges:
-                    self.move_timer = self.path.edges[0].cost
-            else:
-                self.move_timer -= 1
-
-    def check_path_to_target(self):
-        new_path = nav.get_path(
-            (self.column, self.row),
-            self.active_map,
-            (self.target_tile.column,
-             self.target_tile.row))
-        return new_path
-
-    def set_path(self, new_path):
-        self.path = new_path
-        line_pts = []
-        for step in self.path.steps:
-            map_x = step.column
-            map_y = step.row
-            pixel_xy = util.get_screen_coords(map_x, map_y)
-            line_pts.append(pixel_xy)
-        self.path_pts = line_pts
-
 
 class Cog(Ship):
+    hull_class = "Cog"
+
     def __init__(self, active_map, column, row):
         super().__init__(
             active_map,
@@ -148,10 +86,11 @@ class Cog(Ship):
         self.image.blit(art.cog_icon, [0, 0])
         self.image.set_colorkey(util.colors.key)
         self.image = self.image.convert_alpha()
-        self.hull_class = "Cog"
 
 
 class Carrack(Ship):
+    hull_class = "Carrack"
+
     def __init__(self, active_map, column, row):
         super().__init__(active_map, column, row, 3, 150, 20, 11, 15, 2, 2000)
         self.image = pygame.Surface([40, 40])
@@ -159,10 +98,11 @@ class Carrack(Ship):
         self.image.blit(art.carrack_icon, [0, 0])
         self.image.set_colorkey(util.colors.key)
         self.image = self.image.convert_alpha()
-        self.hull_class = "Carrack"
 
 
 class Argosy(Ship):
+    hull_class = "Argosy"
+
     def __init__(self, active_map, column, row):
         super().__init__(active_map, column, row, 3, 200, 25, 11, 12, 2, 2500)
         self.image = pygame.Surface([40, 40])
@@ -170,10 +110,11 @@ class Argosy(Ship):
         self.image.blit(art.argosy_icon, [0, 0])
         self.image.set_colorkey(util.colors.key)
         self.image = self.image.convert_alpha()
-        self.hull_class = "Argosy"
 
 
 class Caravel(Ship):
+    hull_class = "Caravel"
+
     def __init__(self, active_map, column, row):
         super().__init__(active_map, column, row, 3, 300, 30, 15, 15, 2, 5000)
         self.image = pygame.Surface([40, 40])
@@ -181,10 +122,11 @@ class Caravel(Ship):
         self.image.blit(art.caravel_icon, [0, 0])
         self.image.set_colorkey(util.colors.key)
         self.image = self.image.convert_alpha()
-        self.hull_class = "Caravel"
 
 
 class Galleon(Ship):
+    hull_class = "Galleon"
+
     def __init__(self, active_map, column, row):
         super().__init__(active_map, column, row, 3.2, 500, 50, 25, 25, 3, 10000)
         self.image = pygame.Surface([40, 40])
@@ -192,10 +134,11 @@ class Galleon(Ship):
         self.image.blit(art.galleon_icon, [0, 0])
         self.image.set_colorkey(util.colors.key)
         self.image = self.image.convert_alpha()
-        self.hull_class = "Galleon"
 
 
 class Fluyt(Ship):
+    hull_class = "Fluyt"
+
     def __init__(self, active_map, column, row):
         super().__init__(active_map, column, row, 3, 750, 25, 12, 10, 2, 10000)
         self.image = pygame.Surface([40, 40])
@@ -203,10 +146,11 @@ class Fluyt(Ship):
         self.image.blit(art.fluyt_icon, [0, 0])
         self.image.set_colorkey(util.colors.key)
         self.image = self.image.convert_alpha()
-        self.hull_class = "Fluyt"
 
 
 class Corvette(Ship):
+    hull_class = "Corvette"
+
     def __init__(self, active_map, column, row):
         super().__init__(active_map, column, row, 3, 250, 50, 25, 40, 3, 12000)
         self.image = pygame.Surface([40, 40])
@@ -214,4 +158,12 @@ class Corvette(Ship):
         self.image.blit(art.corvette_icon, [0, 0])
         self.image.set_colorkey(util.colors.key)
         self.image = self.image.convert_alpha()
-        self.hull_class = "Corvette"
+
+
+ship_types = [Cog,
+              Carrack,
+              Caravel,
+              Argosy,
+              Galleon,
+              Fluyt,
+              Corvette]
