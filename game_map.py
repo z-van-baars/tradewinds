@@ -16,7 +16,9 @@ class MapGenParameters(object):
     def __init__(self, map_dimensions):
         self.river_cutoff = 2000
         self.water_cutoff = 0.5
-        self.max_resource_cluster_size = 5
+        self.number_of_clusters = math.floor(
+            math.sqrt(map_dimensions[0] * map_dimensions[1]) / 3)
+        self.max_cluster_size = 5
         map_size = math.sqrt(math.sqrt(map_dimensions[0] * map_dimensions[1]))
         self.number_of_cities = math.floor(map_size * 5)
         """City Override"""
@@ -48,6 +50,7 @@ class Map(object):
         self.terrain_display_layer = None
         self.resource_display_layer = None
         self.building_display_layer = None
+        self.nation_border_display_layer = None
         self.screen_dimensions = screen_dimensions
         self.width = map_dimensions[0]
         self.height = map_dimensions[1]
@@ -166,6 +169,27 @@ class Map(object):
         self.building_display_layer.image.set_colorkey(colors.key)
         self.building_display_layer.image = (
             self.building_display_layer.image.convert_alpha())
+
+    def paint_nation_border_layer(self, game_tile_rows):
+        tile_width = 40
+        self.nation_border_display_layer = DisplayLayer(self.width, self.height)
+        background_x_middle = (self.building_display_layer.image.get_width() / 2)
+        for each_nation in self.nations:
+            each_nation.get_border_tiles(self)
+            for each_tile in each_nation.border_tiles:
+                tile_edge_buffer = pygame.Surface((40, 15))
+                tile_edge_buffer.fill(colors.key)
+                for key, value in each_tile.bordered_edges.items():
+                    if value is True:
+                        tile_edge_buffer.blit(art.border_edges[key], [0, 0])
+
+                x, y = utilities.get_screen_coords(each_tile.column, each_tile.row)
+                self.nation_border_display_layer.image.blit(
+                    tile_edge_buffer,
+                    [x + background_x_middle + (tile_width / 2), y])
+        self.nation_border_display_layer.image.set_colorkey(colors.key)
+        self.nation_border_display_layer.image = (
+            self.nation_border_display_layer.image.convert_alpha())
 
     def world_scroll(self, shift_x, shift_y, screen_width, screen_height):
         background_width = self.tile_display_layer.image.get_width()

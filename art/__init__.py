@@ -65,63 +65,68 @@ calendar_menu = pygame.image.load("art/menus/calendar.png")
 shipyard_menu = pygame.image.load("art/menus/shipyard_screen.png")
 
 # RESOURCES
-saffron = pygame.image.load("art/resources/saffron_1.png").convert_alpha()
-saffron.set_colorkey(utilities.colors.key)
-saffron = saffron.convert_alpha()
+cattle = pygame.image.load("art/resources/cattle_1.png").convert_alpha()
+cattle.set_colorkey(utilities.colors.key)
+cattle = cattle.convert_alpha()
+
 cinnamon = pygame.image.load("art/resources/cinnamon_1.png").convert_alpha()
 cinnamon.set_colorkey(utilities.colors.key)
 cinnamon = cinnamon.convert_alpha()
 clove = pygame.image.load("art/resources/clove_1.png").convert_alpha()
 clove.set_colorkey(utilities.colors.key)
 clove = clove.convert_alpha()
-vanilla = pygame.image.load("art/resources/vanilla_1.png").convert_alpha()
-vanilla.set_colorkey(utilities.colors.key)
-vanilla = vanilla.convert_alpha()
-ivory = pygame.image.load("art/resources/ivory_1.png").convert_alpha()
-ivory.set_colorkey(utilities.colors.key)
-ivory = ivory.convert_alpha()
-timber = pygame.image.load("art/resources/timber_1.png").convert_alpha()
-timber.set_colorkey(utilities.colors.key)
-timber = timber.convert_alpha()
-wool = pygame.image.load("art/resources/wool_1.png").convert_alpha()
-wool.set_colorkey(utilities.colors.key)
-wool = wool.convert_alpha()
-pelts = pygame.image.load("art/resources/pelts_1.png").convert_alpha()
-pelts.set_colorkey(utilities.colors.key)
-pelts = pelts.convert_alpha()
-cattle = pygame.image.load("art/resources/cattle_1.png").convert_alpha()
-cattle.set_colorkey(utilities.colors.key)
-cattle = cattle.convert_alpha()
-rice = pygame.image.load("art/resources/rice_1.png").convert_alpha()
-rice.set_colorkey(utilities.colors.key)
-rice = rice.convert_alpha()
-wheat = pygame.image.load("art/resources/wheat_1.png").convert_alpha()
-wheat.set_colorkey(utilities.colors.key)
-wheat = wheat.convert_alpha()
-iron = pygame.image.load("art/resources/iron_1.png").convert_alpha()
-iron.set_colorkey(utilities.colors.key)
-iron = iron.convert_alpha()
+fish = pygame.image.load("art/resources/fish.png")
+fish.set_colorkey(utilities.colors.key)
+fish = fish.convert_alpha()
 gold = pygame.image.load("art/resources/gold_1.png").convert_alpha()
 gold.set_colorkey(utilities.colors.key)
 gold = gold.convert_alpha()
+ivory = pygame.image.load("art/resources/ivory_1.png").convert_alpha()
+ivory.set_colorkey(utilities.colors.key)
+ivory = ivory.convert_alpha()
+iron = pygame.image.load("art/resources/iron_1.png").convert_alpha()
+iron.set_colorkey(utilities.colors.key)
+iron = iron.convert_alpha()
+jewels = pygame.image.load("art/resources/jewels.png").convert_alpha()
+jewels.set_colorkey(utilities.colors.key)
+jewels = jewels.convert_alpha()
+pelts = pygame.image.load("art/resources/pelts_1.png").convert_alpha()
+pelts.set_colorkey(utilities.colors.key)
+pelts = pelts.convert_alpha()
+saffron = pygame.image.load("art/resources/saffron_1.png").convert_alpha()
+saffron.set_colorkey(utilities.colors.key)
+saffron = saffron.convert_alpha()
+shellfish = pygame.image.load("art/resources/shellfish.png").convert_alpha()
+shellfish.set_colorkey(utilities.colors.key)
+shellfish = shellfish.convert_alpha()
 silver = pygame.image.load("art/resources/silver_1.png").convert_alpha()
 silver.set_colorkey(utilities.colors.key)
 silver = silver.convert_alpha()
+timber = pygame.image.load("art/resources/timber_1.png").convert_alpha()
+timber.set_colorkey(utilities.colors.key)
+timber = timber.convert_alpha()
+wheat = pygame.image.load("art/resources/wheat_1.png").convert_alpha()
+wheat.set_colorkey(utilities.colors.key)
+wheat = wheat.convert_alpha()
+wool = pygame.image.load("art/resources/wool_1.png").convert_alpha()
+wool.set_colorkey(utilities.colors.key)
+wool = wool.convert_alpha()
 
-resource_images = {"saffron": [saffron],
+resource_images = {"cattle": [cattle],
                    "cinnamon": [cinnamon],
                    "clove": [clove],
-                   "vanilla": [vanilla],
-                   "ivory": [ivory],
-                   "timber": [timber],
-                   "wool": [wool],
-                   "pelts": [pelts],
-                   "cattle": [cattle],
-                   "rice": [rice],
-                   "wheat": [wheat],
-                   "iron": [iron],
+                   "fish": [fish],
                    "gold": [gold],
-                   "silver": [silver]}
+                   "iron": [iron],
+                   "ivory": [ivory],
+                   "jewels": [jewels],
+                   "pelts": [pelts],
+                   "saffron": [saffron],
+                   "silver": [silver],
+                   "shellfish": [shellfish],
+                   "timber": [timber],
+                   "wheat": [wheat],
+                   "wool": [wool]}
 
 
 # CONSTRUCTS
@@ -138,6 +143,23 @@ city_3 = city_3.convert_alpha()
 
 
 # TILES
+nw_edge = pygame.image.load("art/tiles/borders/nw.png").convert_alpha()
+nw_edge.set_colorkey(utilities.colors.key)
+nw_edge = nw_edge.convert_alpha()
+ne_edge = pygame.image.load("art/tiles/borders/ne.png").convert_alpha()
+ne_edge.set_colorkey(utilities.colors.key)
+ne_edge = ne_edge.convert_alpha()
+sw_edge = pygame.image.load("art/tiles/borders/sw.png").convert_alpha()
+sw_edge.set_colorkey(utilities.colors.key)
+sw_edge = sw_edge.convert_alpha()
+se_edge = pygame.image.load("art/tiles/borders/se.png").convert_alpha()
+se_edge.set_colorkey(utilities.colors.key)
+se_edge = se_edge.convert_alpha()
+border_edges = {(-1, 0): nw_edge,
+                (0, -1): ne_edge,
+                (0, 1): sw_edge,
+                (1, 0): se_edge}
+
 selected_tile_image = pygame.image.load("art/tiles/selected_tile.png").convert_alpha()
 selected_tile_image.set_colorkey(utilities.colors.key)
 selected_tile_image = selected_tile_image.convert_alpha()

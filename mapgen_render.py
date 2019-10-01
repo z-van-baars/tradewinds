@@ -1,5 +1,51 @@
 import math
 import utilities as util
+import sound
+import pygame
+
+
+def display_update(screen, raw_maps, display_data, clock):
+    scaled_maps = scale_maps(raw_maps, display_data)
+    render_rotated_maps(screen, scaled_maps, display_data)
+    render_map_labels(screen, scaled_maps, display_data)
+
+
+def input_loop(game_state,
+               mgs,
+               message="Press Enter to Continue",
+               wait_message="Please Wait..."):
+    message_font = pygame.font.SysFont('Calibri', 14, True, False)
+    enter_message = message_font.render(message,
+                                        True,
+                                        util.colors.white)
+
+    enter_key = False
+    while not enter_key:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.display.quit()
+                pygame.quit()
+            elif event.type == pygame.KEYDOWN and event.key == pygame.K_RETURN:
+                sound.click.play()
+                enter_key = True
+                enter_message = message_font.render(wait_message,
+                                                    True,
+                                                    util.colors.white)
+            elif event.type == pygame.VIDEORESIZE:
+                game_state.screen = pygame.display.set_mode((event.w, event.h),
+                                                            pygame.RESIZABLE)
+                game_state.screen_width = event.w
+                game_state.screen_height = event.h
+
+        game_state.screen.fill(util.colors.black)
+        display_update(game_state.screen,
+                       mgs.raw_maps,
+                       mgs.display_data,
+                       mgs.clock)
+
+        game_state.screen.blit(enter_message,
+                               [10, game_state.screen_height - 24])
+        pygame.display.flip()
 
 
 def render_height_map(mgs, marker, viable_sites):
@@ -149,7 +195,7 @@ def render_water_flux_map(mgs, marker, viable_sites):
         for each_tile in each_row:
             if each_tile.water_flux[2] > max_flux:
                 max_flux = each_tile.water_flux[2]
-    flux_gradient = {0: (32, 5, 132),
+    flux_gradient = {0: (32, 5, 102),
                      1: (69, 43, 158),
                      2: (85, 60, 154),
                      3: (101, 78, 149),
@@ -203,3 +249,102 @@ def render_nation_map(mgs, marker, viable_sites):
         # for tile in zoc_tiles:
             # biome_map_image.blit(marker, [tile.column, tile.row])
         raw_maps[7].blit(marker, [each.column, each.row])
+
+
+def prepare_map_surfaces(display_data):
+    # prepares blank, properly sized, destination map surfaces
+    display_width, display_height, display_scale = (display_data[0],
+                                                    display_data[1],
+                                                    display_data[2])
+    if display_scale:
+        display_width = 264
+        display_height = 264
+
+    map_surfaces = [pygame.Surface([display_width, display_height])
+                    for i in range(8)]
+    blank_maps = []
+    for each in map_surfaces:
+        each.fill((110, 110, 110))
+        each.set_colorkey(util.colors.key)
+        each = each.convert_alpha()
+        blank_maps.append(each)
+    return blank_maps
+
+
+def scale_maps(raw_maps, display_data):
+    # resizes raw maps and returns a list of resized surfaces
+    display_width, display_height, display_scale = display_data
+    if display_scale:
+        display_width = 264
+        display_height = 264
+    # generate blank destination surfaces that are properly sized
+    scaled_maps = prepare_map_surfaces(display_data)
+
+    for i, raw_map in enumerate(raw_maps):
+        pygame.transform.smoothscale(
+            raw_map,
+            (display_width, display_height), scaled_maps[i])
+    return scaled_maps
+
+
+def render_rotated_maps(screen, scaled_maps, display_data):
+    # prints rendered and prepped map surfaces to the screen after rotating
+    rotation = -45  # rotation for map previews in degrees
+    display_width, display_height, display_scale = display_data
+    if display_scale:
+        c = math.sqrt(264 ** 2 + 264 ** 2)
+    else:
+        # offset for left edge of map displays
+        c = pygame.transform.rotate(scaled_maps[0], -45).get_width()
+    display_offset = 5
+    # heightmap
+    screen.blit(pygame.transform.rotate(scaled_maps[0], rotation),
+                [0, 0])
+    # tempmap
+    screen.blit(pygame.transform.rotate(scaled_maps[1], rotation),
+                [c + display_offset, 0])
+    # moisture map
+    screen.blit(pygame.transform.rotate(scaled_maps[2], rotation),
+                [0, c + display_offset])
+    # biome map with cities marked
+    screen.blit(pygame.transform.rotate(scaled_maps[3], rotation),
+                [c + display_offset, c + display_offset])
+    # trade connectivity score map
+    screen.blit(pygame.transform.rotate(scaled_maps[4], rotation),
+                [c * 2 + display_offset * 2, 0])
+    # city score map
+    screen.blit(pygame.transform.rotate(scaled_maps[5], rotation),
+                [c * 2 + display_offset * 2, c + display_offset])
+    # water flux map
+    screen.blit(pygame.transform.rotate(scaled_maps[6], rotation),
+                [c * 3 + display_offset * 3, 0])
+    # Nation Map
+    screen.blit(pygame.transform.rotate(scaled_maps[7], rotation),
+                [c * 3 + display_offset * 3, c + display_offset])
+
+
+def render_map_labels(screen, scaled_maps, display_data):
+    display_width, display_height, display_scale = display_data
+    if display_scale:
+        c = math.sqrt(264 ** 2 + 264 ** 2)
+    else:
+        # offset for left edge of map displays
+        c = pygame.transform.rotate(scaled_maps[0], -45).get_width()
+    display_offset = 5
+    label_font = pygame.font.SysFont("Minion Pro", 26, False, False)
+    screen.blit(label_font.render("Elevation", True, util.colors.white),
+                [0, c])
+    screen.blit(label_font.render("Temperature", True, util.colors.white),
+                [c + display_offset, c])
+    screen.blit(label_font.render("Moisture", True, util.colors.white),
+                [0, c + display_offset + c])
+    screen.blit(label_font.render("Biomes", True, util.colors.white),
+                [c + display_offset, c + display_offset + c])
+    screen.blit(label_font.render("Trade Score", True, util.colors.white),
+                [c * 2 + display_offset * 2, c])
+    screen.blit(label_font.render("City Score", True, util.colors.white),
+                [c * 2 + display_offset * 2, c * 2 + display_offset])
+    screen.blit(label_font.render("Water Flux", True, util.colors.white),
+                [c * 3 + display_offset * 3, c])
+    screen.blit(label_font.render("Nation Borders", True, util.colors.white),
+                [c * 3 + display_offset * 3, c * 2 + display_offset])

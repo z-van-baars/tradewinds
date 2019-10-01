@@ -70,6 +70,8 @@ min_r_img = pygame.image.load('art/buttons/min_regular.png')
 min_h_img = pygame.image.load('art/buttons/min_hover.png')
 
 # Shipyard Menu Buttons
+back_r_img = pygame.image.load('art/buttons/back_regular.png')
+back_h_img = pygame.image.load('art/buttons/back_hover.png')
 buy_cog_r_img = pygame.image.load('art/buttons/buy_cog_regular.png')
 buy_cog_h_img = pygame.image.load('art/buttons/buy_cog_hover.png')
 buy_carrack_r_img = pygame.image.load('art/buttons/buy_carrack_regular.png')
@@ -768,14 +770,14 @@ class CityMenu(Menu):
             tavern_r_img,
             tavern_h_img,
             tavern_click,
-            280,
+            80,
             140)
 
         shipyard_button = Button(
             shipyard_r_img,
             shipyard_h_img,
             shipyard_click,
-            280,
+            80,
             175)
 
         dragbar_r_img = pygame.Surface(
@@ -888,6 +890,11 @@ class MarketMenu(Menu):
                 self.display_cache["cargo list top"] += 1
                 self.update_display_cache()
 
+        def back_click():
+            new_city_menu = CityMenu(game_state, self.city)
+            game_state.active_menus = [new_city_menu] + game_state.active_menus
+            self.open = False
+
         def dragbar_click():
             self.dragging = True
 
@@ -903,8 +910,15 @@ class MarketMenu(Menu):
         x_button = Button(x_button_r_img,
                           x_button_h_img,
                           x_click,
-                          477,
+                          self.background_pane.image.get_width() - 22,
                           13)
+
+        back_button = Button(
+            back_r_img,
+            back_h_img,
+            back_click,
+            self.background_pane.image.get_width() - 44,
+            13)
 
         sell_button = Button(sell_r_img,
                              sell_h_img,
@@ -943,6 +957,7 @@ class MarketMenu(Menu):
                                   385)
 
         self.buttons = [x_button,
+                        back_button,
                         sell_button,
                         buy_button,
                         market_up_arrow,
@@ -1116,6 +1131,11 @@ class ShipyardMenu(Menu):
         def x_click():
             self.open = False
 
+        def back_click():
+            new_city_menu = CityMenu(game_state, self.city)
+            game_state.active_menus = [new_city_menu] + game_state.active_menus
+            self.open = False
+
         dragbar_r_img = pygame.Surface(
             [self.background_pane.image.get_width() - 2, 9])
         dragbar_r_img.fill(util.colors.dragbar)
@@ -1127,12 +1147,19 @@ class ShipyardMenu(Menu):
             1,
             1)
 
+        back_button = Button(
+            back_r_img,
+            back_h_img,
+            back_click,
+            self.background_pane.image.get_width() - 44,
+            13)
+
         x_button = Button(
             x_button_r_img,
             x_button_h_img,
             x_click,
             self.background_pane.image.get_width() - 22,
-            10)
+            13)
 
         ship_purchase_buttons = []
         for i, ship_type in enumerate(self.city.ships_available):
@@ -1150,7 +1177,7 @@ class ShipyardMenu(Menu):
                 160 + ((1 + i) * 40))
             ship_purchase_buttons.append(procedural_button)
 
-        self.buttons = [dragbar, x_button] + ship_purchase_buttons
+        self.buttons = [dragbar, back_button, x_button] + ship_purchase_buttons
 
     def render_decals(self, pos):
         header_font = pygame.font.SysFont('Calibri', 18, True, False)

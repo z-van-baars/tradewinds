@@ -42,6 +42,7 @@ def update_display(game_state, selected_tile, display_parameters, mouse_pos, map
     screen.blit(active_map.building_display_layer.image, [background_left,
                                                           background_top])
 
+
     if game_state.player.path is not None and game_state.draw_routes:
         shifted_pts_list = []
         for point in game_state.player.path_pts:
@@ -61,6 +62,8 @@ def update_display(game_state, selected_tile, display_parameters, mouse_pos, map
     so that the player's ship image is centered on the tile"""
     screen.blit(game_state.player.ship.image, [player_screen_coordinates[0] - 20,
                                                player_screen_coordinates[1] - 25])
+    screen.blit(active_map.nation_border_display_layer.image, [background_left,
+                                                               background_top])
     for menu in reversed(game_state.active_menus):
         game_state.screen.blit(
             menu.cached_image,

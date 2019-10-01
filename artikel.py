@@ -2,27 +2,28 @@ from enum import Enum
 
 #Resources = Enum('Resources', 'Saffron,Cinnamon,Vanilla,Clove,Ivory,Fine_Timber,Wool,Pelts,Cattle,Rice,Wheat,Iron,Gold,Silver')
 
+Wood = ["forest", "jungle", "low hills", "hills"]
+
+Grain = ["grassland", "plains"]
+
+Wool = ["shrubland", "grassland", "low hills"]
+
+Cattle = ["grassland", "plains"]
+
 Saffron = ["plains", "savannah"]
 
 Cinnamon = ["plains", "savannah", "low hills"]
 
-Vanilla = ["jungle", "low hills"]
-
 Clove = ["jungle", "low hills"]
 
-Ivory = ["savannah"]
+Ivory = ["savannah", "ocean"]
 
-Fine_Timber = ["forest", "jungle", "low hills", "hills"]
+Shellfish = ["shallows", "sea", "ocean"]
 
-Wool = ["shrubland", "grassland", "low hills"]
+Fish = ["shallows", "sea", "lake"]
 
-Pelts = ["taiga", "tundra", "low hills"]
+Pelts = ["taiga", "tundra", "snowpack", "ice", "low hills"]
 
-Cattle = ["grassland", "plains"]
-
-Rice = ["grassland", "jungle", "low hills", "hills"]
-
-Wheat = ["grassland", "plains"]
 
 Iron = [
     "grassland",
@@ -51,38 +52,32 @@ Silver = [
     "mountains"]
 
 
-all_resources = ["saffron",
-                 "cinnamon",
-                 "vanilla",
-                 "clove",
-                 "ivory",
-                 "pelts",
-                 "iron",
-                 "gold",
-                 "silver",
-                 "timber",
-                 "wool",
-                 "cattle",
-                 "wheat",
-                 "rice"]
+Jewels = [
+    "desert",
+    "shrubland",
+    "taiga",
+    "low hills",
+    "hills"]
 
 rare_resources = ["saffron",
                   "cinnamon",
-                  "vanilla",
                   "clove",
                   "ivory",
                   "pelts",
-                  "iron",
                   "gold",
-                  "silver"]
+                  "silver",
+                  "jewels"]
 
 
-common_resources = ["timber",
-                    "wool"]
+common_resources = ["wood",
+                    "wool",
+                    "iron"]
 
 food_resources = ["cattle",
-                  "rice",
-                  "wheat"]
+                  "grain",
+                  "fish"]
+
+all_resources = food_resources + common_resources + rare_resources
 
 
 mountain = {"taiga": ["iron", "silver", "gold"],
@@ -121,60 +116,60 @@ low_mountain = {"taiga": ["iron", "silver", "gold"],
                 "shallows": [None],
                 "lake": [None]}
 
-hill = {"taiga": ["iron", "silver"],
+hill = {"taiga": ["iron", "silver", "jewels"],
         "tundra": ["iron", "silver"],
         "snowy tundra": ["iron", "silver"],
         "grassland": ["iron", "silver", "gold"],
         "plains": ["iron", "silver", "gold"],
         "wet plains": ["iron", "silver", "gold"],
         "savannah": ["iron", "silver", "gold"],
-        "desert": ["iron", "silver", "gold"],
+        "desert": ["iron", "silver", "gold", "jewels"],
         "forest": ["iron", "silver", "gold"],
         "jungle": ["iron", "silver", "gold"],
         "snowpack": ["iron", "silver"],
         "ice": [None],
-        "shrubland": ["iron", "silver", "gold"],
+        "shrubland": ["iron", "silver", "gold", "jewels"],
         "ocean": [None],
         "sea": [None],
         "shallows": [None],
         "lake": [None]}
 
-low_hill = {"taiga": ["iron", "silver"],
+low_hill = {"taiga": ["iron", "silver", "jewels"],
             "tundra": ["iron", "silver"],
             "snowy tundra": ["iron", "silver"],
             "grassland": ["iron", "silver", "gold"],
             "plains": ["iron", "silver", "gold"],
             "wet plains": ["iron", "silver", "gold"],
             "savannah": ["iron", "silver", "gold"],
-            "desert": ["iron", "silver", "gold"],
+            "desert": ["iron", "silver", "gold", "jewels"],
             "forest": ["iron", "silver", "gold"],
             "jungle": ["iron", "silver", "gold"],
             "snowpack": ["iron", "silver"],
             "ice": [None],
-            "shrubland": ["iron", "silver", "gold"],
+            "shrubland": ["iron", "silver", "gold", "jewels"],
             "ocean": [None],
             "sea": [None],
             "shallows": [None],
             "lake": [None]}
 
 
-vegetation = {"taiga": ["pelts", "iron", "silver"],
-              "tundra": ["pelts"],
+vegetation = {"taiga": ["wool", "pelts", "iron", "silver"],
+              "tundra": ["pelts", "silver"],
               "snowy tundra": ["pelts"],
-              "grassland": ["cattle", "wool", "rice", "wheat", "iron", "silver"],
+              "grassland": ["cattle", "wool", "wheat", "iron", "silver"],
               "plains": ["saffron", "cinnamon", "cattle", "wheat"],
               "wet plains": ["cinnamon", "cattle", "wheat"],
               "savannah": ["ivory", "cinnamon", "gold"],
-              "desert": ["gold"],
+              "desert": ["gold", "jewels"],
               "forest": ["timber", "pelts"],
-              "jungle": ["clove", "vanilla", "timber", "rice"],
+              "jungle": ["clove", "timber"],
               "snowpack": [None],
               "ice": [None],
-              "shrubland": ["wool", "silver", "iron"],
-              "ocean": [None],
-              "sea": [None],
-              "shallows": [None],
-              "lake": [None]}
+              "shrubland": ["wool", "silver", "iron", "jewels"],
+              "ocean": ["ivory", "fish"],
+              "sea": ["fish", "shellfish"],
+              "shallows": ["fish", "shellfish"],
+              "lake": ["fish"]}
 
 river = {"taiga": [None],
          "tundra": [None],
@@ -202,3 +197,12 @@ possible_resources = {"river": river,
                       "low mountain": low_mountain,
                       "mountain": mountain}
 
+
+class Resource(object):
+    biomes_allowed = {}
+    terrain_allowed = {}
+
+class Artikel(object):
+
+    biome_production = {}
+    terrain_production = {}

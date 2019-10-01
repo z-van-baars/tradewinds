@@ -60,110 +60,85 @@ class Nation(object):
         self.capital = None
         self.cities = []
         self.tiles = []
+        self.border_tiles = []
 
-    def add_city(self, new_city):
-        self.cities.append(new_city)
-        neighborhood = util.get_nearby_tiles(
-            self.active_map,
-            (new_city.column, new_city.row),
-            6)
-        for each_tile in neighborhood:
-            self.active_map.national_control[each_tile.row][each_tile.column] = self
-            self.tiles.append(each_tile)
-            each_tile.nation = self
+    def get_border_tiles(self, active_map):
+        for each_tile in self.tiles:
+            each_tile.bordered_edges = util.get_bordered_edges(
+                active_map,
+                each_tile)
+            if any(each_tile.bordered_edges.values()):
+                self.border_tiles.append(each_tile)
 
-    def mapgen_turn(self):
-        for each_city in self.cities:
-            each_city.turn_loop(self.active_map)
-        total_settlers = 0
-        for each_city in self.cities:
-            total_settlers += each_city.settlers
-            each_city.settlers = 0
-        if total_settlers > 0:
-            for settler in range(total_settlers):
-                unclaimed_tiles = self.get_unclaimed_tiles()
-                sorted_frontier = self.sort_unclaimed_tiles(unclaimed_tiles)
-                if len(sorted_frontier) < 1:
-                    print("no accessible sites to grow to")
-                    return
-                self.settle_new_city(sorted_frontier)
 
-    def get_tiles_near_cities(self):
-        nearby_tiles = []
-        nearby_unclaimed_tiles = []
-        for each_city in self.cities:
-            tiles_in_radius = util.get_nearby_tiles(
-                self.active_map,
-                (each_city.column, each_city.row),
-                8)
-            land_tiles = list(filter(lambda x: x.biome not in [
-                'ocean',
-                'sea',
-                'shallows',
-                'lake',
-                'ice'], tiles_in_radius))
-            settleable_tiles = list(filter(lambda x: x.terrain not in [
-                'mountain',
-                'low mountain',
-                'hill'], land_tiles))
-            nearby_tiles.extend(settleable_tiles)
-        for each_tile in nearby_tiles:
-            if each_tile.nation is None:
-                nearby_unclaimed_tiles.append(each_tile)
-        return nearby_unclaimed_tiles
+def get_capital_cities(game_state, mgs):
+    capital_cities = []
+    for n in range(game_state.active_map.mgp.number_of_nations):
+        capital_cities.append(game_state.active_map.cities[n])
+    return capital_cities
 
-    def cull_claimed_tiles(self, nearby_tiles):
-        print("culling claimed tiles...")
-        claimed_tiles = []
-        unclaimed_tiles = []
-        for each_nation in self.active_map.nations:
-            claimed_tiles.extend(each_nation.tiles)
-        for tile in nearby_tiles:
-            if tile not in claimed_tiles:
-                unclaimed_tiles.append(tile)
-        return unclaimed_tiles
 
-    def get_unclaimed_tiles(self):
-        print("getting nearby unclaimed frontier tiles...")
-        unclaimed_tiles = self.get_tiles_near_cities()
-        return unclaimed_tiles
+def create_nations(game_state, mgs):
+    capital_cities = get_capital_cities(game_state, mgs)
 
-    def sort_unclaimed_tiles(self, unclaimed_tiles):
-        def is_coastal(active_map, largest_water_body, tile):
-            neighbor_tiles = util.get_adjacent_tiles(tile, active_map)
-            return (any(neighbor.biome in (
-                ['ocean', 'sea', 'shallows']) for neighbor in neighbor_tiles) and
-                any(largest_water_body[neighbor.column, neighbor.row] == 1
-                    for neighbor in neighbor_tiles))
-        print("sorting unclaimed tiles...")
-        tiles_to_sort = []
-        largest_water_body = city.cull_interior_watermasses(self.active_map)
-        coastal_sites = list(filter(lambda x: is_coastal(self.active_map,
-                                                         largest_water_body,
-                                                         x), unclaimed_tiles))
-        for each_tile in unclaimed_tiles:
-            new_site = city.Site(each_tile, self.active_map)
-            new_site.update_scores(self.active_map, coastal_sites)
-            tiles_to_sort.append((new_site.city_score, new_site.tile))
-        tiles_to_sort.sort()
-        tiles_to_sort.reverse()
-        return tiles_to_sort
+    for capital in capital_cities:
+        new_nation = Nation(game_state.active_map)
+        new_nation.capital = capital
+        game_state.active_map.nations.append(new_nation)
 
-    def settle_new_city(self, sorted_frontier):
-        print("yetahk")
-        score, tile = sorted_frontier.pop()
-        new_city_name = city.get_city_name(self.active_map.cities)
-        print("yabadoo")
-        new_city = city.City(
-            self.active_map,
-            tile.column,
-            tile.row,
-            tile,
-            new_city_name)
-        print("yendar")
-        self.add_city(new_city)
-        self.active_map.add_city(new_city)
 
+def accrete_cities(game_state, mgs, claims):
+    print(len(game_state.active_map.nations))
+    for each_nation in game_state.active_map.nations:
+        for each_tile in claims[each_nation]:
+            if each_tile.city is not None:
+                each_nation.cities.append(each_tile.city)
+                each_tile.city.nation = each_nation
+
+
+def accrete_city_territory(game_state, mgs):
+    nc_array = game_state.active_map.nation_control
+    for each_nation in game_state.active_map.nations:
+        for new_city in each_nation.cities:
+            each_nation.tiles = each_nation.tiles + new_city.tiles
+            for new_tile in new_city.tiles:
+                nc_array[new_tile.row][new_tile.column] = each_nation
+                new_tile.nation = each_nation
+
+
+def survey_unclaimed_tiles(game_state, mgs):
+    unclaimed_tiles = []
+    for each_tile in game_state.active_map.all_tiles:
+        if each_tile.is_land() and each_tile.nation is None:
+            unclaimed_tiles.append(each_tile)
+    return unclaimed_tiles
+
+
+def award_unclaimed_tiles(game_state, mgs, unclaimed_tiles):
+    nc_array = game_state.active_map.nation_control
+    for unclaimed_tile in unclaimed_tiles:
+        nearby_claims = {}
+        for each_nation in game_state.active_map.nations:
+            nearby_claims[each_nation] = 0
+        best_claimant = (0, None)
+        search_radius = 15
+        while best_claimant[1] is None:
+            claim_neighborhood = util.get_nearby_tiles(
+                game_state.active_map,
+                [unclaimed_tile.column, unclaimed_tile.row],
+                search_radius)
+
+            for nearby_tile in claim_neighborhood:
+                if nearby_tile.nation is not None:
+                    nearby_claims[nearby_tile.nation] += 1
+            for claimant, claim_count in nearby_claims.items():
+                if claim_count > best_claimant[0]:
+                    best_claimant = (claim_count, claimant)
+            search_radius += 5
+        assert best_claimant[1] is not None
+        unclaimed_tile.nation = best_claimant[1]
+        best_claimant[1].tiles.append(unclaimed_tile)
+        nc_array[unclaimed_tile.row][unclaimed_tile.column] = best_claimant[1]
 
 
 

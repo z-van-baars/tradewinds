@@ -134,7 +134,6 @@ def input_processing(game_state, selected_tile, display_parameters, mouse_pos, m
             button_states = (button_1, button_2, button_3)
             left_click(game_state, mouse_pos, map_xy, button_states, event)
         elif event.type == pygame.KEYDOWN:
-            print(game_state.active_map.x_shift, game_state.active_map.y_shift)
             if len(game_state.active_menus) > 2:
                 game_state.active_menus[0].event_handler(event, mouse_pos)
                 return
@@ -150,8 +149,10 @@ def input_processing(game_state, selected_tile, display_parameters, mouse_pos, m
 
 
 def game_tick(game_state):
-    for agent in game_state.active_map.agents:
-        agent.tick()
+    for each_agent in game_state.active_map.agents:
+        each_agent.tick()
+    for each_city in game_state.active_map.cities:
+        each_city.turn_loop(game_state.active_map)
 
 
 def main(game_state):

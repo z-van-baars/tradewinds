@@ -99,7 +99,6 @@ class Colors(object):
         self.nation_colors = [
             (128, 0, 0),
             (154, 99, 36),
-            (128, 128, 128),
             (0, 128, 128),
             (0, 0, 128),
             (230, 25, 75),
@@ -142,7 +141,12 @@ def any_tile_visible(screen_width, screen_height, x_shift, y_shift, entity):
     initial_y = entity.tile_y - (entity.footprint[1] - 1)
     for tile_y in range(initial_y, initial_y + (entity.footprint[1])):
         for tile_x in range(initial_x, initial_x + entity.footprint[0]):
-            if on_screen(screen_width, screen_height, tile_x * 20, tile_y * 20, x_shift, y_shift):
+            if on_screen(screen_width,
+                         screen_height,
+                         tile_x * 20,
+                         tile_y * 20,
+                         x_shift,
+                         y_shift):
                 return True
     return False
 
@@ -202,6 +206,27 @@ def get_nearby_tiles(current_map, center, radius):
                 if distance_from_center < radius:
                     nearby_tiles.append(current_map.game_tile_rows[tile_y][tile_x])
     return nearby_tiles
+
+
+def get_bordered_edges(current_map, center):
+    border_tiles = [
+        (0, -1),
+        (-1, 0),
+        (1, 0),
+        (0, 1)]
+
+    neighbors = {
+        (0, -1): False,
+        (-1, 0): False,
+        (1, 0): False,
+        (0, 1): False}
+    for each in border_tiles:
+        y = center.row + each[1]
+        x = center.column + each[0]
+        if 0 <= x <= current_map.width - 1 and 0 <= y <= current_map.height - 1:
+            if current_map.game_tile_rows[y][x].nation != center.nation:
+                neighbors[each] = True
+    return neighbors
 
 
 def within_map(x, y, current_map):

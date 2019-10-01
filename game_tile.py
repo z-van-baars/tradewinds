@@ -13,6 +13,7 @@ class GameTile(object):
         self.resource = None
         self.water_flux = (0, 0, 0)
         self.water_source = ([], 0)
+        self.bordered_edges = {}
 
     def __lt__(self, other):
         return False
