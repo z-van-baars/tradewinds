@@ -119,7 +119,7 @@ class Map(object):
         self.paint_building_layer(self.game_tile_rows)
         self.paint_nation_border_layer(self.game_tile_rows)
         scaled_maps = mgr.scale_maps(
-            self.initialize_raw_maps(self.width, self.height),
+            self.raw_maps,
             self.display_data)
         self.biome_map_preview = pygame.Surface([140, 140])
         pygame.transform.smoothscale(scaled_maps[3],
