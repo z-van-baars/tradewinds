@@ -71,15 +71,15 @@ class Nation(object):
                 self.border_tiles.append(each_tile)
 
 
-def get_capital_cities(game_state, mgs):
+def get_capital_cities(game_state):
     capital_cities = []
     for n in range(game_state.active_map.mgp.number_of_nations):
         capital_cities.append(game_state.active_map.cities[n])
     return capital_cities
 
 
-def create_nations(game_state, mgs):
-    capital_cities = get_capital_cities(game_state, mgs)
+def create_nations(game_state):
+    capital_cities = get_capital_cities(game_state)
 
     for capital in capital_cities:
         new_nation = Nation(game_state.active_map)
@@ -87,7 +87,7 @@ def create_nations(game_state, mgs):
         game_state.active_map.nations.append(new_nation)
 
 
-def accrete_cities(game_state, mgs, claims):
+def accrete_cities(game_state, claims):
     print(len(game_state.active_map.nations))
     for each_nation in game_state.active_map.nations:
         for each_tile in claims[each_nation]:
@@ -96,7 +96,7 @@ def accrete_cities(game_state, mgs, claims):
                 each_tile.city.nation = each_nation
 
 
-def accrete_city_territory(game_state, mgs):
+def accrete_city_territory(game_state):
     nc_array = game_state.active_map.nation_control
     for each_nation in game_state.active_map.nations:
         for new_city in each_nation.cities:
@@ -106,7 +106,7 @@ def accrete_city_territory(game_state, mgs):
                 new_tile.nation = each_nation
 
 
-def survey_unclaimed_tiles(game_state, mgs):
+def survey_unclaimed_tiles(game_state):
     unclaimed_tiles = []
     for each_tile in game_state.active_map.all_tiles:
         if each_tile.is_land() and each_tile.nation is None:
@@ -114,7 +114,7 @@ def survey_unclaimed_tiles(game_state, mgs):
     return unclaimed_tiles
 
 
-def award_unclaimed_tiles(game_state, mgs, unclaimed_tiles):
+def award_unclaimed_tiles(game_state, unclaimed_tiles):
     nc_array = game_state.active_map.nation_control
     for unclaimed_tile in unclaimed_tiles:
         nearby_claims = {}

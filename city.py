@@ -4,11 +4,12 @@ import claim_nav
 import production as prod
 import math
 import random
-import artikel
 import numpy as np
 from scipy.ndimage import label, generate_binary_structure
 import art
 import time
+from enum import Enum
+import pygame
 
 
 city_names = []
@@ -78,6 +79,13 @@ class Site(object):
         # print("removed {0} tiles from the running".format(i))
 
 
+class CityFocus(Enum):
+    balanced = 0
+    growth = 1
+    production = 2
+    wealth = 3
+
+
 class City(object):
     def __init__(self, active_map, x, y, tile, name):
         self.active_map = active_map
@@ -86,11 +94,16 @@ class City(object):
         self.tile = tile
         self.tile.city = self
         self.tiles = []
+        self.tiles_sorted = {CityFocus.balanced: [],
+                             CityFocus.growth: [],
+                             CityFocus.production: [],
+                             CityFocus.wealth: []}
         self.ships_available = []
         self.name = name
         self.nation = None
         self.color = (255, 255, 255)
         self.size = 1
+        self.focus = CityFocus.balanced
         self.silver = 0
         self.food = 0
         self.demand = {}
@@ -98,17 +111,17 @@ class City(object):
         self.sell_price = {}
         self.purchase_price = {}
         self.portrait_img = random.choice(art.city_portraits)
-        self.settlers = 0
+        self.prev_turn_data = TurnData()
 
         self.set_random_supply()
         self.set_demand_for_artikels()
 
     def set_random_supply(self):
-        for resource in artikel.all_resources:
-            self.supply[resource] = random.randint(0, 100)
+        for resource in prod.all_artikels:
+            self.supply[resource] = 0
 
     def set_demand_for_artikels(self):
-        for artikel_id in artikel.all_resources:
+        for artikel_id in prod.all_artikels:
             base_price = 100
             self.demand[artikel_id] = get_demand()
             self.sell_price[artikel_id] = round(
@@ -122,11 +135,121 @@ class City(object):
         else:
             self.supply[artikel_id] = quantity
 
-    def turn_loop(self, active_map):
+    def sort_local_tiles(self):
+        for each_tile in self.tiles:
+            f = prod.get_food_value(each_tile)
+            p = 0
+            r = 0
+            w = 0
+            self.tiles_sorted[CityFocus.balanced].append((f, each_tile))
+            self.tiles_sorted[CityFocus.growth].append((f, each_tile))
+            self.tiles_sorted[CityFocus.production].append((p, each_tile))
+            self.tiles_sorted[CityFocus.wealth].append((r + w, each_tile))
+        for each_key, each_value in self.tiles_sorted.items():
+            each_value.sort(key=lambda tup: tup[0], reverse=True)
+
+    def collect(self, turn_data):
+        # print("collecting...")
+        tiles_to_collect = []
+        for ii in range(self.size):
+            if ii >= len(self.tiles):
+                break
+            tiles_to_collect.append(self.tiles_sorted[self.focus][ii][1])
+        for each_tile in tiles_to_collect:
+            # print("new tile")
+            # print("{0} {1}".format(each_tile.biome, each_tile.terrain))
+            for artikel_id, value in each_tile.output.items():
+                if value != 0:
+                    self.supply[artikel_id] += value
+                    if artikel_id not in turn_data.produced:
+                        turn_data.produced[artikel_id] = 0
+                    turn_data.produced[artikel_id] += value
+
+    def consume(self, turn_data):
+        food_types = ["fish", "fruit", "grain", "meat", "shellfish"]
+        for cc in range(self.size):
+            fs = turn_data.get_food_stores(self.supply)
+            if fs < 5:
+                print("starvation!")
+                turn_data.starvation += 1
+                continue
+            for ff in range(5):
+                random.shuffle(food_types)
+                for artikel_id in food_types:
+                    if self.supply[artikel_id] - 1 >= 0:
+                        if artikel_id not in turn_data.consumed:
+                            turn_data.consumed[artikel_id] = 0
+                        turn_data.consumed[artikel_id] += 1
+                        self.supply[artikel_id] -= 1
+                        break
+
+    def specialist_labor(self, turn_data):
         pass
 
+    def noble_labor(self, turn_data):
+        pass
 
-def find_closest_city(game_state, mgs, each_tile, subset=None):
+    def set_size(self, turn_data):
+        if turn_data.starvation > 0:
+            self.size = max(
+                1,
+                (self.size - min(2, turn_data.starvation)))
+            return
+
+        food_types = ["fish", "fruit", "grain", "meat", "shellfish"]
+        if turn_data.get_food_stores(self.supply) > turn_data.get_food_box(self.size):
+            for ff in range(turn_data.get_food_box(self.size)):
+                random.shuffle(food_types)
+                for artikel_id in food_types:
+                    if self.supply[artikel_id] - 1 >= 0:
+                        if artikel_id not in turn_data.consumed:
+                            turn_data.consumed[artikel_id] = 0
+                        turn_data.consumed[artikel_id] += 1
+                        self.supply[artikel_id] -= 1
+                        break
+            self.size += 1
+            print("{0} grew to size {1}".format(self.name, self.size))
+
+    def get_stability(self, turn_data):
+        pass
+
+    def get_prices(self, turn_data):
+        pass
+
+    def turn_loop(self):
+        turn_data = TurnData()
+        self.collect(turn_data)
+        self.consume(turn_data)
+        self.specialist_labor(turn_data)
+        self.noble_labor(turn_data)
+        turn_data.current_supply = self.supply
+        self.set_size(turn_data)
+        self.get_stability(turn_data)
+        self.get_prices(turn_data)
+        self.prev_turn_data = turn_data
+
+
+class TurnData(object):
+    def __init__(self):
+        self.starvation = 0
+        self.current_supply = {}
+        self.produced = {}
+        self.consumed = {}
+
+    def get_food_stores(self, supply):
+        food_types = ["fish", "fruit", "grain", "meat", "shellfish"]
+        fs = 0
+        for key, value in supply.items():
+            if key in food_types:
+                fs += value
+        return fs
+
+    def get_food_box(self, size):
+        fb = size * 11
+        return fb
+
+
+def find_closest_city(game_state, each_tile, subset=None):
     closest = (999999, None)
     if subset is None:
         subset = game_state.active_map.cities
@@ -145,7 +268,7 @@ def find_closest_city(game_state, mgs, each_tile, subset=None):
     return closest
 
 
-def set_city_territory(game_state, mgs):
+def set_city_territory(game_state):
     def set_tile_owner(game_state, tile, owner):
         tile.owner = owner
         x1 = tile.column
@@ -170,18 +293,60 @@ def set_city_territory(game_state, mgs):
         if len(claimants) == 1:
             closest = (0, claimants[0])
         elif len(claimants) > 1:
-            closest = find_closest_city(game_state, mgs, each_tile, claimants)
+            closest = find_closest_city(game_state, each_tile, claimants)
         set_tile_owner(game_state, each_tile, closest[1])
 
     end = time.time()
     print("time_elapsed {0}s".format(end - start))
 
 
-def set_city_properties(game_state, mgs):
+def sort_city_tiles(game_state):
     for each_city in game_state.active_map.cities:
-        # each_city.get_local_food()
-        # each_city.set_size()
-        pass
+        each_city.sort_local_tiles()
+
+
+class HistoryCatch(object):
+    def __init__(self):
+        self.months = {"population": {}}
+
+
+def run_cities(game_state, months):
+    history_catch = HistoryCatch()
+    for ii in range(months):
+        history_catch.months[ii] = {}
+        print("Simulating... {0}".format(game_state.calendar.get_date_string()))
+        for each_city in game_state.active_map.cities:
+            each_city.turn_loop()
+            if each_city.nation not in history_catch.months[ii]:
+                history_catch.months[ii][each_city.nation] = 0
+            history_catch.months[ii][each_city.nation] += each_city.size
+        game_state.calendar.next_month()
+
+    marker = pygame.Surface([1, 1])
+    marker.fill(util.colors.light_green)
+    graph_buffer = pygame.Surface(
+        [game_state.screen.get_width(), game_state.screen.get_height()])
+    graph_buffer.fill(util.colors.black)
+    for month, nation_dict in history_catch.months.items():
+        for each_nation, pop in nation_dict.items():
+            marker.fill(each_nation.color)
+            graph_buffer.blit(
+                marker,
+                [month, game_state.screen.get_height() - pop / 5])
+    print("rendered")
+    graph = True
+    while graph:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.display.quit()
+                pygame.quit()
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_RETURN:
+                    graph = False
+        game_state.screen.blit(graph_buffer, [0, 0])
+        game_state.clock.tick(60)
+
+        pygame.display.flip()
 
 
 def evaluate_local_food(active_map, zone_of_control):

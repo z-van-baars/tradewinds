@@ -11,7 +11,6 @@ def display_update(screen, raw_maps, display_data, clock):
 
 
 def input_loop(game_state,
-               mgs,
                message="Press Enter to Continue",
                wait_message="Please Wait..."):
     message_font = pygame.font.SysFont('Calibri', 14, True, False)
@@ -39,20 +38,40 @@ def input_loop(game_state,
 
         game_state.screen.fill(util.colors.black)
         display_update(game_state.screen,
-                       mgs.raw_maps,
-                       mgs.display_data,
-                       mgs.clock)
+                       game_state.active_map.raw_maps,
+                       game_state.active_map.display_data,
+                       game_state.clock)
 
         game_state.screen.blit(enter_message,
                                [10, game_state.screen_height - 24])
         pygame.display.flip()
 
 
-def render_height_map(mgs, marker, viable_sites):
-    active_map = mgs.active_map
-    raw_maps = mgs.raw_maps
-    width = mgs.width
-    height = mgs.height
+def render_raw_maps(active_map, exclusive=None, viable_sites=None):
+
+    tile_marker = pygame.Surface([1, 1])
+    tile_marker.fill((0, 0, 0))
+    render_funcs = {"height": render_height_map,
+                    "moisture": render_moisture_map,
+                    "temp": render_temp_map,
+                    "water flux": render_water_flux_map,
+                    "biome": render_biome_map,
+                    "city score": render_city_score_map,
+                    "trade score": render_trade_score_map,
+                    "nation": render_nation_map}
+
+    if exclusive is not None:
+        for each in exclusive:
+            render_funcs[each](active_map, tile_marker, viable_sites)
+        return
+    for map_type, render_func in render_funcs.items():
+        render_func(active_map, tile_marker, viable_sites)
+
+
+def render_height_map(active_map, marker, viable_sites):
+    raw_maps = active_map.raw_maps
+    width = active_map.width
+    height = active_map.height
     print("drawing heightmap...")
     for y in range(height):
         for x in range(width):
@@ -61,11 +80,10 @@ def render_height_map(mgs, marker, viable_sites):
             raw_maps[0].blit(marker, [x, y])
 
 
-def render_temp_map(mgs, marker, viable_sites):
-    active_map = mgs.active_map
-    raw_maps = mgs.raw_maps
-    width = mgs.width
-    height = mgs.height
+def render_temp_map(active_map, marker, viable_sites):
+    raw_maps = active_map.raw_maps
+    width = active_map.width
+    height = active_map.height
     print("drawing temperature map...")
     temp_gradient = {0: (0, 53, 191),
                      1: (0, 135, 195),
@@ -84,11 +102,10 @@ def render_temp_map(mgs, marker, viable_sites):
             raw_maps[1].blit(marker, [x, y])
 
 
-def render_moisture_map(mgs, marker, viable_sites):
-    active_map = mgs.active_map
-    raw_maps = mgs.raw_maps
-    width = mgs.width
-    height = mgs.height
+def render_moisture_map(active_map, marker, viable_sites):
+    raw_maps = active_map.raw_maps
+    width = active_map.width
+    height = active_map.height
 
     print("drawing moisture map...")
     moisture_gradient = {0: (229, 131, 0),
@@ -109,11 +126,10 @@ def render_moisture_map(mgs, marker, viable_sites):
             raw_maps[2].blit(marker, [x, y])
 
 
-def render_biome_map(mgs, marker, viable_sites):
-    active_map = mgs.active_map
-    raw_maps = mgs.raw_maps
-    width = mgs.width
-    height = mgs.height
+def render_biome_map(active_map, marker, viable_sites):
+    raw_maps = active_map.raw_maps
+    width = active_map.width
+    height = active_map.height
     print("drawing biome map...")
     for y in range(height):
         for x in range(width):
@@ -134,8 +150,10 @@ def render_biome_map(mgs, marker, viable_sites):
                 raw_maps[3].blit(marker, [tile.column, tile.row])
 
 
-def render_city_score_map(mgs, marker, viable_sites):
-    raw_maps = mgs.raw_maps
+def render_city_score_map(active_map, marker, viable_sites):
+    if viable_sites is None:
+        return
+    raw_maps = active_map.raw_maps
     raw_maps[5].fill((3, 0, 87))
     print("rendering city score map")
     max_score = 500
@@ -151,6 +169,7 @@ def render_city_score_map(mgs, marker, viable_sites):
                       2: (211, 52, 13),
                       1: (231, 33, 13)}
     largest = 0
+
     for site in viable_sites:
         normalized_value = min(10, round((site.city_score / max_score) * 10))
         if site.city_score > largest:
@@ -159,8 +178,10 @@ def render_city_score_map(mgs, marker, viable_sites):
         raw_maps[5].blit(marker, [site.tile.column, site.tile.row])
 
 
-def render_trade_score_map(mgs, marker, viable_sites):
-    raw_maps = mgs.raw_maps
+def render_trade_score_map(active_map, marker, viable_sites):
+    if viable_sites is None:
+        return
+    raw_maps = active_map.raw_maps
     raw_maps[4].fill((3, 0, 87))
     print("rendering trade score map")
     max_score = 25
@@ -184,11 +205,10 @@ def render_trade_score_map(mgs, marker, viable_sites):
         raw_maps[4].blit(marker, [site.tile.column, site.tile.row])
 
 
-def render_water_flux_map(mgs, marker, viable_sites):
-    active_map = mgs.active_map
-    raw_maps = mgs.raw_maps
-    width = mgs.width
-    height = mgs.height
+def render_water_flux_map(active_map, marker, viable_sites):
+    raw_maps = active_map.raw_maps
+    width = active_map.width
+    height = active_map.height
     print("rendering water flux")
     max_flux = 0
     for each_row in active_map.game_tile_rows:
@@ -221,11 +241,10 @@ def render_water_flux_map(mgs, marker, viable_sites):
     print("Max Water Flux: {0}".format(max_flux))
 
 
-def render_nation_map(mgs, marker, viable_sites):
-    active_map = mgs.active_map
-    raw_maps = mgs.raw_maps
-    width = mgs.width
-    height = mgs.height
+def render_nation_map(active_map, marker, viable_sites):
+    raw_maps = active_map.raw_maps
+    width = active_map.width
+    height = active_map.height
     print("drawing nation territory map...")
     for y in range(height):
         for x in range(width):

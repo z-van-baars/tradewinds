@@ -6,6 +6,8 @@ import math
 import random
 import art
 from typing import List
+import mapgen_render as mgr
+import utilities as util
 assert List
 
 tile_width = 40
@@ -22,12 +24,12 @@ class MapGenParameters(object):
         map_size = math.sqrt(math.sqrt(map_dimensions[0] * map_dimensions[1]))
         self.number_of_cities = math.floor(map_size * 5)
         """City Override"""
-        self.number_of_cities = 45
+        self.number_of_cities = 125
         self.number_of_nations = random.randint(
             math.ceil(map_size / 2),
             math.floor(map_size))
         """Nation Override"""
-        self.number_of_nations = 4
+        self.number_of_nations = 6
 
 
 class DisplayLayer(pygame.sprite.Sprite):
@@ -46,16 +48,24 @@ class DisplayLayer(pygame.sprite.Sprite):
 
 class Map(object):
     def __init__(self, map_dimensions, screen_dimensions):
+        self.mgp = MapGenParameters(map_dimensions)
+        self.width = map_dimensions[0]
+        self.height = map_dimensions[1]
+        self.game_tile_rows = []
+
         self.tile_display_layer = None
         self.terrain_display_layer = None
         self.resource_display_layer = None
         self.building_display_layer = None
         self.nation_border_display_layer = None
+        self.biome_map_preview = None
+        self.raw_maps = self.initialize_raw_maps(self.width, self.height)
+        self.scaled_maps = mgr.scale_maps(
+            self.raw_maps,
+            self.display_data)
         self.screen_dimensions = screen_dimensions
-        self.width = map_dimensions[0]
-        self.height = map_dimensions[1]
-        self.mgp = MapGenParameters(map_dimensions)
-        self.game_tile_rows = []
+
+        self.largest_water_body = None
         self.nation_control = []
         for row in range(map_dimensions[1]):
             row = []
@@ -77,12 +87,46 @@ class Map(object):
         self.temperature = []
         self.moisture = []
         self.elevation = []
-        self.biome_map_preview = None
         self.all_tiles = []
         self.agents = set()
 
+    @property
+    def display_data(self):
+        return (self.width, self.height, False)
+
     def add_city(self, new_city):
         self.cities.append(new_city)
+
+    def initialize_raw_maps(self, width, height):
+        map_previews = [pygame.Surface([width, height])
+                        for i in range(8)]
+        clean_map_previews = []
+        for each in map_previews:
+            each.fill((110, 110, 110))
+            each.set_colorkey(util.colors.key)
+            each = each.convert_alpha()
+            clean_map_previews.append(each)
+        return clean_map_previews
+
+    def render_raw_maps(self, exclusive=None, viable_sites=None):
+        mgr.render_raw_maps(self, exclusive, viable_sites)
+
+    def prepare_surfaces(self):
+        self.render_raw_maps()
+        self.paint_background_tiles(self.game_tile_rows)
+        self.paint_terrain_layer(self.game_tile_rows)
+        self.paint_resource_layer(self.game_tile_rows)
+        self.paint_building_layer(self.game_tile_rows)
+        self.paint_nation_border_layer(self.game_tile_rows)
+        scaled_maps = mgr.scale_maps(
+            self.initialize_raw_maps(self.width, self.height),
+            self.display_data)
+        self.biome_map_preview = pygame.Surface([140, 140])
+        pygame.transform.smoothscale(scaled_maps[3],
+                                     (140, 140),
+                                     self.biome_map_preview)
+        self.biome_map_preview.set_colorkey(util.colors.key)
+        self.biome_map_preview = self.biome_map_preview.convert_alpha()
 
     def paint_background_tiles(self, game_tile_rows):
         tile_width = 40

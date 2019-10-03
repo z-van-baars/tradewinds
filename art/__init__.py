@@ -52,6 +52,12 @@ city_portraits = [
 
 shipyard_portrait_img = pygame.image.load("art/icons/shipyard_a.png").convert_alpha()
 
+city_hall_a = pygame.image.load("art/icons/city_hall_a.png")
+city_hall_b = pygame.image.load("art/icons/city_hall_b.png")
+
+city_hall_portraits = [city_hall_a,
+                       city_hall_b]
+
 
 # MENUS
 port_screen = pygame.image.load("art/menus/port_screen.png").convert_alpha()
@@ -63,6 +69,9 @@ mini_map_preview = pygame.image.load("art/menus/mini_map_bg.png").convert_alpha(
 calendar_menu = pygame.image.load("art/menus/calendar.png")
 
 shipyard_menu = pygame.image.load("art/menus/shipyard_screen.png")
+
+main_menu = pygame.image.load("art/menus/main_menu.png")
+options_menu = pygame.image.load("art/menus/options_menu.png")
 
 # RESOURCES
 cattle = pygame.image.load("art/resources/cattle_1.png").convert_alpha()
@@ -78,6 +87,9 @@ clove = clove.convert_alpha()
 fish = pygame.image.load("art/resources/fish.png")
 fish.set_colorkey(utilities.colors.key)
 fish = fish.convert_alpha()
+fruit = pygame.image.load("art/resources/fruit.png").convert_alpha()
+fruit.set_colorkey(utilities.colors.key)
+fruit = fruit.convert_alpha()
 gold = pygame.image.load("art/resources/gold_1.png").convert_alpha()
 gold.set_colorkey(utilities.colors.key)
 gold = gold.convert_alpha()
@@ -116,6 +128,7 @@ resource_images = {"cattle": [cattle],
                    "cinnamon": [cinnamon],
                    "clove": [clove],
                    "fish": [fish],
+                   "fruit": [fruit],
                    "gold": [gold],
                    "iron": [iron],
                    "ivory": [ivory],

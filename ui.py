@@ -2,6 +2,8 @@ import utilities as util
 import pygame
 import art
 import math
+import random
+import pickle
 
 
 context_menu = pygame.image.load('art/menus/context_menu.png')
@@ -166,8 +168,9 @@ class Button(object):
         self.sprite.rect.y = y
 
 
-def generate_button_images(button_text):
-    button_font = pygame.font.SysFont('Calibri', 14, True, False)
+def generate_button_images(button_text, button_font=None):
+    if button_font is None:
+        button_font = pygame.font.SysFont('Calibri', 16, True, False)
     button_stamp = button_font.render(button_text, True, util.colors.light_gray)
     button_width = button_stamp.get_width() + 14
     center_spacing = button_width - 18
@@ -180,8 +183,8 @@ def generate_button_images(button_text):
     for ii in range(center_spacing):
         regular_img.blit(proc_button_center_regular, [9 + ii, 0])
         hover_img.blit(proc_button_center_hover, [9 + ii, 0])
-    regular_img.blit(button_stamp, [7, 6])
-    hover_img.blit(button_stamp, [7, 6])
+    regular_img.blit(button_stamp, [7, 8])
+    hover_img.blit(button_stamp, [7, 8])
     return regular_img, hover_img
 
 
@@ -287,6 +290,164 @@ class Menu(object):
         self.render_decals(pos)
 
 
+class MainMenu(Menu):
+    def __init__(self, game_state):
+        super().__init__(game_state)
+        self.background_pane = pygame.sprite.Sprite()
+        self.background_pane.image = art.main_menu
+        self.background_pane.rect = self.background_pane.image.get_rect()
+        x_origin = (self.screen.get_width() / 2 -
+                    self.background_pane.image.get_width() / 2)
+        y_origin = 0
+        self.background_pane.rect.x = x_origin
+        self.background_pane.rect.y = y_origin
+
+        def new_game_click():
+            self.open = False
+
+        def load_game_click():
+            pass
+
+        def options_click():
+            new_options_menu = OptionsMenu(self.game_state)
+            self.game_state.active_menus.insert(0, new_options_menu)
+
+        def quit_game_click():
+            pygame.display.quit()
+            pygame.quit()
+
+        mm_font = pygame.font.SysFont('Gabriola', 16, True, False)
+        new_game_r_img, new_game_h_img = generate_button_images("New Game", mm_font)
+        load_game_r_img, load_game_h_img = generate_button_images("Load Game", mm_font)
+        options_r_img, options_h_img = generate_button_images("Options", mm_font)
+        quit_game_r_img, quit_game_h_img = generate_button_images("Quit", mm_font)
+
+        new_game = Button(
+            new_game_r_img,
+            new_game_h_img,
+            new_game_click,
+            math.floor(self.background_pane.image.get_width() / 2 -
+                       new_game_r_img.get_width() / 2),
+            300)
+        load_game = Button(
+            load_game_r_img,
+            load_game_h_img,
+            load_game_click,
+            math.floor(self.background_pane.image.get_width() / 2 -
+                       load_game_r_img.get_width() / 2),
+            360)
+        options = Button(
+            options_r_img,
+            options_h_img,
+            options_click,
+            math.floor(self.background_pane.image.get_width() / 2 -
+                       options_r_img.get_width() / 2),
+            420)
+        quit_game = Button(
+            quit_game_r_img,
+            quit_game_h_img,
+            quit_game_click,
+            math.floor(self.background_pane.image.get_width() / 2 -
+                       quit_game_r_img.get_width() / 2),
+            480)
+        self.buttons = [new_game, load_game, options, quit_game]
+
+
+class OptionsMenu(Menu):
+    def __init__(self, game_state):
+        super().__init__(game_state)
+        self.background_pane = pygame.sprite.Sprite()
+        self.background_pane.image = art.options_menu
+        self.background_pane.rect = self.background_pane.image.get_rect()
+        x_origin = (self.screen.get_width() / 2 -
+                    self.background_pane.image.get_width() / 2)
+        y_origin = (
+            game_state.screen_height / 2 - self.background_pane.image.get_height() / 2)
+        self.background_pane.rect.x = x_origin
+        self.background_pane.rect.y = y_origin
+
+        def load_game_click():
+            self.open = False
+            saved_state = pickle.load(open("saves/save_1.p", "rb"))
+            self.game_state.load_external_state(saved_state)
+            mini_map = MiniMap(self.game_state)
+            calendar_menu = CalendarMenu(self.game_state)
+            self.game_state.active_menus.append(mini_map)
+            self.game_state.active_menus.append(calendar_menu)
+            self.game_state.active_menus.insert(0, self)
+
+        def save_game_click():
+            if self.game_state.active_map is None:
+                return
+            save_string = "save_1"
+            self.game_state.clock = None
+            self.game_state.active_menus = []
+
+            pickle.dump(game_state, open("saves/{0}.p".format(save_string), "wb"))
+            self.game_state.clock = pygame.time.Clock()
+            mini_map = MiniMap(self.game_state)
+            calendar_menu = CalendarMenu(self.game_state)
+            self.game_state.active_menus.append(mini_map)
+            self.game_state.active_menus.append(calendar_menu)
+            self.game_state.active_menus.insert(0, self)
+
+        def go_back_click():
+            self.open = False
+
+        def quit_main_click():
+            pygame.display.quit()
+            pygame.quit()
+
+        def exit_to_desktop_click():
+            pygame.display.quit()
+            pygame.quit()
+
+        load_game_r_img, load_game_h_img = generate_button_images("Load Game")
+        save_game_r_img, save_game_h_img = generate_button_images("Save Game")
+        go_back_r_img, go_back_h_img = generate_button_images("Back")
+        quit_main_r_img, quit_main_h_img = generate_button_images("Quit to Main Menu")
+        exit_r_img, exit_h_img = generate_button_images("Exit to Desktop")
+
+        load_game = Button(
+            load_game_r_img,
+            load_game_h_img,
+            load_game_click,
+            math.floor(self.background_pane.image.get_width() / 2 -
+                       load_game_r_img.get_width() / 2),
+            200)
+
+        save_game = Button(
+            save_game_r_img,
+            save_game_h_img,
+            save_game_click,
+            math.floor(self.background_pane.image.get_width() / 2 -
+                       save_game_r_img.get_width() / 2),
+            240)
+
+        go_back = Button(
+            go_back_r_img,
+            go_back_h_img,
+            go_back_click,
+            math.floor(self.background_pane.image.get_width() / 2 -
+                       go_back_r_img.get_width() / 2),
+            280)
+        quit_game = Button(
+            quit_main_r_img,
+            quit_main_h_img,
+            quit_main_click,
+            math.floor(self.background_pane.image.get_width() / 2 -
+                       quit_main_r_img.get_width() / 2),
+            320)
+        exit = Button(
+            exit_r_img,
+            exit_h_img,
+            exit_to_desktop_click,
+            math.floor(self.background_pane.image.get_width() / 2 -
+                       exit_r_img.get_width() / 2),
+            360)
+        self.buttons = [load_game, save_game, go_back, quit_game, exit]
+
+
 class ConsoleWindow(Menu):
     def __init__(self, game_state):
         super().__init__(game_state)
@@ -300,10 +461,7 @@ class ConsoleWindow(Menu):
 
         self.current_line = ""
 
-        def set_route_drawing(args):
-            print("debug A")
-            print(args[0])
-            print(args[0].lower())
+        def set_draw_routes(args):
             if args[0].lower() == "true" or args[0].lower() == "false":
                 self.game_state.draw_routes = (args[0].lower() == "true")
                 self.game_state.console_log.append(
@@ -315,8 +473,15 @@ class ConsoleWindow(Menu):
                 self.game_state.console_log.append(
                     'Infinite Speed set to {0}'.format(args[0].lower()))
 
-        self.console_functions = {"draw_routes": set_route_drawing,
-                                  "infinite_speed": set_infinite_speed}
+        def set_draw_borders(args):
+            if args[0].lower() == "true" or args[0].lower() == "false":
+                self.game_state.draw_borders = (args[0].lower() == "true")
+                self.game_state.console_log.append(
+                    'Draw Borders set to {0}'.format(args[0].lower()))
+
+        self.console_functions = {"draw_routes": set_draw_routes,
+                                  "infinite_speed": set_infinite_speed,
+                                  "draw_borders": set_draw_borders}
         self.buttons = []
 
     def keydown_handler(self, event, key):
@@ -332,7 +497,6 @@ class ConsoleWindow(Menu):
             self.current_line = self.current_line[:-1]
         else:
             self.current_line = self.current_line + event.unicode
-        print(self.current_line)
 
     def render_decals(self, pos):
         header_font = pygame.font.SysFont('Calibri', 18, True, False)
@@ -749,6 +913,12 @@ class CityMenu(Menu):
             game_state.active_menus = [new_shipyard_menu] + game_state.active_menus
             self.open = False
 
+        def city_hall_click():
+            new_city_hall_menu = CityHallMenu(game_state, city)
+            game_state.clear_menutype([CityHallMenu])
+            game_state.active_menus = [new_city_hall_menu] + game_state.active_menus
+            self.open = False
+
         def dragbar_click():
             self.dragging = True
 
@@ -780,6 +950,15 @@ class CityMenu(Menu):
             80,
             175)
 
+        city_hall_r_img, city_hall_h_img = generate_button_images("City Hall")
+
+        city_hall_button = Button(
+            city_hall_r_img,
+            city_hall_h_img,
+            city_hall_click,
+            155,
+            140)
+
         dragbar_r_img = pygame.Surface(
             [self.background_pane.image.get_width() - 2,
              9])
@@ -796,6 +975,7 @@ class CityMenu(Menu):
                         market_button,
                         tavern_button,
                         shipyard_button,
+                        city_hall_button,
                         dragbar]
 
     def render_decals(self, pos):
@@ -1186,6 +1366,75 @@ class ShipyardMenu(Menu):
         self.cached_image.blit(
             city_name_stamp,
             [self.background_pane.image.get_width() / 2, 15])
+
+
+class CityHallMenu(Menu):
+    def __init__(self, game_state, city):
+        super().__init__(game_state)
+        self.background_pane = pygame.sprite.Sprite()
+        self.background_pane.image = art.shipyard_menu
+        self.background_pane.image.blit(random.choice(art.city_hall_portraits), [5, 14])
+        self.background_pane.rect = self.background_pane.image.get_rect()
+        x_origin = (self.screen.get_width() / 2 -
+                    self.background_pane.image.get_width() / 2)
+        y_origin = (self.screen.get_height() / 2 -
+                    self.background_pane.image.get_height() / 2)
+        self.background_pane.rect.x = x_origin
+        self.background_pane.rect.y = y_origin
+        self.city = city
+
+        def dragbar_click():
+            self.dragging = True
+
+        def x_click():
+            self.open = False
+
+        def back_click():
+            new_city_menu = CityMenu(game_state, self.city)
+            game_state.active_menus = [new_city_menu] + game_state.active_menus
+            self.open = False
+
+        dragbar_r_img = pygame.Surface(
+            [self.background_pane.image.get_width() - 2, 9])
+        dragbar_r_img.fill(util.colors.dragbar)
+
+        dragbar = Button(
+            dragbar_r_img,
+            dragbar_r_img,
+            dragbar_click,
+            1,
+            1)
+
+        back_button = Button(
+            back_r_img,
+            back_h_img,
+            back_click,
+            self.background_pane.image.get_width() - 44,
+            13)
+
+        x_button = Button(
+            x_button_r_img,
+            x_button_h_img,
+            x_click,
+            self.background_pane.image.get_width() - 22,
+            13)
+
+        self.buttons = [dragbar, back_button, x_button]
+
+    def render_decals(self, pos):
+        header_font = pygame.font.SysFont('Calibri', 18, True, False)
+        data_font = pygame.font.SysFont('Calibri', 14, True, False)
+        city_name_text = "{0} City Hall".format(self.city.name)
+        city_name_stamp = header_font.render(city_name_text, True, util.colors.white)
+        city_size_stamp = data_font.render(
+            "Population: {0},000".format(self.city.size),
+            True, util.colors.white)
+        self.cached_image.blit(
+            city_name_stamp,
+            [self.background_pane.image.get_width() / 2, 15])
+        self.cached_image.blit(
+            city_size_stamp,
+            [6, 160])
 
 
 class QuantityMenu(Menu):

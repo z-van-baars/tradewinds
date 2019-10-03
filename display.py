@@ -7,11 +7,8 @@ tiny_font = pygame.font.SysFont('Calibri', 11, True, False)
 small_font = pygame.font.SysFont('Calibri', 14, True, False)
 
 
-def print_stats(game_state, selected_construct):
-    pass
-
-
 def update_display(game_state, selected_tile, display_parameters, mouse_pos, map_xy):
+    tile_width = 40
     (background_left,
      background_top,
      background_right,
@@ -20,7 +17,6 @@ def update_display(game_state, selected_tile, display_parameters, mouse_pos, map
     active_map = game_state.active_map
     screen = game_state.screen
     game_state.screen.fill(util.colors.background_blue)
-    tile_width = 40
 
     game_state.screen.blit(active_map.tile_display_layer.image, [background_left,
                                                                  background_top])
@@ -42,7 +38,6 @@ def update_display(game_state, selected_tile, display_parameters, mouse_pos, map
     screen.blit(active_map.building_display_layer.image, [background_left,
                                                           background_top])
 
-
     if game_state.player.path is not None and game_state.draw_routes:
         shifted_pts_list = []
         for point in game_state.player.path_pts:
@@ -62,8 +57,9 @@ def update_display(game_state, selected_tile, display_parameters, mouse_pos, map
     so that the player's ship image is centered on the tile"""
     screen.blit(game_state.player.ship.image, [player_screen_coordinates[0] - 20,
                                                player_screen_coordinates[1] - 25])
-    screen.blit(active_map.nation_border_display_layer.image, [background_left,
-                                                               background_top])
+    if game_state.draw_borders:
+        screen.blit(active_map.nation_border_display_layer.image, [background_left,
+                                                                   background_top])
     for menu in reversed(game_state.active_menus):
         game_state.screen.blit(
             menu.cached_image,

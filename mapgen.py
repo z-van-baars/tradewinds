@@ -1,5 +1,6 @@
 from opensimplex import OpenSimplex
 import utilities as util
+import production as prod
 import math
 import random
 import queue
@@ -550,10 +551,7 @@ class MapgenState(object):
         self.display_scale = False
         self.display_data = (self.width, self.height, self.display_scale)
         self.clock = pygame.time.Clock()
-        self.raw_maps = self.initialize_raw_maps(self.width, self.height)
         self.map_accepted = False
-        self.scaled_maps = mgr.scale_maps(self.raw_maps, self.display_data)
-        self.largest_water_body = None
 
     @property
     def width(self):
@@ -583,26 +581,6 @@ class MapgenState(object):
             clean_map_previews.append(each)
         return clean_map_previews
 
-    def render_raw_maps(self, exclusive=None, viable_sites=None):
-
-        tile_marker = pygame.Surface([1, 1])
-        tile_marker.fill((0, 0, 0))
-        render_funcs = {"height": mgr.render_height_map,
-                        "moisture": mgr.render_moisture_map,
-                        "temp": mgr.render_temp_map,
-                        "water flux": mgr.render_water_flux_map,
-                        "biome": mgr.render_biome_map,
-                        "city score": mgr.render_city_score_map,
-                        "trade score": mgr.render_trade_score_map,
-                        "nation": mgr.render_nation_map}
-
-        if exclusive is not None:
-            for each in exclusive:
-                render_funcs[each](self, tile_marker, viable_sites)
-            return
-        for map_type, render_func in render_funcs.iterate():
-            render_func(self, tile_marker, viable_sites)
-
 
 def is_coastal(active_map, largest_water_body, site):
     neighbor_tiles = util.get_adjacent_tiles(site.tile, active_map)
@@ -612,49 +590,47 @@ def is_coastal(active_map, largest_water_body, site):
             for neighbor in neighbor_tiles))
 
 
-def survey_city_sites(game_state, mgs: MapgenState):
+def survey_city_sites(game_state):
+    active_map = game_state.active_map
     all_sites = []
     viable_sites = []
     sorted_sites = queue.PriorityQueue()
     print("surveying city candidates...")
-    for row in mgs.active_map.game_tile_rows:
-        for tile in row:
-            mgs.active_map.all_tiles.append(tile)
-    all_sites = [city.Site(tile, mgs.active_map)
-                 for tile in mgs.active_map.all_tiles]
+    all_sites = [city.Site(tile, active_map)
+                 for tile in active_map.all_tiles]
     viable_sites = list(filter(city.Site.is_viable, all_sites))
-    if mgs.largest_water_body is None:
-        mgs.largest_water_body = city.cull_interior_watermasses(mgs.active_map)
-    coastal_sites = list(filter(lambda x: is_coastal(mgs.active_map,
-                                                     mgs.largest_water_body,
+    if active_map.largest_water_body is None:
+        active_map.largest_water_body = city.cull_interior_watermasses(active_map)
+    coastal_sites = list(filter(lambda x: is_coastal(active_map,
+                                                     active_map.largest_water_body,
                                                      x), viable_sites))
     for site in viable_sites:
-        site.update_scores(mgs.active_map, coastal_sites)
+        site.update_scores(active_map, coastal_sites)
     for site in viable_sites:
         if site.city_score > 1:
             sorted_sites.put((-site.city_score, site.tile, site))
     return all_sites, viable_sites, sorted_sites
 
 
-def spawn_cities(game_state, mgs: MapgenState):
+def spawn_cities(game_state):
+    active_map = game_state.active_map
     message_font = pygame.font.SysFont('Calibri', 14, True, False)
 
-    all_sites, viable_sites, sorted_sites = survey_city_sites(game_state, mgs)
+    all_sites, viable_sites, sorted_sites = survey_city_sites(game_state)
     map_size_f = math.sqrt(
         math.sqrt(math.sqrt(
             game_state.active_map.width *
             game_state.active_map.height)))
 
     map_size_f = math.floor(map_size_f)
-    mgs.render_raw_maps(['trade score', 'city score'], viable_sites)
+    active_map.render_raw_maps(['trade score', 'city score'], viable_sites)
     mgr.display_update(game_state.screen,
-                       mgs.raw_maps,
-                       mgs.display_data,
-                       mgs.clock)
+                       active_map.raw_maps,
+                       active_map.display_data,
+                       game_state.clock)
     mgr.input_loop(game_state,
-                   mgs,
                    "Initial Map Survey Complete, press Enter to spawn cities")
-    for ii in range(mgs.active_map.mgp.number_of_cities):
+    for ii in range(active_map.mgp.number_of_cities):
         d = 0
         while d < random.randint(1 + map_size_f, math.floor(map_size_f * 1.5)):
             score, tile, site = sorted_sites.get()
@@ -667,22 +643,20 @@ def spawn_cities(game_state, mgs: MapgenState):
                     existing_city.row)
                 if d1 < d:
                     d = d1
-        new_city_name = city.get_city_name(mgs.active_map.cities)
+        new_city_name = city.get_city_name(active_map.cities)
         new_city = city.City(
-            mgs.active_map,
+            active_map,
             tile.column,
             tile.row,
             tile,
             new_city_name)
-        # all_sites, viable_sites, sorted_sites = survey_city_sites(game_state, mgs)
-        mgs.active_map.add_city(new_city)
+        active_map.add_city(new_city)
 
-        # mgs.render_raw_maps(['city score'], viable_sites)
         game_state.screen.fill(util.colors.black)
         mgr.display_update(game_state.screen,
-                           mgs.raw_maps,
-                           mgs.display_data,
-                           mgs.clock)
+                           active_map.raw_maps,
+                           active_map.display_data,
+                           game_state.clock)
         update_text = message_font.render(
             "Cities Placed: ...... {0} / {1}".format(
                 len(game_state.active_map.cities),
@@ -695,7 +669,8 @@ def spawn_cities(game_state, mgs: MapgenState):
         pygame.display.flip()
 
 
-def set_nation_territory(game_state, mgs):
+def set_nation_territory(game_state):
+    active_map = game_state.active_map
     print("Debug A")
     claims = {}
     for each_nation in game_state.active_map.nations:
@@ -715,92 +690,99 @@ def set_nation_territory(game_state, mgs):
             assert closest[1] is not None
             claims[closest[1]].append(each_tile)
     print("Debug B")
-    nation.accrete_cities(game_state, mgs, claims)
-    nation.accrete_city_territory(game_state, mgs)
-    mgs.render_raw_maps(['nation'])
+    nation.accrete_cities(game_state, claims)
+    nation.accrete_city_territory(game_state)
+    active_map.render_raw_maps(['nation'])
     game_state.screen.fill(util.colors.black)
     mgr.display_update(game_state.screen,
-                       mgs.raw_maps,
-                       mgs.display_data,
-                       mgs.clock)
+                       active_map.raw_maps,
+                       active_map.display_data,
+                       game_state.clock)
 
     pygame.display.flip()
-    mgr.input_loop(game_state, mgs, "Press Enter to Award Unclaimed Tiles.")
-    print("Debug C")
-    unclaimed_tiles = nation.survey_unclaimed_tiles(game_state, mgs)
-    print("Debug D")
-    nation.award_unclaimed_tiles(game_state, mgs, unclaimed_tiles)
-    mgs.render_raw_maps(['nation'])
+    mgr.input_loop(game_state, "Press Enter to Award Unclaimed Tiles.")
+    unclaimed_tiles = nation.survey_unclaimed_tiles(game_state)
+    nation.award_unclaimed_tiles(game_state, unclaimed_tiles)
+    active_map.render_raw_maps(['nation'])
     game_state.screen.fill(util.colors.black)
     mgr.display_update(game_state.screen,
-                       mgs.raw_maps,
-                       mgs.display_data,
-                       mgs.clock)
+                       active_map.raw_maps,
+                       active_map.display_data,
+                       game_state.clock)
 
     pygame.display.flip()
 
 
-def make_map(game_state, mgs: MapgenState):
-    generate_heightmap(mgs.active_map)
-    adjust_landmass_height(mgs.active_map)
-    infill_basins(mgs.active_map)
+def make_map(game_state):
+    active_map = game_state.active_map
+    generate_blank_ocean_tiles(active_map)
+    generate_heightmap(active_map)
+    adjust_landmass_height(active_map)
+    infill_basins(active_map)
 
-    mgs.render_raw_maps(['height'])
+    active_map.render_raw_maps(['height'])
     mgr.display_update(game_state.screen,
-                       mgs.raw_maps,
-                       mgs.display_data,
-                       mgs.clock)
+                       active_map.raw_maps,
+                       active_map.display_data,
+                       game_state.clock)
 
-    mgs.active_map.temperature = generate_tempmap(mgs.width, mgs.height)
-    mgs.active_map.moisture = generate_moisture_map(
-        mgs.width,
-        mgs.height,
-        mgs.active_map.elevation,
-        mgs.water_cutoff)
-    set_biomes(mgs.active_map, mgs.water_cutoff)
+    active_map.temperature = generate_tempmap(active_map.width, active_map.height)
+    active_map.moisture = generate_moisture_map(
+        active_map.width,
+        active_map.height,
+        active_map.elevation,
+        active_map.mgp.water_cutoff)
+    set_biomes(active_map, active_map.mgp.water_cutoff)
 
-    generate_rivers(mgs.active_map, mgs.water_cutoff)
-    generate_terrain(mgs.active_map)
-    place_resources(mgs.active_map)
+    generate_rivers(active_map, active_map.mgp.water_cutoff)
+    generate_terrain(active_map)
+    place_resources(active_map)
+
+    print("Building tile database...")
+    for row in active_map.game_tile_rows:
+        for tile in row:
+            active_map.all_tiles.append(tile)
+            prod.set_output(tile)
     print("map complete")
 
-    mgs.render_raw_maps(['height', 'temp', 'moisture', 'water flux', 'biome'])
-
-    mgr.display_update(game_state.screen,
-                       mgs.raw_maps,
-                       mgs.display_data,
-                       mgs.clock)
-
-    mgr.input_loop(game_state, mgs, "Press Enter to Survey City Sites")
+    active_map.render_raw_maps(['height', 'temp', 'moisture', 'water flux', 'biome'])
 
 
 def map_generation(game_state, active_map: Map):
-    mgs = MapgenState(active_map)
-    mgr.input_loop(game_state, mgs)
-    mgr.render_map_labels(game_state.screen, mgs.scaled_maps, mgs.display_data)
-    mgr.display_update(game_state.screen,
-                       mgs.raw_maps,
-                       mgs.display_data,
-                       mgs.clock)
+    mgr.input_loop(game_state)
+    mgr.render_map_labels(
+        game_state.screen,
+        active_map.scaled_maps,
+        active_map.display_data)
+    mgr.display_update(
+        game_state.screen,
+        active_map.raw_maps,
+        active_map.display_data,
+        game_state.clock)
     # generate water, land, rivers, temperature, biomes and resources
-    make_map(game_state, mgs)
+    make_map(game_state)
     #
-    spawn_cities(game_state, mgs)
+    spawn_cities(game_state)
     nc = game_state.active_map.mgp.number_of_cities
     mgr.input_loop(game_state,
-                   mgs,
                    "Press Enter to Manifest Destiny.",
                    "Setting Territory for {0} Cities... Please Wait...".format(nc))
-    city.set_city_territory(game_state, mgs)
+    city.set_city_territory(game_state)
     nn = game_state.active_map.mgp.number_of_nations
-    mgr.input_loop(game_state,
-                   mgs,
-                   "Press Enter to Create Nations.",
-                   "Setting Territory for {0} Nations... Please Wait...".format(nn))
-    nation.create_nations(game_state, mgs)
-    set_nation_territory(game_state, mgs)
-    city.set_city_properties(game_state, mgs)
-    mgr.input_loop(game_state, mgs, "Press Enter to accept your fate.")
+    mgr.input_loop(
+        game_state,
+        "Press Enter to Create Nations.",
+        "Setting Territory for {0} Nations... Please Wait...".format(nn))
+    nation.create_nations(game_state)
+    set_nation_territory(game_state)
+    months = 120
+    mgr.input_loop(
+        game_state,
+        "Press Enter to Run the Course of History.",
+        "Running History for {0} Months... Please Wait...".format(months))
+    city.sort_city_tiles(game_state)
+    city.run_cities(game_state, months)
+    mgr.input_loop(game_state, "Press Enter to accept your fate.")
 
     for each_city in game_state.active_map.cities:
         for x in range(3):
@@ -809,16 +791,8 @@ def map_generation(game_state, active_map: Map):
 
     # map generation finished
 
-    active_map.paint_background_tiles(active_map.game_tile_rows)
-    active_map.paint_terrain_layer(active_map.game_tile_rows)
-    active_map.paint_resource_layer(active_map.game_tile_rows)
-    active_map.paint_building_layer(active_map.game_tile_rows)
-    active_map.paint_nation_border_layer(active_map.game_tile_rows)
+    # prepare map surfaces
+    active_map.prepare_surfaces()
+    print("Launching")
 
-    scaled_maps = mgr.scale_maps(mgs.raw_maps, mgs.display_data)
-    active_map.biome_map_preview = pygame.Surface([140, 140])
-    pygame.transform.smoothscale(scaled_maps[3],
-                                 (140, 140),
-                                 active_map.biome_map_preview)
-    active_map.biome_map_preview.set_colorkey(util.colors.key)
-    active_map.biome_map_preview = active_map.biome_map_preview.convert_alpha()
+

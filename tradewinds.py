@@ -45,6 +45,12 @@ def right_key(game_state):
                                        game_state.screen_height)
 
 
+def esc_key(game_state):
+    new_options_menu = ui.OptionsMenu(game_state)
+    game_state.clear_menutype([ui.OptionsMenu])
+    game_state.active_menus.insert(0, new_options_menu)
+
+
 def s_key(game_state):
     if any(menu_type == ui.ShipStatus for menu_type in game_state.active_menus):
         return
@@ -103,6 +109,7 @@ key_functions = {pygame.K_F1: F1_key,
                  pygame.K_DOWN: down_key,
                  pygame.K_LEFT: left_key,
                  pygame.K_RIGHT: right_key,
+                 pygame.K_ESCAPE: esc_key,
                  pygame.K_s: s_key}
 
 mouseclick_functions = {(1, 0, 0): left_click,
@@ -148,22 +155,46 @@ def input_processing(game_state, selected_tile, display_parameters, mouse_pos, m
             game_state.screen_height = event.h
 
 
-def game_tick(game_state):
-    for each_agent in game_state.active_map.agents:
-        each_agent.tick()
-    for each_city in game_state.active_map.cities:
-        each_city.turn_loop(game_state.active_map)
+def new_game(game_state, map_dimensions):
+    game_state.active_map = game_map.Map(map_dimensions, (screen_width, screen_height))
+    mapgen.map_generation(game_state, game_state.active_map)
+    game_state.player = player.Player(game_state, game_state.active_map)
+    game_state.player.silver = 100
+    game_state.player.ship.cargo['wool'] = 10
+    game_state.ships.add(game_state.player.ship)
 
+    """Randomize Start Location"""
+    start_location = random.choice(game_state.active_map.cities)
+    game_state.player.column = start_location.column
+    game_state.player.row = start_location.row
+    game_state.player.ship.column = start_location.column
+    game_state.player.ship.row = start_location.row
 
-def main(game_state):
-    active_map = game_state.active_map
-
-    done = False
-
+    """Center Camera on Start"""
+    x1, y1 = util.get_screen_coords(
+        game_state.player.ship.column,
+        game_state.player.ship.row)
+    game_state.active_map.x_shift = (
+        -x1 - 40 - game_state.background_width / 2 + game_state.screen_width / 2)
+    game_state.active_map.y_shift = -y1 - 40 + game_state.screen_height / 2
+    game_state.active_map.agents.add(game_state.player)
     mini_map = ui.MiniMap(game_state)
     calendar_menu = ui.CalendarMenu(game_state)
     game_state.active_menus.append(mini_map)
     game_state.active_menus.append(calendar_menu)
+
+
+def game_tick(game_state):
+    for each_agent in game_state.active_map.agents:
+        each_agent.tick()
+    for each_city in game_state.active_map.cities:
+        pass
+        # each_city.turn_loop()
+
+
+def main(game_state):
+    active_map = game_state.active_map
+    done = False
 
     while not done:
         mouse_pos = pygame.mouse.get_pos()
@@ -213,35 +244,48 @@ screen_height = 800
 
 game_state = state.GameState(screen_width, screen_height)
 
+main_menu = ui.MainMenu(game_state)
+game_state.active_menus.append(main_menu)
+while main_menu.open:
+    mouse_pos = pygame.mouse.get_pos()
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            pygame.display.quit()
+            pygame.quit()
+        elif event.type == pygame.MOUSEBUTTONDOWN:
+            button_1, button_2, button_3 = pygame.mouse.get_pressed()
+            button_states = (button_1, button_2, button_3)
+            if button_states[0]:
+                game_state.active_menus[0].event_handler(event, mouse_pos)
+        elif event.type == pygame.VIDEORESIZE:
+            game_state.screen = pygame.display.set_mode((event.w, event.h),
+                                                        pygame.RESIZABLE)
+            game_state.screen_width = event.w
+            main_menu.background_pane.rect.x = (
+                game_state.screen.get_width() / 2 -
+                main_menu.background_pane.image.get_width() / 2)
+            game_state.screen_height = event.h
 
-game_state.active_map = game_map.Map((200, 200), (screen_width, screen_height))
-mapgen.map_generation(game_state, game_state.active_map)
-start_location = random.choice(game_state.active_map.cities)
-# game_state.player = player.Player(start_location.column, start_location.row)
-game_state.player = player.Player(game_state, game_state.active_map)
-game_state.player.silver = 100
-game_state.player.ship.cargo['wool'] = 10
-game_state.ships.add(game_state.player.ship)
+    game_state.screen.fill(util.colors.black)
+    for menu in reversed(game_state.active_menus):
+        game_state.screen.blit(
+            menu.cached_image,
+            [menu.background_pane.rect.x,
+             menu.background_pane.rect.y])
+    pygame.display.flip()
+    game_state.clock.tick(60)
 
-"""Randomize Start Location"""
-list_of_cities = []
-for city in game_state.active_map.cities:
-    list_of_cities.append(city)
-random.shuffle(list_of_cities)
-start_city = list_of_cities[0]
-game_state.player.column = start_city.column
-game_state.player.row = start_city.row
-game_state.player.ship.column = start_city.column
-game_state.player.ship.row = start_city.row
+    menu_cache = []
+    for menu in game_state.active_menus:
+        menu_cache.append(menu)
+        menu.render_onscreen_cache(mouse_pos)
+    game_state.active_menus = []
+    for menu in menu_cache:
+        if menu.open:
+            game_state.active_menus.append(menu)
+new_game(game_state, (200, 200))
 
-"""Center Camera on Start"""
-x1, y1 = util.get_screen_coords(
-    game_state.player.ship.column,
-    game_state.player.ship.row)
-game_state.active_map.x_shift = (
-    -x1 - 40 - game_state.background_width / 2 + game_state.screen_width / 2)
-game_state.active_map.y_shift = -y1 - 40 + game_state.screen_height / 2
-game_state.active_map.agents.add(game_state.player)
+
 main(game_state)
 
 

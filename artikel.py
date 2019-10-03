@@ -10,6 +10,8 @@ Wool = ["shrubland", "grassland", "low hills"]
 
 Cattle = ["grassland", "plains"]
 
+Fruit = ["jungle"]
+
 Saffron = ["plains", "savannah"]
 
 Cinnamon = ["plains", "savannah", "low hills"]
@@ -69,15 +71,19 @@ rare_resources = ["saffron",
                   "jewels"]
 
 
-common_resources = ["wood",
+common_resources = ["timber",
                     "wool",
                     "iron"]
 
 food_resources = ["cattle",
-                  "grain",
-                  "fish"]
+                  "wheat",
+                  "fruit",
+                  "fish",
+                  "shellfish"]
 
 all_resources = food_resources + common_resources + rare_resources
+
+all_artikels = []
 
 
 mountain = {"taiga": ["iron", "silver", "gold"],
@@ -162,7 +168,7 @@ vegetation = {"taiga": ["wool", "pelts", "iron", "silver"],
               "savannah": ["ivory", "cinnamon", "gold"],
               "desert": ["gold", "jewels"],
               "forest": ["timber", "pelts"],
-              "jungle": ["clove", "timber"],
+              "jungle": ["clove", "timber", "fruit"],
               "snowpack": [None],
               "ice": [None],
               "shrubland": ["wool", "silver", "iron", "jewels"],
@@ -201,6 +207,7 @@ possible_resources = {"river": river,
 class Resource(object):
     biomes_allowed = {}
     terrain_allowed = {}
+
 
 class Artikel(object):
 

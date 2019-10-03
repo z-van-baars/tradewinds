@@ -39,7 +39,7 @@ month_days = {"January": 31,
 
 class Calendar(object):
     def __init__(self):
-        self.year = 1
+        self.year = 1500
         self.month = 0
         self.day = 1
         self.month_string = months[self.month]
@@ -50,6 +50,14 @@ class Calendar(object):
         if self.day > month_days[self.month_string]:
             self.month += 1
             self.day = 1
+        if self.month > 11:
+            self.year += 1
+            self.month = 0
+        self.month_string = months[self.month]
+
+    def next_month(self):
+        self.month += 1
+        self.day = 1
         if self.month > 11:
             self.year += 1
             self.month = 0

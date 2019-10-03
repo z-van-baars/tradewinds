@@ -1,5 +1,4 @@
 import pygame
-import construct
 import utilities
 
 
@@ -17,11 +16,45 @@ class GameState(object):
 
         self.draw_routes = True
         self.infinite_speed = False
+        self.draw_borders = False
 
         self.active_map = None
         self.ships = set()
         self.player = None
         self.active_menus = []
+        self.reset_surfaces()
+
+    def load_external_state(self, ext_state):
+        self.game_speed = ext_state.game_speed
+        self.time = ext_state.time
+        self.paused = ext_state.paused
+        self.timer = ext_state.timer
+
+        self.draw_routes = ext_state.draw_routes
+        self.infinite_speed = ext_state.infinite_speed
+        self.draw_borders = ext_state.draw_borders
+
+        self.active_map = ext_state.active_map
+        self.ships = ext_state.ships
+        self.player = ext_state.player
+
+        self.unpack_string_buffers()
+
+    def pack_string_buffers(self):
+        self.active_map.tile_display_layer = None
+        self.active_map.terrain_display_layer = None
+        self.active_map.resource_display_layer = None
+        self.active_map.building_display_layer = None
+        self.active_map.nation_border_display_layer = None
+        self.screen = None
+
+        for each_ship in self.active_map.ships:
+            pygame.image.tostring(each_ship.image)
+
+    def unpack_string_buffers(self):
+        for each_ship in self.active_map.ships:
+            pygame.image.fromstring(each_ship.image)
+        self.active_map.prepare_surfaces()
         self.reset_surfaces()
 
     def reset_surfaces(self):
