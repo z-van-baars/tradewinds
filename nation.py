@@ -83,11 +83,12 @@ class Nation(object):
         vitals["tiles"] = []
         for each_tile in self.tiles:
             vitals["tiles"].append((each_tile.column, each_tile.row))
+        return vitals
 
     def load_external(self, records):
         for attr_name in ("name",
                           "color"):
-            records[attr_name] = getattr(self, attr_name)
+            setattr(self, attr_name, records[attr_name])
         (column, row) = records["capital"]
         self.capital = (
             self.active_map.game_tile_rows[row][column].city)

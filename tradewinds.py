@@ -158,25 +158,26 @@ def input_processing(game_state, selected_tile, display_parameters, mouse_pos, m
 def new_game(game_state, map_dimensions):
     game_state.active_map = game_map.Map(map_dimensions, (screen_width, screen_height))
     mapgen.map_generation(game_state, game_state.active_map)
-    game_state.player = player.Player(game_state, game_state.active_map)
-    game_state.player.silver = 100
-    game_state.player.ship.cargo['wool'] = 10
+    game_state.active_map.player = player.Player(game_state, game_state.active_map)
+    game_state.active_map.player.silver = 100
+    game_state.active_map.player.ship.cargo['wool'] = 10
 
     """Randomize Start Location"""
     start_location = random.choice(game_state.active_map.cities)
-    game_state.player.column = start_location.column
-    game_state.player.row = start_location.row
-    game_state.player.ship.column = start_location.column
-    game_state.player.ship.row = start_location.row
+    game_state.active_map.player.column = start_location.column
+    game_state.active_map.player.row = start_location.row
+    game_state.active_map.player.ship.column = start_location.column
+    game_state.active_map.player.ship.row = start_location.row
+    game_state.active_map.player.column = start_location.column
+    game_state.active_map.player.row = start_location.row
 
     """Center Camera on Start"""
     x1, y1 = util.get_screen_coords(
-        game_state.player.ship.column,
-        game_state.player.ship.row)
+        game_state.active_map.player.ship.column,
+        game_state.active_map.player.ship.row)
     game_state.active_map.x_shift = (
         -x1 - 40 - game_state.background_width / 2 + game_state.screen_width / 2)
     game_state.active_map.y_shift = -y1 - 40 + game_state.screen_height / 2
-    game_state.active_map.agents.add(game_state.player)
     mini_map = ui.MiniMap(game_state)
     calendar_menu = ui.CalendarMenu(game_state)
     game_state.active_menus.append(mini_map)
@@ -184,6 +185,7 @@ def new_game(game_state, map_dimensions):
 
 
 def game_tick(game_state):
+    game_state.active_map.player.tick()
     for each_agent in game_state.active_map.agents:
         each_agent.tick()
     for each_city in game_state.active_map.cities:
@@ -282,7 +284,9 @@ while main_menu.open:
     for menu in menu_cache:
         if menu.open:
             game_state.active_menus.append(menu)
-new_game(game_state, (200, 200))
+
+if game_state.active_map is None:
+    new_game(game_state, (200, 200))
 
 
 main(game_state)

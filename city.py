@@ -143,7 +143,7 @@ class City(object):
                           "supply",
                           "sell_price",
                           "purchase_price"):
-            self.attr_name = records[attr_name]
+            setattr(self, attr_name, records[attr_name])
         for each_xy in records["tiles"]:
             new_tile = self.active_map.game_tile_rows[each_xy[1]][each_xy[0]]
             self.tiles.append(new_tile)

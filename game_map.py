@@ -61,8 +61,8 @@ class Map(object):
         self.mgp = MapGenParameters(map_dimensions)
         self.width = map_dimensions[0]
         self.height = map_dimensions[1]
-        self.displayshift_x = 0
-        self.displayshift_y = 0
+        self.x_shift = 0
+        self.y_shift = 0
         self.temperature = []
         self.moisture = []
         self.elevation = []

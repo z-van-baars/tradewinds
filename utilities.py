@@ -42,7 +42,8 @@ class Calendar(object):
         self.year = 1500
         self.month = 0
         self.day = 1
-        self.month_string = months[self.month]
+        self.month_string = None
+        self.set_month_string()
 
     def increment_date(self):
         self.day += 1
@@ -53,7 +54,7 @@ class Calendar(object):
         if self.month > 11:
             self.year += 1
             self.month = 0
-        self.month_string = months[self.month]
+        self.set_month_string()
 
     def next_month(self):
         self.month += 1
@@ -61,6 +62,9 @@ class Calendar(object):
         if self.month > 11:
             self.year += 1
             self.month = 0
+        self.set_month_string()
+
+    def set_month_string(self):
         self.month_string = months[self.month]
 
     def get_date_string(self):

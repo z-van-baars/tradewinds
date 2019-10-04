@@ -86,7 +86,7 @@ class Ship(object):
         for attr_name in ("column",
                           "row",
                           "cargo"):
-            self.attr_name = records[attr_name]
+            setattr(self, attr_name, records[attr_name])
 
 
 class Cog(Ship):

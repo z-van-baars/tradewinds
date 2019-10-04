@@ -2,6 +2,7 @@ import entity
 from enum import Enum
 import nav
 import utilities as util
+from ships import ship_types
 
 
 class AgentState(Enum):
@@ -10,8 +11,8 @@ class AgentState(Enum):
 
 
 class Agent(entity.Entity):
-    def __init__(self, active_map, x, y):
-        super().__init__(active_map, x, y)
+    def __init__(self, active_map, column, row):
+        super().__init__(active_map, column, row)
         self.tick_cycles = {AgentState.idle: self.idle_tick,
                             AgentState.move: self.move_tick}
         self.state = AgentState.idle
@@ -27,20 +28,32 @@ class Agent(entity.Entity):
 
     def get_vitals(self):
         vitals = {}
-        for attr_name in ("x",
-                          "y"):
+        for attr_name in ("column",
+                          "row"):
             vitals[attr_name] = getattr(self, attr_name)
             vitals["ship"] = self.ship.get_vitals()
             vitals["target tile"] = self.target_tile
 
         return vitals
 
+    def load_external(self, records):
+        for attr_name in ("column",
+                          "row"):
+            setattr(self, attr_name, records[attr_name])
+        ShipClass = ship_types[records["ship"]["hull_class"]]
+        new_ship = ShipClass(
+            self.active_map, records["ship"]["column"],
+            records["ship"]["row"])
+        new_ship.load_external(records["ship"])
+        self.ship = new_ship
+        self.target_tile = records["target tile"]
+
     def tick(self):
         self.tick_cycles[self.state]()
 
     def idle_tick(self):
         if self.target_tile is not None:
-            self.state = AgentState.Move
+            self.state = AgentState.move
 
     def move_tick(self):
         """we should not be here if both of these are None"""

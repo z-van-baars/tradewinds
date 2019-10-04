@@ -798,7 +798,7 @@ def load_existing(game_state, vital_records):
     active_map = game_state.active_map
     generate_blank_ocean_tiles(active_map)
     for attr_name in ("moisture", "temperature", "elevation"):
-        active_map.attr_name = vital_records[attr_name]
+        setattr(active_map, attr_name, vital_records[attr_name])
     for each_record in vital_records["tiles"]:
         column = each_record["column"]
         row = each_record["row"]

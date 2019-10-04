@@ -43,7 +43,7 @@ class GameTile(object):
             vitals[attr_name] = getattr(self, attr_name)
         return vitals
 
-    def load_existing(self, records):
+    def load_external(self, records):
         for attr_name in ("row",
                           "column",
                           "biome",
@@ -53,4 +53,4 @@ class GameTile(object):
                           "water_flux",
                           "water_source",
                           "bordered_edges"):
-            self.attr_name = records[attr_name]
+            setattr(self, attr_name, records[attr_name])

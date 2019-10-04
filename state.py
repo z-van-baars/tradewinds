@@ -24,7 +24,6 @@ class GameState(object):
         self.draw_borders = False
 
         self.active_map = None
-        self.player = None
         self.active_menus = []
         self.reset_surfaces()
 
@@ -38,20 +37,35 @@ class GameState(object):
         self.infinite_speed = records["infinite_speed"]
         self.draw_borders = records["draw_borders"]
 
+        if "calendar" not in records:
+            records["calendar"] = (1, 0, 1520)
+        self.calendar.day = records["calendar"][0]
+        self.calendar.month = records["calendar"][1]
+        self.calendar.year = records["calendar"][2]
+        self.calendar.set_month_string()
+
         self.active_map = Map(
-            self,
             records["map dimensions"],
             (self.screen_width, self.screen_height))
         load_existing(self, records)
 
-        self.active_map.player = Player()
-        self.active_map.player.load_existing(records["player"])
+        self.active_map.player = Player(self, self.active_map)
+        self.active_map.player.load_external(records["player"])
 
-        self.game_state.clock = pygame.time.Clock()
-        mini_map = ui.MiniMap(self.game_state)
-        calendar_menu = ui.CalendarMenu(self.game_state)
-        self.game_state.active_menus.append(mini_map)
-        self.game_state.active_menus.append(calendar_menu)
+        x1, y1 = utilities.get_screen_coords(
+            self.active_map.player.ship.column,
+            self.active_map.player.ship.row)
+        self.active_map.x_shift = (
+            -x1 - 40 - self.background_width / 2 +
+            self.screen_width / 2)
+        self.active_map.y_shift = (
+            -y1 - 40 + self.screen_height / 2)
+
+        self.clock = pygame.time.Clock()
+        mini_map = ui.MiniMap(self)
+        calendar_menu = ui.CalendarMenu(self)
+        self.active_menus.append(mini_map)
+        self.active_menus.append(calendar_menu)
 
     def serial_prep(self):
         records = self.active_map.serial_prep()
@@ -62,7 +76,8 @@ class GameState(object):
                           "timer",
                           "draw_routes",
                           "infinite_speed",
-                          "draw_borders"):
+                          "draw_borders",
+                          "calendar"):
             records[attr_name] = getattr(self, attr_name)
 
         return records
