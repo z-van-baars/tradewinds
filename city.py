@@ -88,33 +88,65 @@ class CityFocus(Enum):
 
 class City(object):
     def __init__(self, active_map, x, y, tile, name):
-        self.active_map = active_map
-        self.column = x
-        self.row = y
-        self.tile = tile
-        self.tile.city = self
-        self.tiles = []
+        self.name = name  # string
+        self.column = x  # int
+        self.row = y  # int
+        self.color = (255, 255, 255)  # tuple(int, int, int)
+        self.size = 1  # int
+        self.demand = {}  # dict[string] = int
+        self.supply = {}  # dict[string] = int
+        self.sell_price = {}  # dict[string] = int
+        self.purchase_price = {}  # dict[string] = int
+
+        self.active_map = active_map  # GameMap()
+        self.tile = tile  # GameTile()
+        self.tile.city = self  # City()
+        self.tiles = []  # List[GameTile]
+        # Dict[CityFocus.attribute] = List[GameTile]
         self.tiles_sorted = {CityFocus.balanced: [],
                              CityFocus.growth: [],
                              CityFocus.production: [],
                              CityFocus.wealth: []}
-        self.ships_available = []
-        self.name = name
-        self.nation = None
-        self.color = (255, 255, 255)
-        self.size = 1
-        self.focus = CityFocus.balanced
-        self.silver = 0
-        self.food = 0
-        self.demand = {}
-        self.supply = {}
-        self.sell_price = {}
-        self.purchase_price = {}
-        self.portrait_img = random.choice(art.city_portraits)
-        self.prev_turn_data = TurnData()
+        self.ships_available = []  # List[Ship()]
+        self.nation = None  # Nation()
+        self.focus = CityFocus.balanced  # CityFocus
+        self.portrait_img = random.choice(art.city_portraits)  # Pygame.Surface()
+        self.prev_turn_data = TurnData()  # TurnData()
 
         self.set_random_supply()
         self.set_demand_for_artikels()
+
+    def get_vitals(self):
+        vitals = {}
+        for attr_name in ("name",
+                          "column",
+                          "row",
+                          "color",
+                          "size",
+                          "demand",
+                          "supply",
+                          "sell_price",
+                          "purchase_price"):
+            vitals[attr_name] = getattr(self, attr_name)
+        vitals["tiles"] = []
+        for each_tile in self.tiles:
+            vitals["tiles"].append((each_tile.column, each_tile.row))
+        return vitals
+
+    def load_external(self, records):
+        for attr_name in ("name",
+                          "column",
+                          "row",
+                          "color",
+                          "size",
+                          "demand",
+                          "supply",
+                          "sell_price",
+                          "purchase_price"):
+            self.attr_name = records[attr_name]
+        for each_xy in records["tiles"]:
+            new_tile = self.active_map.game_tile_rows[each_xy[1]][each_xy[0]]
+            self.tiles.append(new_tile)
 
     def set_random_supply(self):
         for resource in prod.all_artikels:
@@ -269,13 +301,6 @@ def find_closest_city(game_state, each_tile, subset=None):
 
 
 def set_city_territory(game_state):
-    def set_tile_owner(game_state, tile, owner):
-        tile.owner = owner
-        x1 = tile.column
-        y1 = tile.row
-        game_state.active_map.city_control[y1][x1] = owner
-        if owner is not None:
-            owner.tiles.append(tile)
     start = time.time()
     city_claims = {}
     for every_tile in game_state.active_map.all_tiles:
@@ -290,11 +315,13 @@ def set_city_territory(game_state):
                 city_claims[radius_tile].append(each_city)
     for each_tile, claimants in city_claims.items():
         closest = (99999, None)
-        if len(claimants) == 1:
+        if len(claimants) == 0:
+            continue
+        elif len(claimants) == 1:
             closest = (0, claimants[0])
         elif len(claimants) > 1:
             closest = find_closest_city(game_state, each_tile, claimants)
-        set_tile_owner(game_state, each_tile, closest[1])
+        closest[1].tiles.append(each_tile)
 
     end = time.time()
     print("time_elapsed {0}s".format(end - start))

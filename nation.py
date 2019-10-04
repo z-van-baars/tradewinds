@@ -57,10 +57,11 @@ class Nation(object):
         self.active_map = active_map
         self.name = get_nation_name(active_map.nations)
         self.color = get_nation_color(active_map.nations)
-        self.capital = None
-        self.cities = []
-        self.tiles = []
-        self.border_tiles = []
+
+        self.capital = None  # City()
+        self.cities = []  # List[City()]
+        self.tiles = []  # List[GameTile()]
+        self.border_tiles = []  # List[GameTile()]
 
     def get_border_tiles(self, active_map):
         for each_tile in self.tiles:
@@ -69,6 +70,36 @@ class Nation(object):
                 each_tile)
             if any(each_tile.bordered_edges.values()):
                 self.border_tiles.append(each_tile)
+
+    def get_vitals(self):
+        vitals = {}
+        for attr_name in ("name",
+                          "color"):
+            vitals[attr_name] = getattr(self, attr_name)
+        vitals["capital"] = (self.capital.column, self.capital.row)
+        vitals["cities"] = []
+        for each_city in self.cities:
+            vitals["cities"].append((each_city.column, each_city.row))
+        vitals["tiles"] = []
+        for each_tile in self.tiles:
+            vitals["tiles"].append((each_tile.column, each_tile.row))
+
+    def load_external(self, records):
+        for attr_name in ("name",
+                          "color"):
+            records[attr_name] = getattr(self, attr_name)
+        (column, row) = records["capital"]
+        self.capital = (
+            self.active_map.game_tile_rows[row][column].city)
+        for each_xy in records["cities"]:
+            (column, row) = each_xy
+            each_city = self.active_map.game_tile_rows[row][column].city
+            self.cities.append(each_city)
+        for each_xy in records["tiles"]:
+            (column, row) = each_xy
+            each_tile = self.active_map.game_tile_rows[row][column]
+            self.tiles.append(each_tile)
+        self.get_border_tiles(self.active_map)
 
 
 def get_capital_cities(game_state):
@@ -97,13 +128,9 @@ def accrete_cities(game_state, claims):
 
 
 def accrete_city_territory(game_state):
-    nc_array = game_state.active_map.nation_control
     for each_nation in game_state.active_map.nations:
         for new_city in each_nation.cities:
             each_nation.tiles = each_nation.tiles + new_city.tiles
-            for new_tile in new_city.tiles:
-                nc_array[new_tile.row][new_tile.column] = each_nation
-                new_tile.nation = each_nation
 
 
 def survey_unclaimed_tiles(game_state):

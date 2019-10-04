@@ -161,7 +161,6 @@ def new_game(game_state, map_dimensions):
     game_state.player = player.Player(game_state, game_state.active_map)
     game_state.player.silver = 100
     game_state.player.ship.cargo['wool'] = 10
-    game_state.ships.add(game_state.player.ship)
 
     """Randomize Start Location"""
     start_location = random.choice(game_state.active_map.cities)

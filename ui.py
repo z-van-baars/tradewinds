@@ -138,13 +138,19 @@ button_images = [leave_r_img,
                  recenter_r_img,
                  recenter_h_img]
 
-proc_button_left_edge_hover = pygame.image.load("art/buttons/button_left_edge_hover.png")
-proc_button_right_edge_hover = pygame.image.load("art/buttons/button_right_edge_hover.png")
-proc_button_center_hover = pygame.image.load("art/buttons/button_center_hover.png")
+proc_button_left_edge_hover = pygame.image.load(
+    "art/buttons/button_left_edge_hover.png")
+proc_button_right_edge_hover = pygame.image.load(
+    "art/buttons/button_right_edge_hover.png")
+proc_button_center_hover = pygame.image.load(
+    "art/buttons/button_center_hover.png")
 
-proc_button_left_edge_regular = pygame.image.load("art/buttons/button_left_edge_regular.png")
-proc_button_right_edge_regular = pygame.image.load("art/buttons/button_right_edge_regular.png")
-proc_button_center_regular = pygame.image.load("art/buttons/button_center_regular.png")
+proc_button_left_edge_regular = pygame.image.load(
+    "art/buttons/button_left_edge_regular.png")
+proc_button_right_edge_regular = pygame.image.load(
+    "art/buttons/button_right_edge_regular.png")
+proc_button_center_regular = pygame.image.load(
+    "art/buttons/button_center_regular.png")
 
 for img in button_images:
     img.set_colorkey(util.colors.key)
@@ -380,16 +386,9 @@ class OptionsMenu(Menu):
             if self.game_state.active_map is None:
                 return
             save_string = "save_1"
-            self.game_state.clock = None
-            self.game_state.active_menus = []
+            records = self.game_state.serial_prep()
 
-            pickle.dump(game_state, open("saves/{0}.p".format(save_string), "wb"))
-            self.game_state.clock = pygame.time.Clock()
-            mini_map = MiniMap(self.game_state)
-            calendar_menu = CalendarMenu(self.game_state)
-            self.game_state.active_menus.append(mini_map)
-            self.game_state.active_menus.append(calendar_menu)
-            self.game_state.active_menus.insert(0, self)
+            pickle.dump(records, open("saves/{0}.p".format(save_string), "wb"))
 
         def go_back_click():
             self.open = False

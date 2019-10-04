@@ -1,22 +1,21 @@
-import artikel
 
 
 class GameTile(object):
     def __init__(self, column, row, biome):
         self.row = row  # X
         self.column = column  # Y
-        self.construct = None
-        self.city = None
-        self.owner = None
-        self.nation = None
-        self.biome = biome
-        self.terrain = None
-        self.resource = None
-        self.output = {}
+        self.biome = biome  # string
+        self.terrain = None  # string
+        self.resource = None  # string
+        self.output = {}  # dict[string] = int
+        self.water_flux = (0, 0, 0)  # threeple = (int, int, int)
+        self.water_source = ([], 0)  # tuple = (list[int], int)
+        self.bordered_edges = {}  # dict[tuple(int, int)] = bool
 
-        self.water_flux = (0, 0, 0)
-        self.water_source = ([], 0)
-        self.bordered_edges = {}
+        self.construct = None  # None
+        self.city = None  # City()
+        self.owner = None  # City()
+        self.nation = None  # Nation()
 
     def __lt__(self, other):
         return False
@@ -29,3 +28,29 @@ class GameTile(object):
                                   'shallows',
                                   'sea',
                                   'ocean')
+
+    def get_vitals(self):
+        vitals = {}
+        for attr_name in ("row",
+                          "column",
+                          "biome",
+                          "terrain",
+                          "resource",
+                          "output",
+                          "water_flux",
+                          "water_source",
+                          "bordered_edges"):
+            vitals[attr_name] = getattr(self, attr_name)
+        return vitals
+
+    def load_existing(self, records):
+        for attr_name in ("row",
+                          "column",
+                          "biome",
+                          "terrain",
+                          "resource",
+                          "output",
+                          "water_flux",
+                          "water_source",
+                          "bordered_edges"):
+            self.attr_name = records[attr_name]

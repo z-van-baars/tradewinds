@@ -25,24 +25,51 @@ class Agent(entity.Entity):
         self.move_timer = 0
         self.move_timer_max = 0
 
+    def get_vitals(self):
+        vitals = {}
+        for attr_name in ("x",
+                          "y"):
+            vitals[attr_name] = getattr(self, attr_name)
+            vitals["ship"] = self.ship.get_vitals()
+            vitals["target tile"] = self.target_tile
+
+        return vitals
+
     def tick(self):
         self.tick_cycles[self.state]()
 
     def idle_tick(self):
-        pass
+        if self.target_tile is not None:
+            self.state = AgentState.Move
 
     def move_tick(self):
-        if self.path and self.check_move_timer():
+        """we should not be here if both of these are None"""
+        assert not (self.path is None and self.target_tile is None)
+        self.check_path()
+        if self.path is not None and self.check_move_timer():
             step = self.path.get_step()
             self.move(step.column, step.row)
-            self.check_path()
-        elif self.path and not self.check_move_timer():
+        elif self.path is not None and not self.check_move_timer():
             self.move_timer -= 1
+        elif self.path is None and self.target_tile is not None:
+            self.set_path(self.get_path_to_target())
+        """^^ From time to time the path object will get wiped, ^^
+        usually for objects blocking the path.  In this case,
+        we just want to re-path.  At the moment his does use up
+        a full tick cycle, but it doesn't use the move_timer"""
 
     def check_path(self):
+        """are there any more tiles left in the path?
+        If not we should be at the target"""
         if len(self.path.steps) < 1:
             self.path = None
+            self.clear_target()
             self.state = AgentState.idle
+            return
+        """This doesn't trigger yet since Constructs don't exist yet"""
+        for each_step in self.path.steps:
+            if each_step.is_occupied():  # is there a construct object in said tile?
+                self.path = None
 
     def move(self, x, y):
         self.column = x
@@ -53,7 +80,7 @@ class Agent(entity.Entity):
         self.ship.tile = self.tile
         self.move_timer = self.move_timer_max
 
-    def check_path_to_target(self):
+    def get_path_to_target(self):
         new_path = nav.get_path(
             (self.column, self.row),
             self.active_map,
@@ -69,7 +96,6 @@ class Agent(entity.Entity):
             map_y = step.row
             pixel_xy = util.get_screen_coords(map_x, map_y)
             line_pts.append(pixel_xy)
-        self.path_pts = line_pts
         self.move_timer_max = round((5.0 / self.ship.speed) * 10)
         self.state = AgentState.move
 

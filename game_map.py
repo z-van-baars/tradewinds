@@ -31,6 +31,16 @@ class MapGenParameters(object):
         """Nation Override"""
         self.number_of_nations = 6
 
+    def get_vitals(self):
+        vitals = {}
+        for attr_name in ("river_cutoff",
+                          "water_cutoff",
+                          "number_of_clusters",
+                          "max_cluster_size",
+                          "number_of_cities",
+                          "number_of_nations"):
+            vitals[attr_name] = getattr(self, attr_name)
+
 
 class DisplayLayer(pygame.sprite.Sprite):
     def __init__(self, width, height):
@@ -51,7 +61,35 @@ class Map(object):
         self.mgp = MapGenParameters(map_dimensions)
         self.width = map_dimensions[0]
         self.height = map_dimensions[1]
+        self.displayshift_x = 0
+        self.displayshift_y = 0
+        self.temperature = []
+        self.moisture = []
+        self.elevation = []
+
+        self.largest_water_body = None
+
+        self.all_tiles = []
         self.game_tile_rows = []
+        self.cities = []
+        self.nations = []
+        self.agents = set()
+        self.player = None
+
+        self.nation_control = []
+        self.city_control = []
+
+        for row in range(map_dimensions[1]):
+            row = []
+            for column in range(map_dimensions[0]):
+                row.append(None)
+            self.nation_control.append(row)
+
+        for row in range(map_dimensions[1]):
+            row = []
+            for column in range(map_dimensions[0]):
+                row.append(None)
+            self.city_control.append(row)
 
         self.tile_display_layer = None
         self.terrain_display_layer = None
@@ -65,37 +103,48 @@ class Map(object):
             self.display_data)
         self.screen_dimensions = screen_dimensions
 
-        self.largest_water_body = None
-        self.nation_control = []
-        for row in range(map_dimensions[1]):
-            row = []
-            for column in range(map_dimensions[0]):
-                row.append(None)
-            self.nation_control.append(row)
-        self.city_control = []
-        for row in range(map_dimensions[1]):
-            row = []
-            for column in range(map_dimensions[0]):
-                row.append(False)
-            self.city_control.append(row)
-
-        self.cities = []
-        self.nations = []
-
-        self.displayshift_x = 0
-        self.displayshift_y = 0
-        self.temperature = []
-        self.moisture = []
-        self.elevation = []
-        self.all_tiles = []
-        self.agents = set()
-
     @property
     def display_data(self):
         return (self.width, self.height, False)
 
+    def serial_prep(self):
+        vital_records = {}
+        for attr_name in ("moisture", "temperature", "elevation"):
+            vital_records[attr_name] = getattr(self, attr_name)
+        vital_records["map dimensions"] = (self.width, self.height)
+        vital_records["mapgen parameters"] = self.mgp.get_vitals()
+
+        vital_records["tiles"] = []  # List[dict]
+        for each_tile in self.all_tiles:
+            tile_vitals = each_tile.get_vitals()
+            vital_records["tiles"].append(tile_vitals)
+        vital_records["cities"] = []  # List[dict]
+        for each_city in self.cities:
+            city_vitals = each_city.get_vitals()
+            vital_records["cities"].append(city_vitals)
+        vital_records["nations"] = []  # List[dict]
+        for each_nation in self.nations:
+            nation_vitals = each_nation.get_vitals()
+            vital_records["nations"].append(nation_vitals)
+        vital_records["player"] = self.player.get_vitals()
+        return vital_records
+
     def add_city(self, new_city):
         self.cities.append(new_city)
+
+    def set_nation_control(self):
+        nc_array = self.nation_control
+        for each_nation in self.nations:
+            for new_tile in each_nation.tiles:
+                nc_array[new_tile.row][new_tile.column] = each_nation
+                new_tile.nation = each_nation
+
+    def set_city_control(self):
+        cc_array = self.city_control
+        for each_city in self.cities:
+            for new_tile in each_city.tiles:
+                cc_array[new_tile.row][new_tile.column] = each_city
+                new_tile.owner = each_city
 
     def initialize_raw_maps(self, width, height):
         map_previews = [pygame.Surface([width, height])

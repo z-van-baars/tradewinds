@@ -20,8 +20,8 @@ class Ship(object):
         additional crew can be taken on to increase speed, attack/defense power, etc.
         For now this does nothing, and crew is always at cap maximum.
     defense : int
-        Defensive power of the ship.  Ability to resist cannon shots and repel boarders during
-        attacks.  Negates incoming attack power
+        Defensive power of the ship.  Ability to resist cannon shots and repel
+        boarders during attacks.  Negates incoming attack power
     attack : int
         Attack Power (cannons, small arms, etc).  Think Warhammer.
     wounds : int
@@ -31,30 +31,37 @@ class Ship(object):
     purchase_cost : int
         Self Explanatory.
     """
+    hull_class = None
 
-    def __init__(self, active_map, column, row, speed, cargo_cap, crew_cap, defense, attack, wounds, purchase_cost):
-        self.cargo_cap = cargo_cap
-        self.crew_cap = crew_cap
-        self.crew = {}
-        self.speed = speed
-        self.defense = defense
-        self.attack = attack
-        self.purchase_cost = purchase_cost
-        self.wounds = wounds
-        self.upkeep = purchase_cost * 0.025
+    def __init__(self,
+                 active_map,
+                 column,
+                 row,
+                 speed,
+                 cargo_cap,
+                 crew_cap,
+                 defense,
+                 attack,
+                 wounds,
+                 purchase_cost):
+        self.column = column  # int
+        self.row = row  # int
+        self.cargo_cap = cargo_cap  # int
+        self.crew_cap = crew_cap  # int
+        self.crew = {}  # dict[]
+        self.speed = speed  # float
+        self.defense = defense  # float
+        self.attack = attack  # float
+        self.purchase_cost = purchase_cost  # int
+        self.wounds = wounds  # int
+        self.upkeep = purchase_cost * 0.025  # float
 
-        self.active_map = active_map
-        self.column = column
-        self.row = row
+        self.active_map = active_map  # GameMap
         """tile ID of current tile"""
         self.tile = None
 
         # laden_speed = base_speed * (0.5 * (1.0 - cargo_cap / current_cargo))
-        """
-        CARGO Dictionary
-        Keys are plaintext names of commodities or spices
-        e.g. 'Nutmeg' and the value is a quantity in Int form"""
-        self.cargo = {}
+        self.cargo = {}  # dict[string] = int
 
     def set_display_coordinates(self, tile_x: int, tile_y: int) -> None:
         self.x = tile_x
@@ -64,6 +71,22 @@ class Ship(object):
         u = self.purchase_cost * 0.025
         return u + sum(quantity * crew.wages[sailor_name]
                        for sailor_name, quantity in self.crew.items())
+
+    def get_vitals(self):
+        vitals = {}
+        for attr_name in ("column",
+                          "row",
+                          "cargo",
+                          "hull_class"):
+            vitals[attr_name] = getattr(self, attr_name)
+
+        return vitals
+
+    def load_external(self, records):
+        for attr_name in ("column",
+                          "row",
+                          "cargo"):
+            self.attr_name = records[attr_name]
 
 
 class Cog(Ship):
@@ -160,10 +183,11 @@ class Corvette(Ship):
         self.image = self.image.convert_alpha()
 
 
-ship_types = [Cog,
-              Carrack,
-              Caravel,
-              Argosy,
-              Galleon,
-              Fluyt,
-              Corvette]
+ship_types = {
+    "Cog": Cog,
+    "Carrack": Carrack,
+    "Caravel": Caravel,
+    "Argosy": Argosy,
+    "Galleon": Galleon,
+    "Fluyt": Fluyt,
+    "Corvette": Corvette}

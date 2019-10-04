@@ -1,5 +1,9 @@
 import pygame
 import utilities
+from game_map import Map
+from mapgen import load_existing
+from player import Player
+import ui
 
 
 class GameState(object):
@@ -9,6 +13,7 @@ class GameState(object):
         self.clock = pygame.time.Clock()
         self.console_log = []
         self.calendar = utilities.Calendar()
+
         self.game_speed = 60
         self.time = 0
         self.paused = False
@@ -19,43 +24,48 @@ class GameState(object):
         self.draw_borders = False
 
         self.active_map = None
-        self.ships = set()
         self.player = None
         self.active_menus = []
         self.reset_surfaces()
 
-    def load_external_state(self, ext_state):
-        self.game_speed = ext_state.game_speed
-        self.time = ext_state.time
-        self.paused = ext_state.paused
-        self.timer = ext_state.timer
+    def load_external_state(self, records):
+        self.game_speed = records["game_speed"]
+        self.time = records["time"]
+        self.paused = records["paused"]
+        self.timer = records["timer"]
 
-        self.draw_routes = ext_state.draw_routes
-        self.infinite_speed = ext_state.infinite_speed
-        self.draw_borders = ext_state.draw_borders
+        self.draw_routes = records["draw_routes"]
+        self.infinite_speed = records["infinite_speed"]
+        self.draw_borders = records["draw_borders"]
 
-        self.active_map = ext_state.active_map
-        self.ships = ext_state.ships
-        self.player = ext_state.player
+        self.active_map = Map(
+            self,
+            records["map dimensions"],
+            (self.screen_width, self.screen_height))
+        load_existing(self, records)
 
-        self.unpack_string_buffers()
+        self.active_map.player = Player()
+        self.active_map.player.load_existing(records["player"])
 
-    def pack_string_buffers(self):
-        self.active_map.tile_display_layer = None
-        self.active_map.terrain_display_layer = None
-        self.active_map.resource_display_layer = None
-        self.active_map.building_display_layer = None
-        self.active_map.nation_border_display_layer = None
-        self.screen = None
+        self.game_state.clock = pygame.time.Clock()
+        mini_map = ui.MiniMap(self.game_state)
+        calendar_menu = ui.CalendarMenu(self.game_state)
+        self.game_state.active_menus.append(mini_map)
+        self.game_state.active_menus.append(calendar_menu)
 
-        for each_ship in self.active_map.ships:
-            pygame.image.tostring(each_ship.image)
+    def serial_prep(self):
+        records = self.active_map.serial_prep()
 
-    def unpack_string_buffers(self):
-        for each_ship in self.active_map.ships:
-            pygame.image.fromstring(each_ship.image)
-        self.active_map.prepare_surfaces()
-        self.reset_surfaces()
+        for attr_name in ("game_speed",
+                          "time",
+                          "paused",
+                          "timer",
+                          "draw_routes",
+                          "infinite_speed",
+                          "draw_borders"):
+            records[attr_name] = getattr(self, attr_name)
+
+        return records
 
     def reset_surfaces(self):
         self.screen = pygame.display.set_mode(

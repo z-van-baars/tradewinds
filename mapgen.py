@@ -692,6 +692,7 @@ def set_nation_territory(game_state):
     print("Debug B")
     nation.accrete_cities(game_state, claims)
     nation.accrete_city_territory(game_state)
+    active_map.set_nation_control()
     active_map.render_raw_maps(['nation'])
     game_state.screen.fill(util.colors.black)
     mgr.display_update(game_state.screen,
@@ -703,6 +704,7 @@ def set_nation_territory(game_state):
     mgr.input_loop(game_state, "Press Enter to Award Unclaimed Tiles.")
     unclaimed_tiles = nation.survey_unclaimed_tiles(game_state)
     nation.award_unclaimed_tiles(game_state, unclaimed_tiles)
+    active_map.set_nation_control()
     active_map.render_raw_maps(['nation'])
     game_state.screen.fill(util.colors.black)
     mgr.display_update(game_state.screen,
@@ -768,6 +770,7 @@ def map_generation(game_state, active_map: Map):
                    "Press Enter to Manifest Destiny.",
                    "Setting Territory for {0} Cities... Please Wait...".format(nc))
     city.set_city_territory(game_state)
+    active_map.set_city_control()
     nn = game_state.active_map.mgp.number_of_nations
     mgr.input_loop(
         game_state,
@@ -784,11 +787,6 @@ def map_generation(game_state, active_map: Map):
     city.run_cities(game_state, months)
     mgr.input_loop(game_state, "Press Enter to accept your fate.")
 
-    for each_city in game_state.active_map.cities:
-        for x in range(3):
-            ship_choice = random.choice(ships.ship_types)
-            each_city.ships_available.append(ship_choice)
-
     # map generation finished
 
     # prepare map surfaces
@@ -796,3 +794,41 @@ def map_generation(game_state, active_map: Map):
     print("Launching")
 
 
+def load_existing(game_state, vital_records):
+    active_map = game_state.active_map
+    generate_blank_ocean_tiles(active_map)
+    for attr_name in ("moisture", "temperature", "elevation"):
+        active_map.attr_name = vital_records[attr_name]
+    for each_record in vital_records["tiles"]:
+        column = each_record["column"]
+        row = each_record["row"]
+        active_map.game_tile_rows[row][column].load_external(each_record)
+    for each_record in vital_records["cities"]:
+        city_tile = active_map.game_tile_rows[each_record["row"]][each_record["column"]]
+        new_city = city.City(
+            active_map,
+            each_record["column"],
+            each_record["row"],
+            city_tile,
+            each_record["name"])
+        new_city.load_external(each_record)
+        active_map.add_city(new_city)
+    for each_record in vital_records["nations"]:
+        new_nation = nation.Nation(active_map)
+        new_nation.load_external(each_record)
+
+    print("Building tile database...")
+    for row in active_map.game_tile_rows:
+        for tile in row:
+            active_map.all_tiles.append(tile)
+            prod.set_output(tile)
+    print("map complete")
+
+    active_map.render_raw_maps(['height', 'temp', 'moisture', 'water flux', 'biome'])
+
+    city.sort_city_tiles(game_state)  # keep
+    # map generation finished
+
+    # prepare map surfaces
+    active_map.prepare_surfaces()
+    print("Launching")

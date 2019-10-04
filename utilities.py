@@ -130,7 +130,7 @@ colors = Colors()
 
 class Path(object):
     def __init__(self):
-        self.steps = []
+        self.steps = []  # List[GameTile]
 
     def get_step(self):
         step = self.steps.pop(0)
