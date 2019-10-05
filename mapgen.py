@@ -446,7 +446,19 @@ def set_biomes(active_map, water_cutoff):
             elif sea_cutoff > active_map.elevation[tile.row][tile.column] >= ocean_cutoff:
                 biome = "sea"
 
-            tile.biome = biome
+            """As of now, icecaps are triggering just right to not block northern
+            passages MOST of the time, but they register as land for the nations
+            landgrab and it feels a bit weird for the nations to have claims on
+            ice sheets, although it is kinda cool.  Proof of concept anyway."""
+            icecaps = False
+            if icecaps:
+                t = active_map.temperature[tile.row][tile.column]
+                if t < 10 and biome in ("ocean",
+                                        "sea",
+                                        "shallows"):
+                    biome = "ice"
+
+                tile.biome = biome
 
 
 def generate_terrain(active_map):
