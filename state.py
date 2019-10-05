@@ -37,8 +37,8 @@ class GameState(object):
         self.infinite_speed = records["infinite_speed"]
         self.draw_borders = records["draw_borders"]
 
-        if "calendar" not in records:
-            records["calendar"] = (1, 0, 1520)
+        # if "calendar" not in records:
+        records["calendar"] = (1, 0, 1520)
         self.calendar.day = records["calendar"][0]
         self.calendar.month = records["calendar"][1]
         self.calendar.year = records["calendar"][2]
@@ -62,6 +62,7 @@ class GameState(object):
             -y1 - 40 + self.screen_height / 2)
 
         self.clock = pygame.time.Clock()
+        self.active_menus = []
         mini_map = ui.MiniMap(self)
         calendar_menu = ui.CalendarMenu(self)
         self.active_menus.append(mini_map)

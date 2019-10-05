@@ -2,7 +2,7 @@ from enum import Enum
 
 #Resources = Enum('Resources', 'Saffron,Cinnamon,Vanilla,Clove,Ivory,Fine_Timber,Wool,Pelts,Cattle,Rice,Wheat,Iron,Gold,Silver')
 
-Wood = ["forest", "jungle", "low hills", "hills"]
+Wood = ["forest", "jungle", "low hills", "hills", "alpine"]
 
 Grain = ["grassland", "plains"]
 
@@ -24,12 +24,13 @@ Shellfish = ["shallows", "sea", "ocean"]
 
 Fish = ["shallows", "sea", "lake"]
 
-Pelts = ["taiga", "tundra", "snowpack", "ice", "low hills"]
+Pelts = ["taiga", "tundra", "snowpack", "ice", "low hills", "alpine"]
 
 
 Iron = [
     "grassland",
     "taiga",
+    "alpine",
     "plains",
     "low hills",
     "hills",
@@ -48,6 +49,7 @@ Gold = [
 Silver = [
     "grassland",
     "taiga",
+    "alpine",
     "low hills",
     "hills",
     "low mountains",
@@ -89,6 +91,7 @@ all_artikels = []
 mountain = {"taiga": ["iron", "silver", "gold"],
             "tundra": ["iron", "silver"],
             "snowy tundra": ["iron", "silver"],
+            "alpine": ["iron", "silver"],
             "grassland": ["iron", "silver", "gold"],
             "plains": ["iron", "silver", "gold"],
             "wet plains": ["iron", "silver", "gold"],
@@ -107,6 +110,7 @@ mountain = {"taiga": ["iron", "silver", "gold"],
 low_mountain = {"taiga": ["iron", "silver", "gold"],
                 "tundra": ["iron", "silver"],
                 "snowy tundra": ["iron", "silver"],
+                "alpine": ["iron", "silver"],
                 "grassland": ["iron", "silver", "gold"],
                 "plains": ["iron", "silver", "gold"],
                 "wet plains": ["iron", "silver", "gold"],
@@ -125,6 +129,7 @@ low_mountain = {"taiga": ["iron", "silver", "gold"],
 hill = {"taiga": ["iron", "silver", "jewels"],
         "tundra": ["iron", "silver"],
         "snowy tundra": ["iron", "silver"],
+        "alpine": ["iron", "silver"],
         "grassland": ["iron", "silver", "gold"],
         "plains": ["iron", "silver", "gold"],
         "wet plains": ["iron", "silver", "gold"],
@@ -143,6 +148,7 @@ hill = {"taiga": ["iron", "silver", "jewels"],
 low_hill = {"taiga": ["iron", "silver", "jewels"],
             "tundra": ["iron", "silver"],
             "snowy tundra": ["iron", "silver"],
+            "alpine": ["iron", "silver"],
             "grassland": ["iron", "silver", "gold"],
             "plains": ["iron", "silver", "gold"],
             "wet plains": ["iron", "silver", "gold"],
@@ -162,6 +168,7 @@ low_hill = {"taiga": ["iron", "silver", "jewels"],
 vegetation = {"taiga": ["wool", "pelts", "iron", "silver"],
               "tundra": ["pelts", "silver"],
               "snowy tundra": ["pelts"],
+              "alpine": ["timber", "pelts", "iron"],
               "grassland": ["cattle", "wool", "wheat", "iron", "silver"],
               "plains": ["saffron", "cinnamon", "cattle", "wheat"],
               "wet plains": ["cinnamon", "cattle", "wheat"],
@@ -180,6 +187,7 @@ vegetation = {"taiga": ["wool", "pelts", "iron", "silver"],
 river = {"taiga": [None],
          "tundra": [None],
          "snowy tundra": [None],
+         "alpine": [None],
          "grassland": [None],
          "plains": [None],
          "wet plains": [None],

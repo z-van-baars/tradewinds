@@ -114,7 +114,7 @@ def generate_tempmap(width, height):
 
     pole_distances = set_pole_distances()
     temperature = []
-    equator_hotness = 1.0
+    equator_hotness = 0.70
     pole_coldness = 2.5
     noise_strength = 0.2
     noisiness = 10
@@ -407,9 +407,9 @@ def pick_biome(temperature, moisture):
                             "wet": "snowpack",
                             "very wet": "snowpack"},
               "cold": {"very dry": "tundra",
-                       "dry": "tundra",
-                       "wet": "taiga",
-                       "very wet": "snowpack"},
+                       "dry": "alpine",
+                       "wet": "alpine",
+                       "very wet": "taiga"},
               "cool": {"very dry": "shrubland",
                        "dry": "grassland",
                        "wet": "taiga",

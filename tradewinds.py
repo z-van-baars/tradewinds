@@ -143,6 +143,8 @@ def input_processing(game_state, selected_tile, display_parameters, mouse_pos, m
         elif event.type == pygame.KEYDOWN:
             if len(game_state.active_menus) > 2:
                 game_state.active_menus[0].event_handler(event, mouse_pos)
+                print("false hit")
+                print(game_state.active_menus)
                 return
             key_functions.get(event.key, do_nothing)(game_state)
         elif event.type == pygame.KEYUP:

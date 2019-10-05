@@ -314,10 +314,6 @@ class MainMenu(Menu):
             self.open = False
             saved_state = pickle.load(open("saves/save_1.p", "rb"))
             self.game_state.load_external_state(saved_state)
-            mini_map = MiniMap(self.game_state)
-            calendar_menu = CalendarMenu(self.game_state)
-            self.game_state.active_menus.append(mini_map)
-            self.game_state.active_menus.append(calendar_menu)
 
         def options_click():
             new_options_menu = OptionsMenu(self.game_state)
@@ -381,11 +377,6 @@ class OptionsMenu(Menu):
             self.open = False
             saved_state = pickle.load(open("saves/save_1.p", "rb"))
             self.game_state.load_external_state(saved_state)
-            mini_map = MiniMap(self.game_state)
-            calendar_menu = CalendarMenu(self.game_state)
-            self.game_state.active_menus.append(mini_map)
-            self.game_state.active_menus.append(calendar_menu)
-            self.game_state.active_menus.insert(0, self)
 
         def save_game_click():
             if self.game_state.active_map is None:
@@ -450,6 +441,10 @@ class OptionsMenu(Menu):
                        exit_r_img.get_width() / 2),
             360)
         self.buttons = [load_game, save_game, go_back, quit_game, exit]
+
+    def keydown_handler(self, event, key):
+        if key is pygame.K_ESCAPE:
+            self.open = False
 
 
 class ConsoleWindow(Menu):
