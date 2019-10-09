@@ -24,7 +24,8 @@ def generate_heightmap(active_map):
     gen = OpenSimplex(random.randrange(100000))
 
     def noise(nx, ny):
-        # rescale from -1.0:+1/0 to 0.0:1.0
+        # normalize from -1.0:+1.0 to 0.0:1.0
+
         return gen.noise2d(nx, ny) / 2.0 + 0.5
 
     elevation = []
@@ -157,6 +158,80 @@ def generate_moisture_map(width, height, elevation, water_cutoff):
             # moisture[y].append(50)
 
     return moisture
+
+
+def generate_wind_map(width, height):
+    print("generating windmap...")
+    gen = OpenSimplex(random.randrange(100000))
+
+    # cc is corner to corner distance for map
+    cc = math.sqrt(
+        math.sqrt(width ** width + height ** height))
+
+    def noise(nx, ny):
+        # rescale from -1.0:+1.0 to 0.0:1.0
+        return gen.noise2d(nx, ny) / 2.0 + 0.5
+
+    def get_local_wind(x, y, pole_distances):
+        """modified perlin noise generator
+        resulting values are normalized into local wind vector """
+        noisiness = 10
+        nx = x / width - 0.5
+        ny = y / height - 0.5
+        angular_noise = noise(noisiness * nx, noisiness * ny)
+        a1 = 90 - 180 * angular_noise
+        dist = pole_distances[y][x]
+        # if we're in the equatorial band, vector is west
+        # angle is 45
+        if cc - dist < cc / 2:
+            angle = 45
+        # if we're in the polar region, vector is east
+        # angle is 225
+        else:
+            angle = 225
+        # add random fuzz to angle
+        angle += a1
+        radians = math.radians(angle)
+        x = math.cos(radians)
+        y = math.sin(radians)
+        wind_strength = random.randint(0, 500) / 100
+        return (x * wind_strength, y * wind_strength)
+
+    def set_pole_distances():
+        number_of_points = math.floor(math.sqrt(math.sqrt(width * height)))
+        slope = (width / number_of_points, height / number_of_points)
+        xx = 0
+        yy = height
+        equator = [(xx, yy)]
+        for e in range(number_of_points + 2):
+            xx += slope[0]
+            yy -= slope[1]
+            equator.append((math.floor(xx), math.floor(yy)))
+
+        pole_distances = []
+        for y in range(height):
+            pole_distances.append([])
+            for x in range(width):
+                # north_pole = utilities.distance(0, 0, x, y)
+                # south_pole = utilities.distance(width, height, x, y)
+                equatorial_distances = []
+                for each in equator:
+                    equatorial_distances.append(util.distance(each[0], each[1], x, y))
+                # equatorial_distance = min(north_pole, south_pole)
+                equatorial_distance = min(equatorial_distances)
+                pole_distances[y].append(math.floor(equatorial_distance))
+        return pole_distances
+    pole_distances = set_pole_distances()
+    wind = []
+    for y in range(height):
+        wind.append([])
+        for x in range(width):
+            new_wind_vector = get_local_wind(
+                x,
+                y,
+                pole_distances)
+            wind[y].append(new_wind_vector)
+    return wind
 
 
 def classify_masses(active_map):
@@ -765,6 +840,9 @@ def make_map(game_state):
         active_map.height,
         active_map.elevation,
         active_map.mgp.water_cutoff)
+    active_map.wind = generate_wind_map(
+        active_map.width,
+        active_map.height)
     set_biomes(active_map, active_map.mgp.water_cutoff)
 
     generate_rivers(active_map, active_map.mgp.water_cutoff)
@@ -828,7 +906,7 @@ def map_generation(game_state, active_map: Map):
 def load_existing(game_state, vital_records):
     active_map = game_state.active_map
     generate_blank_ocean_tiles(active_map)
-    for attr_name in ("moisture", "temperature", "elevation"):
+    for attr_name in ("moisture", "temperature", "elevation", "wind"):
         setattr(active_map, attr_name, vital_records[attr_name])
     for each_record in vital_records["tiles"]:
         column = each_record["column"]

@@ -66,6 +66,7 @@ class Map(object):
         self.temperature = []
         self.moisture = []
         self.elevation = []
+        self.wind = []
 
         self.largest_water_body = None
 
@@ -109,7 +110,7 @@ class Map(object):
 
     def serial_prep(self):
         vital_records = {}
-        for attr_name in ("moisture", "temperature", "elevation"):
+        for attr_name in ("moisture", "temperature", "elevation", "wind"):
             vital_records[attr_name] = getattr(self, attr_name)
         vital_records["map dimensions"] = (self.width, self.height)
         vital_records["mapgen parameters"] = self.mgp.get_vitals()
