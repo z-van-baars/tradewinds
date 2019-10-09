@@ -13,7 +13,7 @@ import city
 import artikel
 import nation
 import mapgen_render as mgr
-import ships
+import time
 
 pygame.init()
 pygame.display.set_mode([0, 0])
@@ -165,8 +165,7 @@ def generate_wind_map(width, height):
     gen = OpenSimplex(random.randrange(100000))
 
     # cc is corner to corner distance for map
-    cc = math.sqrt(
-        math.sqrt(width ** width + height ** height))
+    cc = math.sqrt(width ** 2 + height ** 2)
 
     def noise(nx, ny):
         # rescale from -1.0:+1.0 to 0.0:1.0
@@ -190,11 +189,13 @@ def generate_wind_map(width, height):
         else:
             angle = 225
         # add random fuzz to angle
+        print(angle)
+        print(a1)
         angle += a1
         radians = math.radians(angle)
         x = math.cos(radians)
         y = math.sin(radians)
-        wind_strength = random.randint(0, 500) / 100
+        wind_strength = random.randint(1, 5)
         return (x * wind_strength, y * wind_strength)
 
     def set_pole_distances():
@@ -226,12 +227,41 @@ def generate_wind_map(width, height):
     for y in range(height):
         wind.append([])
         for x in range(width):
-            new_wind_vector = get_local_wind(
-                x,
-                y,
-                pole_distances)
-            wind[y].append(new_wind_vector)
+            wind[y].append((-1, 1))
     return wind
+
+
+def rain_shadows(active_map):
+    rain_blocks = []
+    for ii in range(active_map.width - 1):
+        rain_blocks.append((ii, 0, 0))
+        rain_blocks.append((0, active_map.height - 1, 0))
+    for jj in range(active_map.height - 1):
+        rain_blocks.append((0, jj, 0))
+        rain_blocks.append((active_map.width - 1, jj, 0))
+    start = time.time()
+    elapsed = time.time() - start
+    while rain_blocks and elapsed < 20:
+        elapsed = time.time() - start
+        new_blocks = []
+        for each in rain_blocks:
+            x = each[0]
+            y = each[1]
+            m = each[2]
+            if active_map.elevation[y][x] >= active_map.mgp.water_cutoff:
+
+                m1 = active_map.moisture[y][x]
+                m2 = math.floor(m1 + m * 0.1)
+                active_map.moisture[y][x] = min(m2, 80)
+                m *= 0.9
+            else:
+                m = min(1000, m + 100)
+            x1 = x + active_map.wind[y][x][0]
+            y1 = y + active_map.wind[y][x][1]
+            if util.within_map(x1, y1, active_map.game_tile_rows):
+                each = (x1, y1, m)
+                new_blocks.append(each)
+        rain_blocks = new_blocks
 
 
 def classify_masses(active_map):
@@ -843,9 +873,8 @@ def make_map(game_state):
     active_map.wind = generate_wind_map(
         active_map.width,
         active_map.height)
+    # rain_shadows(active_map)
     set_biomes(active_map, active_map.mgp.water_cutoff)
-
-    generate_rivers(active_map, active_map.mgp.water_cutoff)
     generate_terrain(active_map)
     place_resources(active_map)
 

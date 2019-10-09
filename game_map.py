@@ -24,12 +24,12 @@ class MapGenParameters(object):
         map_size = math.sqrt(math.sqrt(map_dimensions[0] * map_dimensions[1]))
         self.number_of_cities = math.floor(map_size * 5)
         """City Override"""
-        self.number_of_cities = 25
+        self.number_of_cities = 125
         self.number_of_nations = random.randint(
             math.ceil(map_size / 2),
             math.floor(map_size))
         """Nation Override"""
-        self.number_of_nations = 3
+        self.number_of_nations = 6
 
     def get_vitals(self):
         vitals = {}
