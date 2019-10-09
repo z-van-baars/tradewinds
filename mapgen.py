@@ -154,6 +154,7 @@ def generate_moisture_map(width, height, elevation, water_cutoff):
                     100,
                     new * 100 - (new * 75) * (elevation[y][x] - water_cutoff * 1.5))
             moisture[y].append(math.floor(new_moisture))
+            # moisture[y].append(50)
 
     return moisture
 
@@ -171,13 +172,19 @@ def classify_masses(active_map):
     # filter the labeled array into layers. `==` does the filtering
     layers = [(labeled_array == i) for i in range(1, num_features + 1)]
 
-    sorted_water_bodies = sorted(((np.sum(subarray), subarray) for subarray in layers), key=lambda x: x[0], reverse=True)
+    sorted_water_bodies = sorted(
+        ((np.sum(subarray), subarray) for subarray in layers),
+        key=lambda x: x[0],
+        reverse=True)
     lake_constant = math.floor(((active_map.width * active_map.height) ** (1 / 4)) * 3)
     print("{0} lake constant".format(lake_constant))
     small_water_bodies = []
+    large_water_bodies = []
     for size, water_body in sorted_water_bodies:
         if size < lake_constant:
             small_water_bodies.append(water_body)
+        else:
+            large_water_bodies.append(water_body)
     all_tiles = []
     for row in active_map.game_tile_rows:
         for tile in row:
@@ -187,11 +194,13 @@ def classify_masses(active_map):
         for new_tile in all_tiles:
             if water_body[new_tile.column, new_tile.row] == 1:
                 tiles_to_raise.append(new_tile)
-    return tiles_to_raise
+    return tiles_to_raise, large_water_bodies
 
 
 def adjust_landmass_height(active_map):
-    tiles_to_raise = classify_masses(active_map)
+    tiles_to_raise, large_water_bodies = classify_masses(active_map)
+    if len(large_water_bodies) > 2:
+        return False
     print('adjusting interior landmass elevation...')
     print('tiles to raise: {0}'.format(len(tiles_to_raise)))
     raising = True
@@ -204,6 +213,7 @@ def adjust_landmass_height(active_map):
             e = active_map.elevation[each_tile.row][each_tile.column]
             if e < active_map.mgp.water_cutoff + 0.01:
                 raising = True
+    return True
 
 
 def infill_basins(active_map):
@@ -407,20 +417,20 @@ def pick_biome(temperature, moisture):
                             "wet": "snowpack",
                             "very wet": "snowpack"},
               "cold": {"very dry": "tundra",
-                       "dry": "alpine",
-                       "wet": "alpine",
-                       "very wet": "taiga"},
-              "cool": {"very dry": "shrubland",
+                       "dry": "grassland",
+                       "wet": "taiga",
+                       "very wet": "alpine"},
+              "cool": {"very dry": "plains",
                        "dry": "grassland",
                        "wet": "taiga",
                        "very wet": "forest"},
-              "warm": {"very dry": "savannah",
-                       "dry": "plains",
-                       "wet": "grassland",
+              "warm": {"very dry": "plains",
+                       "dry": "savannah",
+                       "wet": "forest",
                        "very wet": "forest"},
               "hot": {"very dry": "desert",
                       "dry": "savannah",
-                      "wet": "plains",
+                      "wet": "forest",
                       "very wet": "jungle"}}
 
     return(biomes[temperature][moisture])
@@ -434,16 +444,17 @@ def set_biomes(active_map, water_cutoff):
     for y_row in active_map.game_tile_rows:
         for tile in y_row:
             biome = "ocean"
-            if active_map.elevation[tile.row][tile.column] >= shallows_cutoff:
+            e = active_map.elevation[tile.row][tile.column]
+            if e >= shallows_cutoff:
                 temperature = active_map.temperature[tile.row][tile.column]
                 moisture = active_map.moisture[tile.row][tile.column]
                 biome = pick_biome(biome_temps[temperature], biome_moisture[moisture])
                 if biome == "plains":
-                    if active_map.moisture[tile.row][tile.column] >= 55:
+                    if moisture >= 55:
                         biome = "wet plains"
-            elif shallows_cutoff > active_map.elevation[tile.row][tile.column] >= sea_cutoff:
+            elif shallows_cutoff > e >= sea_cutoff:
                 biome = "shallows"
-            elif sea_cutoff > active_map.elevation[tile.row][tile.column] >= ocean_cutoff:
+            elif sea_cutoff > e >= ocean_cutoff:
                 biome = "sea"
 
             """As of now, icecaps are triggering just right to not block northern
@@ -458,7 +469,7 @@ def set_biomes(active_map, water_cutoff):
                                         "shallows"):
                     biome = "ice"
 
-                tile.biome = biome
+            tile.biome = biome
 
 
 def generate_terrain(active_map):
@@ -469,11 +480,12 @@ def generate_terrain(active_map):
     mountain_cutoff = 0.775
     for y_row in active_map.game_tile_rows:
         for tile in y_row:
-            if hill_cutoff > active_map.elevation[tile.row][tile.column] >= low_hill_cutoff:
+            e = active_map.elevation[tile.row][tile.column]
+            if hill_cutoff > e >= low_hill_cutoff:
                 tile.terrain = "low hill"
-            elif low_mountain_cutoff > active_map.elevation[tile.row][tile.column] >= hill_cutoff:
+            elif low_mountain_cutoff > e >= hill_cutoff:
                 tile.terrain = "hill"
-            elif mountain_cutoff > active_map.elevation[tile.row][tile.column] >= low_mountain_cutoff:
+            elif mountain_cutoff > e >= low_mountain_cutoff:
                 tile.terrain = "low mountain"
             elif active_map.elevation[tile.row][tile.column] >= mountain_cutoff:
                 tile.terrain = "mountain"
@@ -730,8 +742,15 @@ def set_nation_territory(game_state):
 def make_map(game_state):
     active_map = game_state.active_map
     generate_blank_ocean_tiles(active_map)
-    generate_heightmap(active_map)
-    adjust_landmass_height(active_map)
+    # regenerate map until we have no large interior water masses
+    # large interior masses being 'a lake with more than 42 tiles'
+    connectivity_assured = False
+    attempts = 0
+    while not connectivity_assured:
+        attempts += 1
+        print("regenerating... attempt #{0}".format(attempts))
+        generate_heightmap(active_map)
+        connectivity_assured = adjust_landmass_height(active_map)
     infill_basins(active_map)
 
     active_map.render_raw_maps(['height'])

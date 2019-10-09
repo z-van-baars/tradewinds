@@ -24,12 +24,12 @@ class MapGenParameters(object):
         map_size = math.sqrt(math.sqrt(map_dimensions[0] * map_dimensions[1]))
         self.number_of_cities = math.floor(map_size * 5)
         """City Override"""
-        self.number_of_cities = 125
+        self.number_of_cities = 25
         self.number_of_nations = random.randint(
             math.ceil(map_size / 2),
             math.floor(map_size))
         """Nation Override"""
-        self.number_of_nations = 6
+        self.number_of_nations = 3
 
     def get_vitals(self):
         vitals = {}
@@ -215,14 +215,25 @@ class Map(object):
                                              "mountain"])):
                     if tile.water_flux[2] > river_cutoff:
                         x, y = utilities.get_screen_coords(tile.column, tile.row)
+
+                        # Paste terrain trees on before putting down river images
+                        if art.terrain_images["vegetation"][tile.biome] is not None:
+                            self.terrain_display_layer.image.blit(
+                                random.choice(
+                                    art.terrain_images["vegetation"][tile.biome]),
+                                [x + background_x_middle +
+                                    (tile_width / 2), y - 25])
                         self.terrain_display_layer.image.blit(art.river_images[0],
                                                               [x + background_x_middle +
                                                                (tile_width / 2), y])
+
+                        # paste river source
                         for source in tile.water_source[0]:
                             self.terrain_display_layer.image.blit(
                                 art.river_images[source],
                                 [x + background_x_middle +
                                  (tile_width / 2), y])
+                        # paste river outflow
                         self.terrain_display_layer.image.blit(
                             art.river_images[tile.water_source[1]],
                             [x + background_x_middle +
