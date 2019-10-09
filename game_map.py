@@ -24,12 +24,12 @@ class MapGenParameters(object):
         map_size = math.sqrt(math.sqrt(map_dimensions[0] * map_dimensions[1]))
         self.number_of_cities = math.floor(map_size * 5)
         """City Override"""
-        self.number_of_cities = 125
+        self.number_of_cities = 25
         self.number_of_nations = random.randint(
             math.ceil(map_size / 2),
             math.floor(map_size))
         """Nation Override"""
-        self.number_of_nations = 6
+        self.number_of_nations = 3
 
     def get_vitals(self):
         vitals = {}
@@ -66,7 +66,6 @@ class Map(object):
         self.temperature = []
         self.moisture = []
         self.elevation = []
-        self.wind = []
 
         self.largest_water_body = None
 
@@ -110,7 +109,7 @@ class Map(object):
 
     def serial_prep(self):
         vital_records = {}
-        for attr_name in ("moisture", "temperature", "elevation", "wind"):
+        for attr_name in ("moisture", "temperature", "elevation"):
             vital_records[attr_name] = getattr(self, attr_name)
         vital_records["map dimensions"] = (self.width, self.height)
         vital_records["mapgen parameters"] = self.mgp.get_vitals()
