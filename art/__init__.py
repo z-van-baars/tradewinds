@@ -16,6 +16,14 @@ key_color = utilities.colors.key
 
 
 # ICONS
+
+ships = {}
+ships["Cog"] = pygame.image.load("art/ships/cog.png")
+ships["Galleon"] = pygame.image.load("art/ships/galleon.png")
+
+for key, img in ships.items():
+    img.set_colorkey(utilities.colors.key)
+    img = img.convert_alpha()
 blockade_runner_icon = pygame.image.load(
     "art/icons/blockade_runner_icon.png").convert_alpha()
 blockade_runner_icon.set_colorkey(utilities.colors.key)
@@ -115,8 +123,9 @@ city_3.set_colorkey(utilities.colors.key)
 city_3 = city_3.convert_alpha()
 
 # BUILDINGS
-city_1 = pygame.image.load("art/constructs/city/ancient_city_1.png").convert_alpha()
-
+city_0 = pygame.image.load("art/constructs/city/ancient_city_0.png").convert_alpha()
+city_0.set_colorkey(utilities.colors.key)
+city_0 = city_0.convert_alpha()
 
 # TILES
 nw_edge = pygame.image.load("art/tiles/borders/nw.png")
@@ -154,15 +163,15 @@ shrubland_tile = pygame.image.load("art/tiles/shrubland_1.png")
 jungle_tile = pygame.image.load("art/tiles/jungle_1.png")
 forest_tile_1 = pygame.image.load("art/tiles/forest_1.png")
 grassland_tile = pygame.image.load("art/tiles/grassland_1.png")
-plains_tile = pygame.image.load("art/tiles/plains_1.png")
+plains_tiles = [pygame.image.load("art/tiles/plains_1.png"),
+                pygame.image.load("art/tiles/plains_2.png"),
+                pygame.image.load("art/tiles/plains_3.png")]
 
 snowpack_tiles = [pygame.image.load("art/tiles/snowpack_1.png"),
                   pygame.image.load("art/tiles/snowpack_2.png"),
                   pygame.image.load("art/tiles/snowpack_3.png"),
                   pygame.image.load("art/tiles/snowpack_4.png")]
-savannah_tiles = [pygame.image.load("art/tiles/savannah_1.png"),
-                  pygame.image.load("art/tiles/savannah_2.png"),
-                  pygame.image.load("art/tiles/savannah_3.png")]
+savannah_tiles = [pygame.image.load("art/tiles/savannah_1.png")]
 desert_tiles = [pygame.image.load("art/tiles/desert_1.png"),
                 pygame.image.load("art/tiles/desert_2.png"),
                 pygame.image.load("art/tiles/desert_3.png"),
@@ -178,10 +187,10 @@ for ii in range(2):
     taiga_tiles.append(
         pygame.image.load("art/tiles/taiga_{0}.png".format(ii)))
 
-biome_images = {"grass": [grass_tile],
+biome_images = {"conifer": [grass_tile],
+                "grass": [grass_tile],
                 "grassland": [grassland_tile],
-                "plains": [plains_tile],
-                "wet plains": [plains_tile],
+                "plains": plains_tiles,
                 "desert": desert_tiles,
                 "forest": [forest_tile_1],
                 "jungle": [jungle_tile],
@@ -216,12 +225,6 @@ for img in river_images_raw:
     river_images.append(img)
 
 tree_1 = pygame.image.load("art/constructs/terrain/tree_1.png")
-forest_1 = pygame.image.load("art/terrain/forest_1.png")
-forest_1.set_colorkey(utilities.colors.key)
-forest_1 = forest_1.convert_alpha()
-forest_2 = pygame.image.load("art/terrain/forest_2.png")
-forest_2.set_colorkey(utilities.colors.key)
-forest_2 = forest_2.convert_alpha()
 
 grassland_mountains = []
 for ii in range(6):
@@ -365,24 +368,45 @@ for ii in range(6):
     alpine_trees.append(
         pygame.image.load("art/terrain/alpine_{0}.png".format(ii)))
 
-wet_plains_trees = []
-for ii in range(3):
-    wet_plains_trees.append(
-        pygame.image.load("art/terrain/wet_plains_trees_{0}.png".format(ii)))
-
 jungle_trees = []
 for ii in range(7):
     jungle_trees.append(
         pygame.image.load("art/terrain/jungle_trees_{0}.png".format(ii)))
 
+savannah_trees = []
+for ii in range(3):
+    savannah_trees.append(
+        pygame.image.load("art/terrain/savannah_{0}.png".format(ii)))
+for ii in range(3):
+    savannah_trees.append(pygame.image.load("art/terrain/blank.png"))
 
-mountains = {"taiga": taiga_mountains,
+plains_trees = []
+for ii in range(3):
+    plains_trees.append(
+        pygame.image.load("art/terrain/plains_{0}.png".format(ii)))
+for ii in range(3):
+    plains_trees.append(pygame.image.load("art/terrain/blank.png"))
+
+
+forest_trees = []
+for ii in range(4):
+    forest_trees.append(
+        pygame.image.load("art/terrain/forest_{0}.png".format(ii)))
+
+
+conifer_trees = []
+for ii in range(3):
+    conifer_trees.append(
+        pygame.image.load("art/terrain/conifer_{0}.png".format(ii)))
+
+
+mountains = {"conifer": taiga_mountains,
+             "taiga": taiga_mountains,
              "tundra": tundra_mountains,
              "snowy tundra": tundra_mountains,
              "alpine": alpine_mountains,
              "grassland": taiga_mountains,
              "plains": plains_mountains,
-             "wet plains": plains_mountains,
              "savannah": savannah_mountains,
              "desert": desert_mountains,
              "forest": taiga_mountains,
@@ -396,13 +420,13 @@ mountains = {"taiga": taiga_mountains,
              "lake": grassland_mountains,
              "river": grassland_mountains}
 
-low_mountains = {"taiga": taiga_low_mountains,
+low_mountains = {"conifer": taiga_low_mountains,
+                 "taiga": taiga_low_mountains,
                  "tundra": tundra_low_mountains,
                  "snowy tundra": tundra_low_mountains,
                  "alpine": alpine_low_mountains,
                  "grassland": grassland_low_mountains,
                  "plains": plains_low_mountains,
-                 "wet plains": plains_low_mountains,
                  "savannah": savannah_low_mountains,
                  "desert": desert_low_mountains,
                  "forest": grassland_low_mountains,
@@ -416,13 +440,13 @@ low_mountains = {"taiga": taiga_low_mountains,
                  "lake": grassland_low_mountains,
                  "river": grassland_low_mountains}
 
-hills = {"taiga": taiga_hills,
+hills = {"conifer": taiga_hills,
+         "taiga": taiga_hills,
          "tundra": tundra_hills,
          "snowy tundra": tundra_hills,
          "alpine": alpine_hills,
          "grassland": grassland_hills,
          "plains": plains_hills,
-         "wet plains": plains_hills,
          "savannah": savannah_hills,
          "desert": desert_low_hills,
          "forest": grassland_hills,
@@ -436,13 +460,13 @@ hills = {"taiga": taiga_hills,
          "lake": grassland_hills,
          "river": grassland_hills}
 
-low_hills = {"taiga": grassland_low_hills,
+low_hills = {"conifer": grassland_low_hills,
+             "taiga": grassland_low_hills,
              "tundra": tundra_low_hills,
              "alpine": alpine_low_hills,
              "snowy tundra": tundra_low_hills,
              "grassland": grassland_low_hills,
              "plains": plains_low_hills,
-             "wet plains": plains_low_hills,
              "savannah": savannah_low_hills,
              "desert": desert_low_hills,
              "forest": grassland_low_hills,
@@ -457,16 +481,16 @@ low_hills = {"taiga": grassland_low_hills,
              "river": grassland_low_hills}
 
 
-vegetation = {"taiga": taiga_trees,
+vegetation = {"conifer": conifer_trees,
+              "taiga": taiga_trees,
               "tundra": None,
               "snowy tundra": None,
               "alpine": alpine_trees,
               "grassland": None,
-              "plains": None,
-              "wet plains": wet_plains_trees,
-              "savannah": None,
+              "plains": plains_trees,
+              "savannah": savannah_trees,
               "desert": None,
-              "forest": [forest_1, forest_2],
+              "forest": forest_trees,
               "jungle": jungle_trees,
               "snowpack": None,
               "ice": None,

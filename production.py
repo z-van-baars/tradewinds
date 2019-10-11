@@ -1,6 +1,7 @@
 import artikel
 
 food_value = {"taiga": 1,
+              "conifer": 1,
               "alpine": 1,
               "tundra": 1,
               "snowy tundra": 0,
@@ -28,6 +29,7 @@ terrain_food_value = {"river": 1,
 
 
 wood_value = {"taiga": 2,
+              "conifer": 2,
               "alpine": 2,
               "tundra": 0,
               "snowy tundra": 0,
@@ -82,6 +84,12 @@ biome_artikels["taiga"] = {
     "pelts": 4,
     "iron": 1,
     "wood": 3}
+biome_artikels["conifer"] = {
+    "wool": 3,
+    "meat": 3,
+    "pelts": 2,
+    "iron": 1,
+    "wood": 4}
 biome_artikels["tundra"] = {
     "pelts": 2,
     "meat": 1,

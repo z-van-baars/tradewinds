@@ -13,8 +13,7 @@ class Player(agent.Agent):
         super().__init__(active_map, 0, 0)
         self.game_state = game_state
         self.active_map = active_map
-        starter_cog = ships.Cog(active_map, 0, 0)
-        self.ship = starter_cog
+        self.ship = None
         self.silver = 0
 
     def get_vitals(self):

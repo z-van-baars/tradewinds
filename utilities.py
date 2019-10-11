@@ -101,14 +101,14 @@ class Colors(object):
             "alpine": (180, 248, 202),
             "taiga": (88, 224, 119),
             "grassland": (0, 210, 0),
-            "jungle": (61, 131, 44),
-            "forest": (112, 153, 103),
+            "jungle": (139, 245, 22),
+            "forest": (63, 111, 52),
+            "conifer": (39, 78, 19),
             "shrubland": (167, 161, 154),
             "snowpack": (225, 225, 255),
-            "plains": (136, 113, 76),
-            "wet plains": (112, 87, 46),
+            "plains": (244, 167, 66),
             "desert": (244, 240, 70),
-            "savannah": (244, 167, 66)}
+            "savannah": (136, 113, 76)}
         self.nation_colors = [
             (128, 0, 0),
             (154, 99, 36),

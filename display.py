@@ -5,6 +5,8 @@ import art
 
 tiny_font = pygame.font.SysFont('Calibri', 11, True, False)
 small_font = pygame.font.SysFont('Calibri', 14, True, False)
+horizontal_ship_offset = 25
+vertical_ship_offset = 35
 
 
 def update_display(game_state, selected_tile, display_parameters, mouse_pos, map_xy):
@@ -15,7 +17,7 @@ def update_display(game_state, selected_tile, display_parameters, mouse_pos, map
      background_bottom,
      background_x_middle) = display_parameters
     active_map = game_state.active_map
-    player = active_map.player
+    plr = active_map.plr
     screen = game_state.screen
     game_state.screen.fill(util.colors.background_blue)
 
@@ -39,33 +41,51 @@ def update_display(game_state, selected_tile, display_parameters, mouse_pos, map
     screen.blit(active_map.building_display_layer.image, [background_left,
                                                           background_top])
 
-    if player.path is not None and game_state.draw_routes:
+    if plr.path is not None and game_state.draw_routes:
         shifted_pts_list = []
-        pixel_xy = util.get_screen_coords(player.column, player.row)
+        pixel_xy = util.get_screen_coords(plr.column, plr.row)
         shifted_pts_list.append(
             (pixel_xy[0] + background_x_middle + (tile_width / 2),
              pixel_xy[1] + background_top + 7))
-        for point in player.path.steps:
+        for point in plr.path.steps:
             pixel_xy = util.get_screen_coords(point.column, point.row)
             shifted_pts_list.append(
                 (pixel_xy[0] + background_x_middle + (tile_width / 2),
                  pixel_xy[1] + background_top + 7))  # half tile height
         pygame.draw.aalines(screen, util.colors.red, False, shifted_pts_list)
 
-    # converts the player's x, y tile to pixel coordinates
-    player_pixel_coordinates = util.get_screen_coords(player.ship.column,
-                                                      player.ship.row)
-    # offsets the true pixel coordinates by the current display shift
-    player_screen_coordinates = (
-        player_pixel_coordinates[0] + background_x_middle + (tile_width / 2),
-        player_pixel_coordinates[1] + background_top)
-    """20 and 25 are graphical offsets - x and y
-    so that the player's ship image is centered on the tile"""
-    screen.blit(player.ship.image, [player_screen_coordinates[0] - 20,
-                                    player_screen_coordinates[1] - 25])
+    for agent in game_state.active_map.agents:
+        if agent.ship:
+            # converts the agent's x, y tile to pixel coordinates
+            agent_pixel_xy = util.get_screen_coords(
+                agent.ship.column,
+                agent.ship.row)
+            # offsets the true pixel coordinates by the current display shift
+            screen_xy = (
+                agent_pixel_xy[0] + background_x_middle + (tile_width / 2),
+                agent_pixel_xy[1] + background_top)
+            """25 and 35 are graphical offsets - x and y
+            so that the agent's ship image is centered on the tile
+            defined at the top of this module"""
+            game_state.screen.blit(
+                agent.ship.image,
+                [screen_xy[0] - horizontal_ship_offset,
+                 screen_xy[1] - vertical_ship_offset])
     if game_state.draw_borders:
         screen.blit(active_map.nation_border_display_layer.image, [background_left,
                                                                    background_top])
+    if game_state.draw_move_timer:
+        timer_color = util.colors.red
+        if plr.move_timer < 3:
+            timer_color = util.colors.light_green
+        move_timer_stamp = tiny_font.render(str(plr.move_timer), True, timer_color)
+        plr_pixel_xy = util.get_screen_coords(
+            plr.ship.column,
+            plr.ship.row)
+        screen_xy = (
+            plr_pixel_xy[0] + background_x_middle + (tile_width / 2),
+            plr_pixel_xy[1] + background_top)
+        screen.blit(move_timer_stamp, [screen_xy[0] + 15, screen_xy[1]])
     for menu in reversed(game_state.active_menus):
         game_state.screen.blit(
             menu.cached_image,

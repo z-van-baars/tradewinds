@@ -88,9 +88,12 @@ class Agent(entity.Entity):
         self.column = x
         self.row = y
         self.tile = self.active_map.game_tile_rows[y][x]
+        self.ship.set_facing((x, y))
         self.ship.column = x
         self.ship.row = y
         self.ship.tile = self.tile
+
+        self.ship.set_image()
         self.move_timer = self.move_timer_max
 
     def get_path_to_target(self):

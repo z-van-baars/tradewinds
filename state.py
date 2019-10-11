@@ -22,6 +22,7 @@ class GameState(object):
         self.draw_routes = True
         self.infinite_speed = False
         self.draw_borders = False
+        self.draw_move_timer = True
 
         self.active_map = None
         self.active_menus = []
@@ -36,6 +37,7 @@ class GameState(object):
         self.draw_routes = records["draw_routes"]
         self.infinite_speed = records["infinite_speed"]
         self.draw_borders = records["draw_borders"]
+        self.draw_move_timer = records["draw_move_timer"]
 
         # if "calendar" not in records:
         records["calendar"] = (1, 0, 1520)
@@ -50,7 +52,7 @@ class GameState(object):
         load_existing(self, records)
 
         self.active_map.player = Player(self, self.active_map)
-        self.active_map.player.load_external(records["player"])
+        self.active_map.player.load_external(records["plr"])
 
         x1, y1 = utilities.get_screen_coords(
             self.active_map.player.ship.column,
@@ -78,6 +80,7 @@ class GameState(object):
                           "draw_routes",
                           "infinite_speed",
                           "draw_borders",
+                          "draw_move_timer",
                           "calendar"):
             records[attr_name] = getattr(self, attr_name)
 

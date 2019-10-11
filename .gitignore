@@ -1,4 +1,5 @@
 source/
+textures/
 *.pyc
 *.psd
 .mypy_cache/*

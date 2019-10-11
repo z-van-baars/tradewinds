@@ -5,9 +5,10 @@ import state
 import display
 import mapgen
 import random
-import player
+from player import Player
 import ui
 from typing import Dict
+import ships
 
 pygame.init()
 pygame.display.set_mode([0, 0], pygame.RESIZABLE)
@@ -158,23 +159,25 @@ def input_processing(game_state, selected_tile, display_parameters, mouse_pos, m
 def new_game(game_state, map_dimensions):
     game_state.active_map = game_map.Map(map_dimensions, (screen_width, screen_height))
     mapgen.map_generation(game_state, game_state.active_map)
-    game_state.active_map.player = player.Player(game_state, game_state.active_map)
-    game_state.active_map.player.silver = 100
-    game_state.active_map.player.ship.cargo['wool'] = 10
+    game_state.active_map.plr = Player(game_state, game_state.active_map)
+    game_state.active_map.agents.add(game_state.active_map.plr)
+    game_state.active_map.plr.ship = ships.Galleon(game_state.active_map, 0, 0)
+    game_state.active_map.plr.silver = 100
+    game_state.active_map.plr.ship.cargo['wool'] = 10
 
     """Randomize Start Location"""
     start_location = random.choice(game_state.active_map.cities)
-    game_state.active_map.player.column = start_location.column
-    game_state.active_map.player.row = start_location.row
-    game_state.active_map.player.ship.column = start_location.column
-    game_state.active_map.player.ship.row = start_location.row
-    game_state.active_map.player.column = start_location.column
-    game_state.active_map.player.row = start_location.row
+    game_state.active_map.plr.column = start_location.column
+    game_state.active_map.plr.row = start_location.row
+    game_state.active_map.plr.ship.column = start_location.column
+    game_state.active_map.plr.ship.row = start_location.row
+    game_state.active_map.plr.column = start_location.column
+    game_state.active_map.plr.row = start_location.row
 
     """Center Camera on Start"""
     x1, y1 = util.get_screen_coords(
-        game_state.active_map.player.ship.column,
-        game_state.active_map.player.ship.row)
+        game_state.active_map.plr.ship.column,
+        game_state.active_map.plr.ship.row)
     game_state.active_map.x_shift = (
         -x1 - 40 - game_state.background_width / 2 + game_state.screen_width / 2)
     game_state.active_map.y_shift = -y1 - 40 + game_state.screen_height / 2
@@ -185,7 +188,7 @@ def new_game(game_state, map_dimensions):
 
 
 def game_tick(game_state):
-    game_state.active_map.player.tick()
+    # game_state.active_map.player.tick()
     for each_agent in game_state.active_map.agents:
         each_agent.tick()
     for each_city in game_state.active_map.cities:

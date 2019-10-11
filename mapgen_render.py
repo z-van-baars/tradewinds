@@ -184,7 +184,7 @@ def render_trade_score_map(active_map, marker, viable_sites):
     raw_maps = active_map.raw_maps
     raw_maps[4].fill((3, 0, 87))
     print("rendering trade score map")
-    max_score = 25
+    max_score = 45
     score_gradient = {0: (3, 0, 87),
                       10: (59, 211, 13),
                       9: (78, 91, 13),

@@ -14,6 +14,7 @@ import artikel
 import nation
 import mapgen_render as mgr
 import ships
+import player
 
 pygame.init()
 pygame.display.set_mode([0, 0])
@@ -70,6 +71,7 @@ def generate_tempmap(width, height):
     def get_temperature(equator_hotness, pole_coldness, noise_strength, noisiness):
         """modified perlin noise generator
         resulting values are normalized into "temperature" """
+        map_hotness = 80
         nx = x / width - 0.5
         ny = y / height - 0.5
         new = (1.0 * noise(noisiness * nx, noisiness * ny))
@@ -84,7 +86,7 @@ def generate_tempmap(width, height):
         new_temperature = min(
             math.floor(
                 max((temp + (temp * new) * noise_strength) *
-                    abs(1.0 - noise_strength), 0) * 100), 100)
+                    abs(1.0 - noise_strength), 0) * map_hotness), 100)
         return new_temperature
 
     def set_pole_distances():
@@ -423,14 +425,14 @@ def pick_biome(temperature, moisture):
               "cool": {"very dry": "plains",
                        "dry": "grassland",
                        "wet": "taiga",
-                       "very wet": "forest"},
+                       "very wet": "conifer"},
               "warm": {"very dry": "plains",
                        "dry": "savannah",
                        "wet": "forest",
                        "very wet": "forest"},
               "hot": {"very dry": "desert",
-                      "dry": "savannah",
-                      "wet": "forest",
+                      "dry": "plains",
+                      "wet": "savannah",
                       "very wet": "jungle"}}
 
     return(biomes[temperature][moisture])
@@ -449,9 +451,6 @@ def set_biomes(active_map, water_cutoff):
                 temperature = active_map.temperature[tile.row][tile.column]
                 moisture = active_map.moisture[tile.row][tile.column]
                 biome = pick_biome(biome_temps[temperature], biome_moisture[moisture])
-                if biome == "plains":
-                    if moisture >= 55:
-                        biome = "wet plains"
             elif shallows_cutoff > e >= sea_cutoff:
                 biome = "shallows"
             elif sea_cutoff > e >= ocean_cutoff:
@@ -847,6 +846,10 @@ def load_existing(game_state, vital_records):
     for each_record in vital_records["nations"]:
         new_nation = nation.Nation(active_map)
         new_nation.load_external(each_record)
+    new_player = player.Player(game_state, active_map)
+    new_player.load_external(vital_records["plr"])
+    game_state.active_map.plr = new_player
+    game_state.active_map.agents.add(new_player)
 
     print("Building tile database...")
     for row in active_map.game_tile_rows:

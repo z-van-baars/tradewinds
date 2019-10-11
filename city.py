@@ -433,7 +433,7 @@ def get_distance_score(active_map, site):
 
 def math_helper(z, f, t, r, tr, d):
     """Algorithms"""
-    return -d + z + f + t + r * 20 + tr + ((tr / 2) * (tr / 2))
+    return -d + z + f * 2 + t + r * 20 + tr + ((tr / 2) * (tr / 2))
 
 
 def evaluate_city_score(active_map, site):

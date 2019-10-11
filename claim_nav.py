@@ -7,6 +7,7 @@ import queue
 movement_cost = {"taiga": 1,
                  "tundra": 1,
                  "alpine": 1,
+                 "conifer": 1,
                  "snowy tundra": 1,
                  "grassland": 1,
                  "plains": 1,

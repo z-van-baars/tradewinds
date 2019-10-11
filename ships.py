@@ -12,6 +12,11 @@ class Ship(object):
     ----------
     speed
         Gotta go fast.
+        Reverse engineer the move timer formula
+        self.move_timer_max = round((5.0 / self.ship.speed) * 10)
+        speed of 5.0 will result in 10 days to move from tile to tile,
+        speed of 50 will result in 1 day per tile
+        speed of 1.3 will result in 30 days per tile for movement
     cargo_cap : int
         Max Loaded Cargo in Tons.  Less loaded cargo increases speed, but this has
         not been implemented.
@@ -59,9 +64,11 @@ class Ship(object):
         self.active_map = active_map  # GameMap
         """tile ID of current tile"""
         self.tile = None
-
         # laden_speed = base_speed * (0.5 * (1.0 - cargo_cap / current_cargo))
         self.cargo = {}  # dict[string] = int
+        self.facing = 0
+
+        self.set_image()
 
     def set_display_coordinates(self, tile_x: int, tile_y: int) -> None:
         self.x = tile_x
@@ -88,7 +95,31 @@ class Ship(object):
                           "cargo"):
             setattr(self, attr_name, records[attr_name])
 
+    def set_facing(self, new_position):
+        facings = {(-1, -1): 0,
+                   (0, -1): 1,
+                   (1, -1): 2,
+                   (1, 0): 3,
+                   (1, 1): 4,
+                   (0, 1): 5,
+                   (-1, 1): 6,
+                   (-1, 0): 7,
+                   (0, 0): self.facing}
+        diff = (new_position[0] - self.column, new_position[1] - self.row)
+        self.facing = facings[diff]
 
+    def set_image(self):
+        self.image = pygame.Surface([50, 50])
+        self.image.fill(util.colors.key)
+        self.image.blit(
+            art.ships[self.hull_class],
+            [0, 0],
+            [self.facing * 50, 0, 50, 50])
+        self.image.set_colorkey(util.colors.key)
+        self.image = self.image.convert_alpha()
+
+
+# Bremen
 class Cog(Ship):
     hull_class = "Cog"
 
@@ -97,90 +128,154 @@ class Cog(Ship):
             active_map,
             column,
             row,
-            speed=25,
+            speed=5,
             cargo_cap=50,
-            crew_cap=10,
+            crew_cap=15,
             defense=10,
             attack=10,
             wounds=1,
             purchase_cost=1000)
-        self.image = pygame.Surface([40, 40])
-        self.image.fill(util.colors.key)
-        self.image.blit(art.cog_icon, [0, 0])
-        self.image.set_colorkey(util.colors.key)
-        self.image = self.image.convert_alpha()
 
 
-class Carrack(Ship):
-    hull_class = "Carrack"
+# Santa Maria
+class Caravel(Ship):
+    hull_class = "Caravel"
 
     def __init__(self, active_map, column, row):
-        super().__init__(active_map, column, row, 3, 150, 20, 11, 15, 2, 2000)
-        self.image = pygame.Surface([40, 40])
-        self.image.fill(util.colors.key)
-        self.image.blit(art.carrack_icon, [0, 0])
-        self.image.set_colorkey(util.colors.key)
-        self.image = self.image.convert_alpha()
+        super().__init__(
+            active_map, column, row,
+            speed=5,
+            cargo_cap=100,
+            crew_cap=40,
+            defense=15,
+            attack=12,
+            wounds=2,
+            purchase_cost=5000)
 
 
 class Argosy(Ship):
     hull_class = "Argosy"
 
     def __init__(self, active_map, column, row):
-        super().__init__(active_map, column, row, 3, 200, 25, 11, 12, 2, 2500)
-        self.image = pygame.Surface([40, 40])
-        self.image.fill(util.colors.key)
-        self.image.blit(art.argosy_icon, [0, 0])
-        self.image.set_colorkey(util.colors.key)
-        self.image = self.image.convert_alpha()
+        super().__init__(
+            active_map, column, row,
+            speed=3.3,
+            cargo_cap=200,
+            crew_cap=40,
+            defense=11,
+            attack=12,
+            wounds=2,
+            purchase_cost=2500)
 
 
-class Caravel(Ship):
-    hull_class = "Caravel"
+# On 6 April 1522, Trinidad left Tidore loaded with 50 tons of cloves.
+#  Trinidad
+# A typical three-masted carrack such as the São Gabriel had six sails: bowsprit, foresail, mainsail, mizzensail and two topsails. 
+
+class Carrack(Ship):
+    hull_class = "Carrack"
 
     def __init__(self, active_map, column, row):
-        super().__init__(active_map, column, row, 3, 300, 30, 15, 15, 2, 5000)
-        self.image = pygame.Surface([40, 40])
-        self.image.fill(util.colors.key)
-        self.image.blit(art.caravel_icon, [0, 0])
-        self.image.set_colorkey(util.colors.key)
-        self.image = self.image.convert_alpha()
+        super().__init__(
+            active_map, column, row,
+            speed=5,
+            cargo_cap=150,
+            crew_cap=60,
+            defense=11,
+            attack=15,
+            wounds=2,
+            purchase_cost=6000)
+
+
+class Nao(Ship):
+    hull_class = "Nao"
+
+    def __ini__(self, active_map, column, row):
+        super().__init__(
+            active_map, column, row,
+            speed=5,
+            cargo_cap=1000,
+            crew_cap=200,
+            defense=12,
+            attack=15,
+            wounds=3,
+            purchase_cost=20000)
 
 
 class Galleon(Ship):
     hull_class = "Galleon"
 
     def __init__(self, active_map, column, row):
-        super().__init__(active_map, column, row, 3.2, 500, 50, 25, 25, 3, 10000)
-        self.image = pygame.Surface([40, 40])
-        self.image.fill(util.colors.key)
-        self.image.blit(art.galleon_icon, [0, 0])
-        self.image.set_colorkey(util.colors.key)
-        self.image = self.image.convert_alpha()
+        super().__init__(
+            active_map, column, row,
+            speed=6.25,
+            cargo_cap=500,
+            crew_cap=175,
+            defense=25,
+            attack=30,
+            wounds=3,
+            purchase_cost=12000)
 
 
+# Hector
 class Fluyt(Ship):
     hull_class = "Fluyt"
 
     def __init__(self, active_map, column, row):
-        super().__init__(active_map, column, row, 3, 750, 25, 12, 10, 2, 10000)
-        self.image = pygame.Surface([40, 40])
-        self.image.fill(util.colors.key)
-        self.image.blit(art.fluyt_icon, [0, 0])
-        self.image.set_colorkey(util.colors.key)
-        self.image = self.image.convert_alpha()
+        super().__init__(
+            active_map, column, row,
+            speed=8.34,
+            cargo_cap=250,
+            crew_cap=25,
+            defense=12,
+            attack=10,
+            wounds=2,
+            purchase_cost=12000)
 
 
 class Corvette(Ship):
     hull_class = "Corvette"
 
     def __init__(self, active_map, column, row):
-        super().__init__(active_map, column, row, 3, 250, 50, 25, 40, 3, 12000)
-        self.image = pygame.Surface([40, 40])
-        self.image.fill(util.colors.key)
-        self.image.blit(art.corvette_icon, [0, 0])
-        self.image.set_colorkey(util.colors.key)
-        self.image = self.image.convert_alpha()
+        super().__init__(
+            active_map, column, row,
+            speed=8.34,
+            cargo_cap=100,
+            crew_cap=100,
+            defense=35,
+            attack=30,
+            wounds=3,
+            purchase_cost=12000)
+
+
+class Frigate(Ship):
+    hull_class = "Frigate"
+
+    def __init__(self, active_map, column, row):
+        super().__init__(
+            active_map, column, row,
+            speed=6.25,
+            cargo_cap=100,
+            crew_cap=175,
+            defense=30,
+            attack=40,
+            wounds=5,
+            purchase_cost=20000)
+
+
+class ShipOfTheLine(Ship):
+    hull_class = "Ship of the Line"
+
+    def __init__(self, active_map, column, row):
+        super().__init__(
+            active_map, column, row,
+            speed=5,
+            cargo_cap=500,
+            crew_cap=600,
+            defense=100,
+            attack=125,
+            wounds=10,
+            purchase_cost=100000)
 
 
 ship_types = {
@@ -190,4 +285,6 @@ ship_types = {
     "Argosy": Argosy,
     "Galleon": Galleon,
     "Fluyt": Fluyt,
-    "Corvette": Corvette}
+    "Corvette": Corvette,
+    "Frigate": Frigate,
+    "Ship of the Line": ShipOfTheLine}

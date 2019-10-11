@@ -478,9 +478,16 @@ class ConsoleWindow(Menu):
                 self.game_state.console_log.append(
                     'Draw Borders set to {0}'.format(args[0].lower()))
 
+        def set_move_timer(args):
+            if args[0].lower() == "true" or args[0].lower() == "false":
+                self.game_state.draw_borders = (args[0].lower() == "true")
+                self.game_state.console_log.append(
+                    'Draw Move Timer set to {0}'.format(args[0].lower()))
+
         self.console_functions = {"draw_routes": set_draw_routes,
                                   "infinite_speed": set_infinite_speed,
-                                  "draw_borders": set_draw_borders}
+                                  "draw_borders": set_draw_borders,
+                                  "draw_move_timer": set_move_timer}
         self.buttons = []
 
     def keydown_handler(self, event, key):
@@ -638,7 +645,7 @@ class ShipStatus(Menu):
         self.buttons = [x_button, dragbar]
 
     def render_decals(self, pos):
-        ship = self.game_state.active_map.player.ship
+        ship = self.game_state.active_map.plr.ship
         header_font = pygame.font.SysFont('Calibri', 14, True, False)
 
         hull_class_stamp = header_font.render(
@@ -696,10 +703,10 @@ class ContextMenu(Menu):
                  "sea",
                  "shallows",
                  "lake"]) or tile.terrain == "river":
-                game_state.active_map.player.target_tile = tile
-                new_path = game_state.active_map.player.get_path_to_target()
+                game_state.active_map.plr.target_tile = tile
+                new_path = game_state.active_map.plr.get_path_to_target()
                 if new_path is not None:
-                    game_state.active_map.player.set_path(new_path)
+                    game_state.active_map.plr.set_path(new_path)
                 else:
                     cannot_move_popup = ImpassablePopup(game_state)
                     game_state.active_menus = (
@@ -751,9 +758,9 @@ class ContextMenu(Menu):
             224,
             25)
         self.buttons = [move_button, tile_info_button, cancel_button]
-        player = game_state.active_map.player
-        px = player.ship.column
-        py = player.ship.row
+        plr = game_state.active_map.plr
+        px = plr.ship.column
+        py = plr.ship.row
         player_tile = self.game_state.active_map.game_tile_rows[py][px]
         if (self.tile.city and
             (self.tile in
@@ -1029,7 +1036,7 @@ class MarketMenu(Menu):
             artikel_name = self.display_cache["cargo visible items"][self.display_cache["cargo selected"]]
             sell_quantity_popup = QuantityMenu(
                 self.game_state,
-                self.game_state.active_map.player,
+                self.game_state.active_map.plr,
                 self.city,
                 artikel_name,
                 "sale")
@@ -1041,7 +1048,7 @@ class MarketMenu(Menu):
             artikel_name = self.display_cache["market visible items"][self.display_cache["market selected"]]
             buy_quantity_popup = QuantityMenu(
                 self.game_state,
-                self.game_state.active_map.player,
+                self.game_state.active_map.plr,
                 self.city,
                 artikel_name,
                 "purchase")
@@ -1149,19 +1156,19 @@ class MarketMenu(Menu):
                         dragbar]
 
     def update_display_cache(self):
-        player = self.game_state.active_map.player
-        self.display_cache["silver"] = player.silver
+        plr = self.game_state.active_map.plr
+        self.display_cache["silver"] = plr.silver
         current_cargo = 0
-        for artikel_name, artikel_quantity in player.ship.cargo.items():
+        for artikel_name, artikel_quantity in plr.ship.cargo.items():
             current_cargo += artikel_quantity
         self.display_cache["cargo cap"] = "{0} / {1}".format(
-            str(current_cargo), str(player.ship.cargo_cap))
+            str(current_cargo), str(plr.ship.cargo_cap))
         self.display_cache["market artikels list"] = []
         for artikel_name, artikel_quantity, in self.city.supply.items():
             if artikel_quantity > 0:
                 self.display_cache["market artikels list"].append(artikel_name)
         self.display_cache["cargo artikels list"] = []
-        for artikel_name, artikel_quantity, in player.ship.cargo.items():
+        for artikel_name, artikel_quantity, in plr.ship.cargo.items():
             if artikel_quantity > 0:
                 self.display_cache["cargo artikels list"].append(artikel_name)
 
@@ -1275,11 +1282,11 @@ class MarketMenu(Menu):
         count = 0
         spacer = 14
         for artikel_name in self.display_cache["cargo visible items"]:
-            if self.game_state.active_map.player.ship.cargo[artikel_name] > 0:
+            if self.game_state.active_map.plr.ship.cargo[artikel_name] > 0:
                 artikel_name_stamp = small_font.render(
                     artikel_name, True, (255, 255, 255))
                 artikel_quantity_stamp = small_font.render(
-                    str(self.game_state.active_map.player.ship.cargo[artikel_name]), True, (255, 255, 255))
+                    str(self.game_state.active_map.plr.ship.cargo[artikel_name]), True, (255, 255, 255))
                 artikel_price_stamp = small_font.render(
                     str(self.city.sell_price[artikel_name]), True, (0, 210, 0))
                 self.cached_image.blit(artikel_quantity_stamp, [252,
@@ -1445,7 +1452,7 @@ class CityHallMenu(Menu):
 
 
 class QuantityMenu(Menu):
-    def __init__(self, game_state, player, city, artikel_name, transaction_type):
+    def __init__(self, game_state, city, artikel_name, transaction_type):
         super().__init__(game_state)
         self.background_pane = pygame.sprite.Sprite()
         self.background_pane.image = quantity_popup
@@ -1460,7 +1467,7 @@ class QuantityMenu(Menu):
         self.transaction_type = transaction_type
         self.city = city
         if self.transaction_type == "sale":
-            self.max_quantity = self.game_state.active_map.player.ship.cargo[self.artikel_name]
+            self.max_quantity = self.game_state.active_map.plr.ship.cargo[self.artikel_name]
         else:
             self.max_quantity = self.city.supply[self.artikel_name]
         self.step = 1
@@ -1484,11 +1491,11 @@ class QuantityMenu(Menu):
         self.update_display_cache()
 
         def quantity_up_click():
-            player = self.game_state.active_map.player
+            plr = self.game_state.active_map.plr
             cargo_margin = 0  # remaining empty space in the player's ship
-            cargo_margin += player.ship.cargo_cap
+            cargo_margin += plr.ship.cargo_cap
             loaded_cargo = 0
-            for artikel_name, quantity in player.ship.cargo.items():
+            for artikel_name, quantity in plr.ship.cargo.items():
                 loaded_cargo += quantity
             cargo_margin -= loaded_cargo
             if self.artikel_quantity < self.max_quantity:
@@ -1511,28 +1518,28 @@ class QuantityMenu(Menu):
             self.update_display_cache()
 
         def done_click():
-            player = self.game_state.active_map.player
+            plr = self.game_state.active_map.plr
             tcost = (
                 self.artikel_quantity *
                 self.transaction_modifiers[self.transaction_type])
             if self.transaction_type == "purchase":
-                if player.silver >= tcost:
+                if plr.silver >= tcost:
                     current_cargo = 0
-                    for artikel_id, quantity in player.ship.cargo.items():
+                    for artikel_id, quantity in plr.ship.cargo.items():
                         current_cargo += quantity
-                    if current_cargo + self.artikel_quantity <= player.ship.cargo_cap:
+                    if current_cargo + self.artikel_quantity <= plr.ship.cargo_cap:
                         self.city.increment_supply(artikel_name, -self.artikel_quantity)
-                        player.silver -= (
+                        plr.silver -= (
                             self.artikel_quantity *
                             self.city.purchase_price[artikel_name])
-                        if artikel_name in player.ship.cargo:
-                            player.ship.cargo[artikel_name] += self.artikel_quantity
+                        if artikel_name in plr.ship.cargo:
+                            plr.ship.cargo[artikel_name] += self.artikel_quantity
                         else:
-                            player.ship.cargo[artikel_name] = self.artikel_quantity
+                            plr.ship.cargo[artikel_name] = self.artikel_quantity
                         self.open = False
             elif self.transaction_type == "sale":
-                player.ship.cargo[self.artikel_name] -= self.artikel_quantity
-                player.silver += (
+                plr.ship.cargo[self.artikel_name] -= self.artikel_quantity
+                plr.silver += (
                     self.artikel_quantity *
                     self.city.sell_price[self.artikel_name])
                 self.city.increment_supply(self.artikel_name, self.artikel_quantity)
@@ -1662,8 +1669,8 @@ class MiniMap(Menu):
 
         def recenter_click():
             x1, y1 = util.get_screen_coords(
-                self.game_state.active_map.player.ship.column,
-                self.game_state.active_map.player.ship.row)
+                self.game_state.active_map.plr.ship.column,
+                self.game_state.active_map.plr.ship.row)
             self.game_state.active_map.x_shift = (
                 -x1 - 40 - self.game_state.background_width / 2 +
                 self.game_state.screen_width / 2)

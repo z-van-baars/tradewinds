@@ -24,12 +24,12 @@ class MapGenParameters(object):
         map_size = math.sqrt(math.sqrt(map_dimensions[0] * map_dimensions[1]))
         self.number_of_cities = math.floor(map_size * 5)
         """City Override"""
-        self.number_of_cities = 25
+        self.number_of_cities = 125
         self.number_of_nations = random.randint(
             math.ceil(map_size / 2),
             math.floor(map_size))
         """Nation Override"""
-        self.number_of_nations = 3
+        self.number_of_nations = 5
 
     def get_vitals(self):
         vitals = {}
@@ -74,7 +74,7 @@ class Map(object):
         self.cities = []
         self.nations = []
         self.agents = set()
-        self.player = None
+        self.plr = None
 
         self.nation_control = []
         self.city_control = []
@@ -126,7 +126,12 @@ class Map(object):
         for each_nation in self.nations:
             nation_vitals = each_nation.get_vitals()
             vital_records["nations"].append(nation_vitals)
-        vital_records["player"] = self.player.get_vitals()
+        for each_agent in self.agents:
+            agent_vitals = each_agent.get_vitals()
+            if each_agent is self.plr:
+                continue
+            vital_records["agents"].append(agent_vitals)
+        vital_records["plr"] = self.plr.get_vitals()
         return vital_records
 
     def add_city(self, new_city):
@@ -265,7 +270,7 @@ class Map(object):
         self.building_display_layer = DisplayLayer(self.width, self.height)
         background_x_middle = (self.building_display_layer.image.get_width() / 2)
         for city in self.cities:
-            new_city_image = art.city_1
+            new_city_image = art.city_0
             x, y = utilities.get_screen_coords(city.column, city.row)
             self.building_display_layer.image.blit(
                 new_city_image,
