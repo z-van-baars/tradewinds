@@ -113,6 +113,7 @@ class Agent(entity.Entity):
             pixel_xy = util.get_screen_coords(map_x, map_y)
             line_pts.append(pixel_xy)
         self.move_timer_max = round((5.0 / self.ship.speed) * 10)
+        self.move_timer = self.move_timer_max
         self.state = AgentState.move
 
     def check_move_timer(self):

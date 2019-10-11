@@ -125,7 +125,7 @@ def get_path(my_position, game_map, target_coordinates):
     new_path.steps = [closest_tile[1]]
     while True:
         next_tile = new_path.steps[0]
-        if next_tile == start_tile:
+        if visited[next_tile][1] == start_tile:
             break
         new_path.steps.insert(0, visited[next_tile][1])
     return new_path

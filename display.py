@@ -75,9 +75,7 @@ def update_display(game_state, selected_tile, display_parameters, mouse_pos, map
         screen.blit(active_map.nation_border_display_layer.image, [background_left,
                                                                    background_top])
     if game_state.draw_move_timer:
-        timer_color = util.colors.red
-        if plr.move_timer < 3:
-            timer_color = util.colors.light_green
+        timer_color = util.colors.light_green
         move_timer_stamp = tiny_font.render(str(plr.move_timer), True, timer_color)
         plr_pixel_xy = util.get_screen_coords(
             plr.ship.column,
