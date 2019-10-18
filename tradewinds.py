@@ -70,8 +70,7 @@ def F1_key(game_state):
 
 def left_click(game_state, mouse_pos, map_xy, button_states, event):
     if event.type == pygame.MOUSEBUTTONUP:
-        for menu in game_state.active_menus:
-            menu.event_handler(event, mouse_pos)
+
             return
     for menu in game_state.active_menus:
         interacted = menu.get_interaction(event, mouse_pos)
@@ -91,7 +90,17 @@ def left_click(game_state, mouse_pos, map_xy, button_states, event):
 
 
 def scrollwheel_click(game_state, mouse_pos, map_xy, button_states, event):
-    pass
+    for menu in game_state.active_menus:
+        interacted = menu.get_interaction(event, mouse_pos)
+        if interacted:
+            return
+    game_state.active_map.dragging = True
+
+
+def scrollwheel_release(game_state, mouse_pos, map_xy, button_states, event):
+    print("unscrolls")
+    game_state.active_map.dragging = False
+    game_state.active_map.drag_offset = None
 
 
 def right_click(game_state, mouse_pos, map_xy, button_states, event):
@@ -103,6 +112,21 @@ def right_click(game_state, mouse_pos, map_xy, button_states, event):
                                ui.ImpassablePopup])
     new_context_menu = ui.ContextMenu(game_state, mouse_pos, tile)
     game_state.active_menus = [new_context_menu] + game_state.active_menus
+
+
+def mouse_release(game_state):
+    if game_state.active_map.dragging:
+        game_state.active_map.dragging = False
+        game_state.active_map.drag_offset = False
+        return
+
+    for menu in game_state.active_menus:
+        interacted = menu.get_interaction(event, mouse_pos)
+        if interacted:
+            break
+    if not interacted:
+        return
+    game_state.active_menus[0].event_handler(event, mouse_pos)
 
 
 key_functions = {pygame.K_F1: F1_key,
@@ -117,6 +141,10 @@ mouseclick_functions = {(1, 0, 0): left_click,
                         (0, 1, 0): scrollwheel_click,
                         (0, 0, 1): right_click}
 
+mouserelease_functions = {(1, 0, 0): left_click,
+                          (0, 1, 0): scrollwheel_release,
+                          (0, 0, 1): do_nothing}
+
 
 def input_processing(game_state, selected_tile, display_parameters, mouse_pos, map_xy):
     (background_left,
@@ -129,6 +157,8 @@ def input_processing(game_state, selected_tile, display_parameters, mouse_pos, m
             pygame.display.quit()
             pygame.quit()
         elif event.type == pygame.MOUSEBUTTONDOWN:
+            if game_state.active_map.dragging:
+                return
             button_1, button_2, button_3 = pygame.mouse.get_pressed()
             button_states = (button_1, button_2, button_3)
             mouseclick_functions.get(button_states,
@@ -140,7 +170,7 @@ def input_processing(game_state, selected_tile, display_parameters, mouse_pos, m
         elif event.type == pygame.MOUSEBUTTONUP:
             button_1, button_2, button_3 = pygame.mouse.get_pressed()
             button_states = (button_1, button_2, button_3)
-            left_click(game_state, mouse_pos, map_xy, button_states, event)
+            mouse_release(game_state)
         elif event.type == pygame.KEYDOWN:
             if len(game_state.active_menus) > 2:
                 game_state.active_menus[0].event_handler(event, mouse_pos)
@@ -237,6 +267,8 @@ def main(game_state):
         for menu in menu_cache:
             if menu.open:
                 game_state.active_menus.append(menu)
+        if game_state.active_map.dragging:
+            game_state.active_map.drag(mouse_pos)
 
         # game_state.clock.tick(60)
         if not game_state.paused:
@@ -287,6 +319,7 @@ while main_menu.open:
     for menu in menu_cache:
         if menu.open:
             game_state.active_menus.append(menu)
+
 
 if game_state.active_map is None:
     new_game(game_state, (200, 200))

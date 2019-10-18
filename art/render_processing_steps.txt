@@ -1,0 +1,10 @@
+hue sat 
+desaturate -25
+
+Levels
+top bar midtone -1.8
+bottom bar black level ~40-50
+
+hue sat
+sat + 32
+lightnes -25

@@ -102,6 +102,8 @@ class Map(object):
             self.raw_maps,
             self.display_data)
         self.screen_dimensions = screen_dimensions
+        self.dragging = False
+        self.drag_offset = None
 
     @property
     def display_data(self):
@@ -181,6 +183,14 @@ class Map(object):
                                      self.biome_map_preview)
         self.biome_map_preview.set_colorkey(util.colors.key)
         self.biome_map_preview = self.biome_map_preview.convert_alpha()
+
+    def drag(self, pos):
+        if not self.drag_offset:
+            x = self.x_shift - pos[0]
+            y = self.y_shift - pos[1]
+            self.drag_offset = (x, y)
+        self.x_shift = pos[0] + self.drag_offset[0]
+        self.y_shift = pos[1] + self.drag_offset[1]
 
     def paint_background_tiles(self, game_tile_rows):
         tile_width = 40
@@ -303,16 +313,10 @@ class Map(object):
     def world_scroll(self, shift_x, shift_y, screen_width, screen_height):
         background_width = self.tile_display_layer.image.get_width()
         background_height = self.tile_display_layer.image.get_height()
-        self.x_shift += shift_x
-        self.y_shift += shift_y
-        if self.y_shift < -(background_height - 40):
-            self.y_shift = -(background_height - 40)
-        elif self.y_shift > screen_height + -40:
-            self.y_shift = screen_height + -40
-        if self.x_shift < -(background_width - 40):
-            self.x_shift = -(background_width - 40)
-        if self.x_shift > screen_width + -40:
-            self.x_shift = screen_width + -40
+        if self.y_shift > -(background_height + shift_y) and self.y_shift < screen_height + shift_y:
+            self.y_shift += shift_y
+        if self.x_shift > -(background_width + shift_x) and self.x_shift < screen_width + shift_x:
+            self.x_shift += shift_x
 
     def draw_to_screen(self, screen):
         background_x_middle = (

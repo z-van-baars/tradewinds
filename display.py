@@ -6,7 +6,7 @@ import art
 tiny_font = pygame.font.SysFont('Calibri', 11, True, False)
 small_font = pygame.font.SysFont('Calibri', 14, True, False)
 horizontal_ship_offset = 25
-vertical_ship_offset = 35
+vertical_ship_offset = 34
 
 
 def update_display(game_state, selected_tile, display_parameters, mouse_pos, map_xy):
