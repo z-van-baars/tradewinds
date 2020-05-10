@@ -70,8 +70,7 @@ def F1_key(game_state):
 
 def left_click(game_state, mouse_pos, map_xy, button_states, event):
     if event.type == pygame.MOUSEBUTTONUP:
-
-            return
+        return
     for menu in game_state.active_menus:
         interacted = menu.get_interaction(event, mouse_pos)
         if interacted:
@@ -97,7 +96,7 @@ def scrollwheel_click(game_state, mouse_pos, map_xy, button_states, event):
     game_state.active_map.dragging = True
 
 
-def scrollwheel_release(game_state, mouse_pos, map_xy, button_states, event):
+def scrollwheel_release(game_state):
     print("unscrolls")
     game_state.active_map.dragging = False
     game_state.active_map.drag_offset = None
@@ -114,19 +113,18 @@ def right_click(game_state, mouse_pos, map_xy, button_states, event):
     game_state.active_menus = [new_context_menu] + game_state.active_menus
 
 
-def mouse_release(game_state):
-    if game_state.active_map.dragging:
-        game_state.active_map.dragging = False
-        game_state.active_map.drag_offset = False
-        return
-
+def mouse_release(game_state, event, mouse_pos):
     for menu in game_state.active_menus:
         interacted = menu.get_interaction(event, mouse_pos)
         if interacted:
+            print("released!")
             break
     if not interacted:
+        scrollwheel_release(game_state)
+        print("no interact")
         return
     game_state.active_menus[0].event_handler(event, mouse_pos)
+    print("doot doot")
 
 
 key_functions = {pygame.K_F1: F1_key,
@@ -170,7 +168,7 @@ def input_processing(game_state, selected_tile, display_parameters, mouse_pos, m
         elif event.type == pygame.MOUSEBUTTONUP:
             button_1, button_2, button_3 = pygame.mouse.get_pressed()
             button_states = (button_1, button_2, button_3)
-            mouse_release(game_state)
+            mouse_release(game_state, event, mouse_pos)
         elif event.type == pygame.KEYDOWN:
             if len(game_state.active_menus) > 2:
                 game_state.active_menus[0].event_handler(event, mouse_pos)
@@ -191,7 +189,7 @@ def new_game(game_state, map_dimensions):
     mapgen.map_generation(game_state, game_state.active_map)
     game_state.active_map.plr = Player(game_state, game_state.active_map)
     game_state.active_map.agents.add(game_state.active_map.plr)
-    game_state.active_map.plr.ship = ships.Galleon(game_state.active_map, 0, 0)
+    game_state.active_map.plr.ship = ships.Cog(game_state.active_map, 0, 0)
     game_state.active_map.plr.silver = 100
     game_state.active_map.plr.ship.cargo['wool'] = 10
 

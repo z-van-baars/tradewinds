@@ -277,6 +277,7 @@ class Menu(object):
         elif event.type == pygame.MOUSEBUTTONDOWN:
             self.mouse_click_handler(event, pos)
         elif event.type == pygame.MOUSEBUTTONUP:
+            print("dooeeet")
             self.mouse_release_handler(event, pos)
         elif event.type == pygame.KEYDOWN:
             self.keydown_handler(event, event.key)
